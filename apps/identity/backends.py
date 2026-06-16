@@ -6,7 +6,7 @@ User = get_user_model()
 
 
 class RoleBasedBackend(ModelBackend):
-    """Authenticate via username or email. Permissions come from roles (via UserService)."""
+    """Authenticate via username or email. Permissions via UserService (template helper)."""
 
     def authenticate(self, request, username=None, password=None, **kwargs):
         if username is None:
@@ -31,12 +31,3 @@ class RoleBasedBackend(ModelBackend):
             return user
         return None
 
-    def has_perm(self, user_obj, perm, obj=None):
-        """Permission check via role-based service. Called by Django's auth system."""
-        request = getattr(user_obj, '_request', None)
-        company = getattr(request, 'current_company', None) if request else None
-        if company is None:
-            return False
-        from apps.identity.services import UserService
-        service = UserService(user_obj, company)
-        return service.has_permission(perm)
