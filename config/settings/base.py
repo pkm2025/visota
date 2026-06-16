@@ -20,7 +20,7 @@ INSTALLED_APPS = [
 
     # Third-party
     'django_extensions',
-    'django_q2',
+    'django_q',
     'axes',
 
     # Local — shared backend
