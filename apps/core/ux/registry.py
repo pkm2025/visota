@@ -6,12 +6,17 @@ Layout packs (Modern/Classic/Mobile/Portal) are orthogonal — see apps/core/ux/
 
 # Core operations that may have multiple interaction styles
 CORE_OPERATIONS = [
-    'voucher.create', 'voucher.edit',
-    'sales_invoice.create', 'sales_invoice.edit',
-    'purchase_invoice.create', 'purchase_invoice.edit',
-    'customer.create', 'vendor.create', 'product.create',
-    'stock_voucher.create',
-    'period.closing',
+    "voucher.create",
+    "voucher.edit",
+    "sales_invoice.create",
+    "sales_invoice.edit",
+    "purchase_invoice.create",
+    "purchase_invoice.edit",
+    "customer.create",
+    "vendor.create",
+    "product.create",
+    "stock_voucher.create",
+    "period.closing",
 ]
 
 
@@ -28,18 +33,18 @@ class InteractionStyle:
     - supported_operations: list of operations this style supports
     """
 
-    code: str = ''
-    name: str = ''
-    description: str = ''
-    template_prefix: str = ''
-    url_suffix: str = ''
+    code: str = ""
+    name: str = ""
+    description: str = ""
+    template_prefix: str = ""
+    url_suffix: str = ""
     required_permission: str | None = None
     supported_operations: list[str] = []
 
     @classmethod
-    def get_template(cls, operation: str, template_name: str = 'form.html') -> str:
+    def get_template(cls, operation: str, template_name: str = "form.html") -> str:
         """Return template path for an operation under this style."""
-        return f'{cls.template_prefix}/{operation}/{template_name}'
+        return f"{cls.template_prefix}/{operation}/{template_name}"
 
     @classmethod
     def supports(cls, operation: str) -> bool:
@@ -50,28 +55,32 @@ class InteractionStyle:
 class GuidedStyle(InteractionStyle):
     """Wizard-style for newcomers. Step-by-step with tooltips and smart defaults."""
 
-    code = 'guided'
-    name = 'Hướng dẫn'
-    description = 'Wizard từng bước cho người mới'
-    template_prefix = 'guided'
-    url_suffix = 'guided'
+    code = "guided"
+    name = "Hướng dẫn"
+    description = "Wizard từng bước cho người mới"
+    template_prefix = "guided"
+    url_suffix = "guided"
     required_permission = None
     supported_operations = [
-        'voucher.create', 'voucher.edit',
-        'sales_invoice.create', 'sales_invoice.edit',
-        'purchase_invoice.create',
-        'customer.create', 'vendor.create', 'product.create',
+        "voucher.create",
+        "voucher.edit",
+        "sales_invoice.create",
+        "sales_invoice.edit",
+        "purchase_invoice.create",
+        "customer.create",
+        "vendor.create",
+        "product.create",
     ]
 
 
 class StandardStyle(InteractionStyle):
     """Default full form for accountants. Single page with all fields + keyboard shortcuts."""
 
-    code = 'standard'
-    name = 'Tiêu chuẩn'
-    description = 'Form đầy đủ cho kế toán chuyên nghiệp'
-    template_prefix = 'standard'
-    url_suffix = ''  # default — no URL suffix
+    code = "standard"
+    name = "Tiêu chuẩn"
+    description = "Form đầy đủ cho kế toán chuyên nghiệp"
+    template_prefix = "standard"
+    url_suffix = ""  # default — no URL suffix
     required_permission = None
     supported_operations = list(CORE_OPERATIONS)  # supports all
 
@@ -79,33 +88,37 @@ class StandardStyle(InteractionStyle):
 class QuickStyle(InteractionStyle):
     """Minimal form for fast data entry. Type-ahead, Enter-to-next-field."""
 
-    code = 'quick'
-    name = 'Nhanh'
-    description = 'Minimal fields, smart defaults'
-    template_prefix = 'quick'
-    url_suffix = 'quick'
+    code = "quick"
+    name = "Nhanh"
+    description = "Minimal fields, smart defaults"
+    template_prefix = "quick"
+    url_suffix = "quick"
     required_permission = None
     supported_operations = [
-        'voucher.create',
-        'sales_invoice.create',
-        'purchase_invoice.create',
-        'customer.create', 'vendor.create', 'product.create',
+        "voucher.create",
+        "sales_invoice.create",
+        "purchase_invoice.create",
+        "customer.create",
+        "vendor.create",
+        "product.create",
     ]
 
 
 class BulkStyle(InteractionStyle):
     """Paste from Excel for batch entry. Bulk validate + create."""
 
-    code = 'bulk'
-    name = 'Hàng loạt'
-    description = 'Paste Excel, preview, bulk create'
-    template_prefix = 'bulk'
-    url_suffix = 'bulk'
+    code = "bulk"
+    name = "Hàng loạt"
+    description = "Paste Excel, preview, bulk create"
+    template_prefix = "bulk"
+    url_suffix = "bulk"
     required_permission = None
     supported_operations = [
-        'voucher.create',
-        'sales_invoice.create',
-        'customer.create', 'vendor.create', 'product.create',
+        "voucher.create",
+        "sales_invoice.create",
+        "customer.create",
+        "vendor.create",
+        "product.create",
     ]
 
 
@@ -144,14 +157,13 @@ class InteractionStyleRegistry:
         """Return styles the user is allowed to use for a given operation."""
         result = []
         for s in cls.for_operation(operation):
-            if not s.required_permission:
-                result.append(s)
-            elif user.is_superuser:
+            if not s.required_permission or user.is_superuser:
                 result.append(s)
             else:
                 # Check permission via UserService if we have a company context
                 from apps.identity.services import UserService
-                company = getattr(user, '_current_company', None)
+
+                company = getattr(user, "_current_company", None)
                 if company and UserService(user, company).has_permission(s.required_permission):
                     result.append(s)
         return result

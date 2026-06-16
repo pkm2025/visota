@@ -5,49 +5,93 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Company',
+            name="Company",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('code', models.CharField(max_length=20, unique=True)),
-                ('name', models.CharField(max_length=255)),
-                ('name_en', models.CharField(blank=True, max_length=255)),
-                ('short_name', models.CharField(blank=True, max_length=100)),
-                ('tax_code', models.CharField(blank=True, db_index=True, max_length=20)),
-                ('address', models.TextField(blank=True)),
-                ('phone', models.CharField(blank=True, max_length=20)),
-                ('email', models.EmailField(blank=True, max_length=254)),
-                ('legal_representative', models.CharField(blank=True, max_length=255)),
-                ('chief_accountant', models.CharField(blank=True, max_length=255)),
-                ('accounting_regime', models.CharField(choices=[('tt133', 'TT133/2016 (DN nhỏ và vừa)'), ('tt200', 'TT200/2014 (DN lớn)'), ('q48', 'QĐ48/2006 (cũ)')], default='tt133', max_length=10)),
-                ('default_currency', models.CharField(default='VND', max_length=3)),
-                ('fiscal_year_start_month', models.PositiveSmallIntegerField(default=1)),
-                ('is_active', models.BooleanField(default=True)),
-                ('brand_name', models.CharField(blank=True, max_length=255)),
-                ('brand_logo', models.ImageField(blank=True, null=True, upload_to='brands/logos/')),
-                ('brand_logo_dark', models.ImageField(blank=True, null=True, upload_to='brands/logos/')),
-                ('brand_favicon', models.ImageField(blank=True, null=True, upload_to='brands/favicons/')),
-                ('brand_primary_color', models.CharField(default='#2563eb', max_length=7, validators=[django.core.validators.RegexValidator(message='Color must be in hex format: #RRGGBB', regex='^#[0-9A-Fa-f]{6}$')])),
-                ('brand_accent_color', models.CharField(default='#16a34a', max_length=7, validators=[django.core.validators.RegexValidator(message='Color must be in hex format: #RRGGBB', regex='^#[0-9A-Fa-f]{6}$')])),
-                ('brand_sidebar_color', models.CharField(default='light', max_length=20)),
-                ('default_layout', models.CharField(default='modern', max_length=20)),
-                ('hide_pmketoan_branding', models.BooleanField(default=False)),
-                ('custom_css', models.TextField(blank=True)),
-                ('custom_domain', models.CharField(blank=True, max_length=255)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("code", models.CharField(max_length=20, unique=True)),
+                ("name", models.CharField(max_length=255)),
+                ("name_en", models.CharField(blank=True, max_length=255)),
+                ("short_name", models.CharField(blank=True, max_length=100)),
+                ("tax_code", models.CharField(blank=True, db_index=True, max_length=20)),
+                ("address", models.TextField(blank=True)),
+                ("phone", models.CharField(blank=True, max_length=20)),
+                ("email", models.EmailField(blank=True, max_length=254)),
+                ("legal_representative", models.CharField(blank=True, max_length=255)),
+                ("chief_accountant", models.CharField(blank=True, max_length=255)),
+                (
+                    "accounting_regime",
+                    models.CharField(
+                        choices=[
+                            ("tt133", "TT133/2016 (DN nhỏ và vừa)"),
+                            ("tt200", "TT200/2014 (DN lớn)"),
+                            ("q48", "QĐ48/2006 (cũ)"),
+                        ],
+                        default="tt133",
+                        max_length=10,
+                    ),
+                ),
+                ("default_currency", models.CharField(default="VND", max_length=3)),
+                ("fiscal_year_start_month", models.PositiveSmallIntegerField(default=1)),
+                ("is_active", models.BooleanField(default=True)),
+                ("brand_name", models.CharField(blank=True, max_length=255)),
+                ("brand_logo", models.ImageField(blank=True, null=True, upload_to="brands/logos/")),
+                (
+                    "brand_logo_dark",
+                    models.ImageField(blank=True, null=True, upload_to="brands/logos/"),
+                ),
+                (
+                    "brand_favicon",
+                    models.ImageField(blank=True, null=True, upload_to="brands/favicons/"),
+                ),
+                (
+                    "brand_primary_color",
+                    models.CharField(
+                        default="#2563eb",
+                        max_length=7,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                message="Color must be in hex format: #RRGGBB",
+                                regex="^#[0-9A-Fa-f]{6}$",
+                            )
+                        ],
+                    ),
+                ),
+                (
+                    "brand_accent_color",
+                    models.CharField(
+                        default="#16a34a",
+                        max_length=7,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                message="Color must be in hex format: #RRGGBB",
+                                regex="^#[0-9A-Fa-f]{6}$",
+                            )
+                        ],
+                    ),
+                ),
+                ("brand_sidebar_color", models.CharField(default="light", max_length=20)),
+                ("default_layout", models.CharField(default="modern", max_length=20)),
+                ("hide_pmketoan_branding", models.BooleanField(default=False)),
+                ("custom_css", models.TextField(blank=True)),
+                ("custom_domain", models.CharField(blank=True, max_length=255)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
             ],
             options={
-                'verbose_name': 'Company (Tenant)',
-                'verbose_name_plural': 'Companies',
-                'db_table': 'company',
+                "verbose_name": "Company (Tenant)",
+                "verbose_name_plural": "Companies",
+                "db_table": "company",
             },
         ),
     ]

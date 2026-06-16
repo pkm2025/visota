@@ -5,66 +5,65 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('identity', '0001_initial'),
+        ("identity", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='user',
-            name='avatar',
-            field=models.ImageField(blank=True, null=True, upload_to='avatars/'),
+            model_name="user",
+            name="avatar",
+            field=models.ImageField(blank=True, null=True, upload_to="avatars/"),
         ),
         migrations.AddField(
-            model_name='user',
-            name='created_at',
+            model_name="user",
+            name="created_at",
             field=models.DateTimeField(auto_now_add=True, default=django.utils.timezone.now),
             preserve_default=False,
         ),
         migrations.AddField(
-            model_name='user',
-            name='failed_login_count',
+            model_name="user",
+            name="failed_login_count",
             field=models.PositiveSmallIntegerField(default=0),
         ),
         migrations.AddField(
-            model_name='user',
-            name='full_name',
+            model_name="user",
+            name="full_name",
             field=models.CharField(blank=True, max_length=255),
         ),
         migrations.AddField(
-            model_name='user',
-            name='full_name_en',
+            model_name="user",
+            name="full_name_en",
             field=models.CharField(blank=True, max_length=255),
         ),
         migrations.AddField(
-            model_name='user',
-            name='last_login_ip',
+            model_name="user",
+            name="last_login_ip",
             field=models.GenericIPAddressField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='user',
-            name='locked_until',
+            model_name="user",
+            name="locked_until",
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='user',
-            name='phone',
+            model_name="user",
+            name="phone",
             field=models.CharField(blank=True, max_length=20),
         ),
         migrations.AddField(
-            model_name='user',
-            name='two_factor_enabled',
+            model_name="user",
+            name="two_factor_enabled",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='user',
-            name='two_factor_secret',
+            model_name="user",
+            name="two_factor_secret",
             field=models.CharField(blank=True, max_length=64),
         ),
         migrations.AddField(
-            model_name='user',
-            name='updated_at',
+            model_name="user",
+            name="updated_at",
             field=models.DateTimeField(auto_now=True),
         ),
     ]

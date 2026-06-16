@@ -1,4 +1,5 @@
 """Custom managers and querysets for multi-tenant models."""
+
 from django.db import models
 
 
@@ -22,9 +23,9 @@ class CompanyOwnedModel(models.Model):
     """Abstract base for models that belong to a Company (multi-tenant)."""
 
     company = models.ForeignKey(
-        'core.Company',
+        "core.Company",
         on_delete=models.CASCADE,
-        related_name='+',
+        related_name="+",
         db_index=True,
     )
 

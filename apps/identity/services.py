@@ -1,11 +1,12 @@
 """Identity services: permission checks, role management."""
+
 from django.core.cache import cache
 
 
 class UserService:
     """Service layer for user operations and permission checks."""
 
-    CACHE_KEY = 'user_perms_{user_id}_{company_id}'
+    CACHE_KEY = "user_perms_{user_id}_{company_id}"
 
     def __init__(self, user, company):
         self.user = user
@@ -35,11 +36,17 @@ class UserService:
     def _load_permissions(self) -> set:
         """Load permissions from DB via UserCompanyRole -> Role -> Permission."""
         from apps.identity.models import UserCompanyRole
+
         if not self.company:
             return set()
-        ucrs = UserCompanyRole.objects.filter(
-            user=self.user, company=self.company,
-        ).select_related('role').prefetch_related('role__permissions')
+        ucrs = (
+            UserCompanyRole.objects.filter(
+                user=self.user,
+                company=self.company,
+            )
+            .select_related("role")
+            .prefetch_related("role__permissions")
+        )
         perms = set()
         for ucr in ucrs:
             for p in ucr.role.permissions.all():
@@ -48,7 +55,9 @@ class UserService:
 
     def invalidate_cache(self):
         """Clear permission cache for this user/company."""
-        cache.delete(self.CACHE_KEY.format(
-            user_id=self.user.id,
-            company_id=self.company.id if self.company else 0,
-        ))
+        cache.delete(
+            self.CACHE_KEY.format(
+                user_id=self.user.id,
+                company_id=self.company.id if self.company else 0,
+            )
+        )

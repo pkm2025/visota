@@ -1,4 +1,5 @@
 """Auth views: login + logout."""
+
 from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import reverse_lazy
 
@@ -8,20 +9,20 @@ from apps.ui_modern.forms import LoginForm
 class PMKetoanLoginView(LoginView):
     """Login view with PMKetoan branding and Vietnamese UI."""
 
-    template_name = 'modern/auth/login.html'
+    template_name = "modern/auth/login.html"
     form_class = LoginForm
     redirect_authenticated_user = True
 
     def get_success_url(self):
-        return reverse_lazy('ui_modern:dashboard')
+        return reverse_lazy("ui_modern:dashboard")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['page_title'] = 'Đăng nhập'
+        ctx["page_title"] = "Đăng nhập"
         return ctx
 
 
 class PMKetoanLogoutView(LogoutView):
     """Logout view — POST-only (Django 4+ security)."""
 
-    next_page = '/auth/login/'
+    next_page = "/auth/login/"

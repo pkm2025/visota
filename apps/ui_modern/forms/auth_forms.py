@@ -11,22 +11,26 @@ class LoginForm(AuthenticationForm):
 
     username = forms.CharField(
         max_length=150,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Tên đăng nhập',
-            'autofocus': True,
-        }),
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Tên đăng nhập",
+                "autofocus": True,
+            }
+        ),
     )
     password = forms.CharField(
-        widget=forms.PasswordInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Mật khẩu',
-        }),
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Mật khẩu",
+            }
+        ),
     )
 
     def get_invalid_login_error(self):
         """Vietnamese error message for invalid credentials."""
         return forms.ValidationError(
-            'Tên đăng nhập hoặc mật khẩu không đúng.',
-            code='invalid_login',
+            "Tên đăng nhập hoặc mật khẩu không đúng.",
+            code="invalid_login",
         )

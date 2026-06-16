@@ -1,4 +1,5 @@
 """Role-based authentication backend."""
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
 
@@ -27,7 +28,7 @@ class RoleBasedBackend(ModelBackend):
             # Track IP + reset failed counter (audit)
             if request is not None:
                 from apps.identity.audit import record_login
+
                 record_login(user, request)
             return user
         return None
-

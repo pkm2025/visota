@@ -44,6 +44,7 @@ addopts = "-v --cov=apps --cov-report=term-missing --reuse-db"
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+extend-exclude = ["migrations", "manage.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "B", "C4", "RET", "SIM"]

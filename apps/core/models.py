@@ -1,13 +1,13 @@
 """Core models: Company (tenant) and branding."""
-from django.db import models
+
 from django.core.validators import RegexValidator
+from django.db import models
 
 from .managers import CompanyQuerySet
 
-
 HEX_COLOR_VALIDATOR = RegexValidator(
-    regex=r'^#[0-9A-Fa-f]{6}$',
-    message='Color must be in hex format: #RRGGBB',
+    regex=r"^#[0-9A-Fa-f]{6}$",
+    message="Color must be in hex format: #RRGGBB",
 )
 
 
@@ -15,9 +15,9 @@ class Company(models.Model):
     """Tenant entity. Multi-tenant isolation via company_id column."""
 
     class AccountingRegime(models.TextChoices):
-        TT133 = 'tt133', 'TT133/2016 (DN nhỏ và vừa)'
-        TT200 = 'tt200', 'TT200/2014 (DN lớn)'
-        Q48 = 'q48', 'QĐ48/2006 (cũ)'
+        TT133 = "tt133", "TT133/2016 (DN nhỏ và vừa)"
+        TT200 = "tt200", "TT200/2014 (DN lớn)"
+        Q48 = "q48", "QĐ48/2006 (cũ)"
 
     # Legal info
     code = models.CharField(max_length=20, unique=True)
@@ -37,25 +37,25 @@ class Company(models.Model):
         choices=AccountingRegime.choices,
         default=AccountingRegime.TT133,
     )
-    default_currency = models.CharField(max_length=3, default='VND')
+    default_currency = models.CharField(max_length=3, default="VND")
     fiscal_year_start_month = models.PositiveSmallIntegerField(default=1)
 
     is_active = models.BooleanField(default=True)
 
     # Branding
     brand_name = models.CharField(max_length=255, blank=True)
-    brand_logo = models.ImageField(upload_to='brands/logos/', null=True, blank=True)
-    brand_logo_dark = models.ImageField(upload_to='brands/logos/', null=True, blank=True)
-    brand_favicon = models.ImageField(upload_to='brands/favicons/', null=True, blank=True)
+    brand_logo = models.ImageField(upload_to="brands/logos/", null=True, blank=True)
+    brand_logo_dark = models.ImageField(upload_to="brands/logos/", null=True, blank=True)
+    brand_favicon = models.ImageField(upload_to="brands/favicons/", null=True, blank=True)
     brand_primary_color = models.CharField(
-        max_length=7, default='#2563eb', validators=[HEX_COLOR_VALIDATOR]
+        max_length=7, default="#2563eb", validators=[HEX_COLOR_VALIDATOR]
     )
     brand_accent_color = models.CharField(
-        max_length=7, default='#16a34a', validators=[HEX_COLOR_VALIDATOR]
+        max_length=7, default="#16a34a", validators=[HEX_COLOR_VALIDATOR]
     )
-    brand_sidebar_color = models.CharField(max_length=20, default='light')
+    brand_sidebar_color = models.CharField(max_length=20, default="light")
 
-    default_layout = models.CharField(max_length=20, default='modern')
+    default_layout = models.CharField(max_length=20, default="modern")
 
     # White-label
     hide_pmketoan_branding = models.BooleanField(default=False)
@@ -68,9 +68,9 @@ class Company(models.Model):
     objects = CompanyQuerySet.as_manager()
 
     class Meta:
-        db_table = 'company'
-        verbose_name = 'Company (Tenant)'
-        verbose_name_plural = 'Companies'
+        db_table = "company"
+        verbose_name = "Company (Tenant)"
+        verbose_name_plural = "Companies"
 
     def __str__(self):
         return self.name

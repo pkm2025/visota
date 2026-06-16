@@ -1,8 +1,11 @@
-from .dashboard_views import DashboardView
 from .auth_views import PMKetoanLoginView, PMKetoanLogoutView
-from .health_views import health_simple, health_detailed
+from .dashboard_views import DashboardView
+from .health_views import health_detailed, health_simple
 
 __all__ = [
-    'DashboardView', 'PMKetoanLoginView', 'PMKetoanLogoutView',
-    'health_simple', 'health_detailed',
+    "DashboardView",
+    "PMKetoanLoginView",
+    "PMKetoanLogoutView",
+    "health_simple",
+    "health_detailed",
 ]
