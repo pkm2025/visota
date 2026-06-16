@@ -1,2 +1,42 @@
-/* Auth page styles — will be filled in Task 11 */
-body.auth-page { background: var(--color-bg-subtle); }
+body.auth-page {
+    margin: 0;
+    background: linear-gradient(135deg, var(--color-primary) 0%, #1e40af 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+.auth-container {
+    width: 100%;
+    max-width: 400px;
+    padding: 16px;
+}
+
+.auth-card {
+    background: white;
+    border-radius: 12px;
+    padding: 40px 32px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.auth-logo {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.auth-logo h2 {
+    color: var(--color-primary);
+    margin: 0;
+}
+
+.btn-primary {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.auth-footer {
+    text-align: center;
+    margin-top: 24px;
+}
