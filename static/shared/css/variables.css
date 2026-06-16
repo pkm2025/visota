@@ -1,0 +1,22 @@
+:root {
+    --brand-primary: #2563eb;
+    --brand-accent: #16a34a;
+
+    --color-primary: var(--brand-primary);
+    --color-primary-hover: color-mix(in srgb, var(--brand-primary) 85%, black);
+    --color-primary-light: color-mix(in srgb, var(--brand-primary) 10%, white);
+
+    --color-success: #16a34a;
+    --color-warning: #d97706;
+    --color-danger: #dc2626;
+
+    --color-text: #111827;
+    --color-text-muted: #6b7280;
+    --color-bg: #ffffff;
+    --color-bg-subtle: #f9fafb;
+    --color-bg-muted: #f3f4f6;
+    --color-border: #e5e7eb;
+
+    --sidebar-width: 256px;
+    --topbar-height: 56px;
+}

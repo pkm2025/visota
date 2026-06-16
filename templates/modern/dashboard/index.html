@@ -1,0 +1,64 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h1>{{ page_title }}</h1>
+    <p class="text-muted">Chào {{ user.full_name|default:user.username }}, đây là dashboard của bạn.</p>
+
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="text-muted small">Chứng từ hôm nay</div>
+                    <div class="h3 mb-0">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="text-muted small">Công nợ KH</div>
+                    <div class="h3 mb-0">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="text-muted small">Công nợ NCC</div>
+                    <div class="h3 mb-0">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="text-muted small">Tồn kho</div>
+                    <div class="h3 mb-0">—</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">Chứng từ gần đây</div>
+                <div class="card-body">
+                    <p class="text-muted text-center py-4">
+                        Chưa có dữ liệu. Đây là placeholder sẽ được thay bằng grid master-detail.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">Công việc trong ngày</div>
+                <div class="card-body">
+                    <p class="text-muted text-center py-4">Trống</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

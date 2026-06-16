@@ -1,0 +1,110 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi" data-layout="{{ current_layout }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ brand.name }}{% endblock %}</title>
+
+    <link rel="icon" href="{{ brand.favicon }}">
+
+    <link rel="stylesheet" href="{% static 'vendor/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'vendor/css/bootstrap-icons.min.css' %}">
+    <link rel="stylesheet" href="{% static 'shared/css/variables.css' %}">
+    <link rel="stylesheet" href="{% static 'modern/css/main.css' %}">
+
+    {% if brand.custom_css %}
+    <style>{{ brand.custom_css|safe }}</style>
+    {% endif %}
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="layout-modern" style="--brand-primary: {{ brand.primary_color }}; --brand-accent: {{ brand.accent_color }};">
+    <!-- Top bar -->
+    <header class="topbar">
+        <div class="topbar-left">
+            <a href="{% url 'ui_modern:dashboard' %}" class="brand-logo">
+                {% if brand.logo %}
+                    <img src="{{ brand.logo }}" alt="{{ brand.name }}" height="32">
+                {% else %}
+                    <strong>{{ brand.name }}</strong>
+                {% endif %}
+            </a>
+        </div>
+        <div class="topbar-center">
+            <input type="search" placeholder="Tìm kiếm..." class="form-control form-control-sm global-search">
+        </div>
+        <div class="topbar-right">
+            <button class="btn btn-sm btn-light"><i class="bi bi-bell"></i></button>
+            <button class="btn btn-sm btn-light"><i class="bi bi-gear"></i></button>
+            {% if user.is_authenticated %}
+            <div class="dropdown">
+                <button class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="bi bi-person"></i> {{ user.username }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="#">Hồ sơ</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="/auth/logout/">Đăng xuất</a></li>
+                </ul>
+            </div>
+            {% else %}
+            <a href="/auth/login/" class="btn btn-sm btn-primary">Đăng nhập</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <div class="layout-body">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <nav>
+                <a href="{% url 'ui_modern:dashboard' %}" class="nav-item">
+                    <i class="bi bi-house"></i> Trang chủ
+                </a>
+                <div class="nav-section">
+                    <div class="nav-section-title">Cập nhật số liệu</div>
+                    <a href="#" class="nav-item"><i class="bi bi-receipt"></i> Phiếu kế toán</a>
+                    <a href="#" class="nav-item"><i class="bi bi-arrow-repeat"></i> Kết chuyển cuối kỳ</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Sổ sách</div>
+                    <a href="#" class="nav-item"><i class="bi bi-journal-book"></i> Nhật ký chung</a>
+                    <a href="#" class="nav-item"><i class="bi bi-book"></i> Sổ cái</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Báo cáo</div>
+                    <a href="#" class="nav-item"><i class="bi bi-bar-chart"></i> BCĐ tài khoản</a>
+                    <a href="#" class="nav-item"><i class="bi bi-file-earmark-bar-graph"></i> BCTC</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Danh mục</div>
+                    <a href="#" class="nav-item"><i class="bi bi-list-ul"></i> Hệ thống TK</a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main content -->
+        <main class="main-content">
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    {% include 'shared/_layout_switcher.html' %}
+
+    <script src="{% static 'vendor/js/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'vendor/js/htmx.min.js' %}"></script>
+    <script src="{% static 'vendor/js/alpine.min.js' %}" defer></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

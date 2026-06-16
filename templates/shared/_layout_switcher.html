@@ -1,0 +1,10 @@
+<div class="layout-switcher">
+    {% for layout in available_layouts %}
+    <a href="{{ layout.url_prefix }}"
+       class="{% if current_layout == layout.code %}active{% endif %}"
+       title="{{ layout.name }}">
+        <i class="bi {{ layout.icon }}"></i>
+        <span class="d-none d-md-inline">{{ layout.name }}</span>
+    </a>
+    {% endfor %}
+</div>
