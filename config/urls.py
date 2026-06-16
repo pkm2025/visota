@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import RedirectView
+from django.conf import settings
 from apps.ui_modern.views import PMKetoanLoginView, PMKetoanLogoutView
 
 urlpatterns = [
@@ -10,3 +11,9 @@ urlpatterns = [
     path('', RedirectView.as_view(url='/modern/', permanent=False)),
     path('modern/', include('apps.ui_modern.urls')),
 ]
+
+if settings.DEBUG:
+    import debug_toolbar
+    urlpatterns += [
+        path('__debug__/', include(debug_toolbar.urls)),
+    ]
