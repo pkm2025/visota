@@ -1,0 +1,27 @@
+[Unit]
+Description=PMKetoan Gunicorn Web Server
+After=network.target mariadb.service
+
+[Service]
+Type=notify
+User=pmketoan
+Group=www-data
+WorkingDirectory=/home/pmketoan/app
+Environment="PATH=/home/pmketoan/app/.venv/bin"
+Environment="DJANGO_SETTINGS_MODULE=config.settings.prod"
+EnvironmentFile=/home/pmketoan/app/.env
+ExecStart=/home/pmketoan/app/.venv/bin/gunicorn --workers 4 --threads 2 --bind 127.0.0.1:8000 --access-logfile /var/log/pmketoan/gunicorn-access.log --error-logfile /var/log/pmketoan/gunicorn-error.log --timeout 120 --graceful-timeout 30 --max-requests 1000 --max-requests-jitter 100 config.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=on-failure
+RestartSec=5s
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/log/pmketoan /home/pmketoan/app/staticfiles /home/pmketoan/app/media
+RestrictSUIDSGID=true
+RemoveIPC=true
+
+[Install]
+WantedBy=multi-user.target
