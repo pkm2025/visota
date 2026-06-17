@@ -168,4 +168,12 @@ class VoucherDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["page_title"] = f"Phiếu {self.object.voucher_no}"
+        # Related vouchers: same company/fiscal_year/period, exclude self
+        related_qs = AccountingVoucher.objects.filter(
+            company=self.object.company,
+            fiscal_year=self.object.fiscal_year,
+            period=self.object.period,
+        )
+        ctx["related_vouchers"] = related_qs.exclude(id=self.object.id).distinct()[:10]
+        ctx["voucher"] = self.object  # for right sidebar
         return ctx

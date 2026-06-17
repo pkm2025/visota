@@ -19,10 +19,15 @@
 
     {% block extra_css %}{% endblock %}
 </head>
-<body class="layout-modern" style="--brand-primary: {{ brand.primary_color }}; --brand-accent: {{ brand.accent_color }};">
+<body class="layout-modern" x-data="initSidebar()" x-init="init()"
+      :class="{ 'sidebar-collapsed': sidebarCollapsed, 'right-collapsed': rightCollapsed }"
+      style="--brand-primary: {{ brand.primary_color }}; --brand-accent: {{ brand.accent_color }};">
     <!-- Top bar -->
     <header class="topbar">
-        <div class="topbar-left">
+        <div class="topbar-left" style="display:flex; align-items:center; gap:8px;">
+            <button class="sidebar-toggle" @click="toggleSidebar()" title="Ẩn/hiện menu" aria-label="Toggle sidebar">
+                <i class="bi bi-list"></i>
+            </button>
             <a href="{% url 'ui_modern:dashboard' %}" class="brand-logo">
                 {% if brand.logo %}
                     <img src="{{ brand.logo }}" alt="{{ brand.name }}" height="32">
@@ -35,6 +40,9 @@
             <input type="search" placeholder="Tìm kiếm..." class="form-control form-control-sm global-search">
         </div>
         <div class="topbar-right">
+            <button class="sidebar-toggle" @click="toggleRight()" title="Ẩn/hiện ngữ cảnh" aria-label="Toggle context panel">
+                <i class="bi bi-layout-sidebar-inset-reverse"></i>
+            </button>
             <button class="btn btn-sm btn-light"><i class="bi bi-bell"></i></button>
             <button class="btn btn-sm btn-light"><i class="bi bi-gear"></i></button>
             {% if user.is_authenticated %}
@@ -59,102 +67,127 @@
         <aside class="sidebar">
             <nav>
                 <a href="{% url 'ui_modern:dashboard' %}" class="nav-item">
-                    <i class="bi bi-house"></i> Trang chủ
+                    <i class="bi bi-house"></i> <span>Trang chủ</span>
                 </a>
                 <div class="nav-section">
                     <div class="nav-section-title">Cập nhật số liệu</div>
-                    <a href="{% url 'ui_modern:voucher_list' %}" class="nav-item"><i class="bi bi-receipt"></i> Phiếu kế toán</a>
-                    <a href="{% url 'ui_modern:cash_receipt_create' %}" class="nav-item"><i class="bi bi-cash-coin"></i> Phiếu thu</a>
-                    <a href="{% url 'ui_modern:cash_payment_create' %}" class="nav-item"><i class="bi bi-credit-card"></i> Phiếu chi</a>
-                    <a href="{% url 'ui_modern:period_closing' %}" class="nav-item"><i class="bi bi-arrow-repeat"></i> Kết chuyển cuối kỳ</a>
-                    <a href="{% url 'ui_modern:input_invoice_list' %}" class="nav-item"><i class="bi bi-file-earmark-richtext"></i> Hóa đơn đầu vào</a>
+                    <a href="{% url 'ui_modern:voucher_list' %}" class="nav-item"><i class="bi bi-receipt"></i> <span>Phiếu kế toán</span></a>
+                    <a href="{% url 'ui_modern:cash_receipt_create' %}" class="nav-item"><i class="bi bi-cash-coin"></i> <span>Phiếu thu</span></a>
+                    <a href="{% url 'ui_modern:cash_payment_create' %}" class="nav-item"><i class="bi bi-credit-card"></i> <span>Phiếu chi</span></a>
+                    <a href="{% url 'ui_modern:period_closing' %}" class="nav-item"><i class="bi bi-arrow-repeat"></i> <span>Kết chuyển cuối kỳ</span></a>
+                    <a href="{% url 'ui_modern:input_invoice_list' %}" class="nav-item"><i class="bi bi-file-earmark-richtext"></i> <span>Hóa đơn đầu vào</span></a>
                 </div>
                 <div class="nav-section">
                     <div class="nav-section-title">Tự động hoá</div>
-                    <a href="{% url 'ui_modern:recurring_list' %}" class="nav-item"><i class="bi bi-clock-history"></i> Bút toán định kỳ</a>
+                    <a href="{% url 'ui_modern:recurring_list' %}" class="nav-item"><i class="bi bi-clock-history"></i> <span>Bút toán định kỳ</span></a>
                 </div>
                 <div class="nav-section">
                     <div class="nav-section-title">Nghiệp vụ</div>
                     <a href="{% url 'ui_modern:customer_list' %}" class="nav-item">
-                        <i class="bi bi-people"></i> Khách hàng
+                        <i class="bi bi-people"></i> <span>Khách hàng</span>
                     </a>
                     <a href="{% url 'ui_modern:vendor_list' %}" class="nav-item">
-                        <i class="bi bi-truck"></i> Nhà cung cấp
+                        <i class="bi bi-truck"></i> <span>Nhà cung cấp</span>
                     </a>
                     <a href="{% url 'ui_modern:product_list' %}" class="nav-item">
-                        <i class="bi bi-box"></i> Hàng hóa
+                        <i class="bi bi-box"></i> <span>Hàng hóa</span>
                     </a>
                     <a href="{% url 'ui_modern:sales_invoice_list' %}" class="nav-item">
-                        <i class="bi bi-receipt-cutoff"></i> Hóa đơn bán
+                        <i class="bi bi-receipt-cutoff"></i> <span>Hóa đơn bán</span>
                     </a>
                     <a href="{% url 'ui_modern:purchase_invoice_list' %}" class="nav-item">
-                        <i class="bi bi-bag"></i> Phiếu nhập mua
+                        <i class="bi bi-bag"></i> <span>Phiếu nhập mua</span>
                     </a>
                     <a href="{% url 'ui_modern:stock_voucher_list' %}" class="nav-item">
-                        <i class="bi bi-box-seam"></i> Phiếu nhập xuất
+                        <i class="bi bi-box-seam"></i> <span>Phiếu nhập xuất</span>
                     </a>
                     <a href="{% url 'ui_modern:contract_list' %}" class="nav-item">
-                        <i class="bi bi-file-earmark-text"></i> Hợp đồng
+                        <i class="bi bi-file-earmark-text"></i> <span>Hợp đồng</span>
                     </a>
                 </div>
                 <div class="nav-section">
                     <div class="nav-section-title">Tài sản</div>
                     <a href="{% url 'ui_modern:asset_list' %}" class="nav-item">
-                        <i class="bi bi-bounding-box"></i> Tài sản cố định / CCDC
+                        <i class="bi bi-bounding-box"></i> <span>Tài sản cố định / CCDC</span>
                     </a>
                     <a href="{% url 'ui_modern:depreciation_run' %}" class="nav-item">
-                        <i class="bi bi-calculator"></i> Tính khấu hao kỳ
+                        <i class="bi bi-calculator"></i> <span>Tính khấu hao kỳ</span>
                     </a>
                 </div>
                 <div class="nav-section">
                     <div class="nav-section-title">Nhân sự</div>
                     <a href="{% url 'ui_modern:employee_list' %}" class="nav-item">
-                        <i class="bi bi-person-badge"></i> Nhân viên
+                        <i class="bi bi-person-badge"></i> <span>Nhân viên</span>
                     </a>
                     <a href="{% url 'ui_modern:payroll_run' %}" class="nav-item">
-                        <i class="bi bi-cash-stack"></i> Tính lương
+                        <i class="bi bi-cash-stack"></i> <span>Tính lương</span>
                     </a>
                 </div>
                 <div class="nav-section">
                     <div class="nav-section-title">Sổ sách</div>
-                    <a href="{% url 'ui_modern:general_journal' %}" class="nav-item"><i class="bi bi-journal-book"></i> Nhật ký chung</a>
-                    <a href="{% url 'ui_modern:general_ledger' %}" class="nav-item"><i class="bi bi-book"></i> Sổ cái</a>
+                    <a href="{% url 'ui_modern:general_journal' %}" class="nav-item"><i class="bi bi-journal-book"></i> <span>Nhật ký chung</span></a>
+                    <a href="{% url 'ui_modern:general_ledger' %}" class="nav-item"><i class="bi bi-book"></i> <span>Sổ cái</span></a>
                 </div>
                 <div class="nav-section">
                     <div class="nav-section-title">Báo cáo</div>
-                    <a href="{% url 'ui_modern:trial_balance' %}" class="nav-item"><i class="bi bi-bar-chart"></i> BCĐ tài khoản</a>
-                    <a href="{% url 'ui_modern:balance_sheet' %}" class="nav-item"><i class="bi bi-file-earmark-bar-graph"></i> BCTH tài chính (B01)</a>
-                    <a href="{% url 'ui_modern:pnl' %}" class="nav-item"><i class="bi bi-graph-up"></i> KQ HĐKD (B02)</a>
-                    <a href="{% url 'ui_modern:vat_return' %}" class="nav-item"><i class="bi bi-receipt"></i> Tờ khai GTGT (01)</a>
+                    <a href="{% url 'ui_modern:trial_balance' %}" class="nav-item"><i class="bi bi-bar-chart"></i> <span>BCĐ tài khoản</span></a>
+                    <a href="{% url 'ui_modern:balance_sheet' %}" class="nav-item"><i class="bi bi-file-earmark-bar-graph"></i> <span>BCTH tài chính (B01)</span></a>
+                    <a href="{% url 'ui_modern:pnl' %}" class="nav-item"><i class="bi bi-graph-up"></i> <span>KQ HĐKD (B02)</span></a>
+                    <a href="{% url 'ui_modern:vat_return' %}" class="nav-item"><i class="bi bi-receipt"></i> <span>Tờ khai GTGT (01)</span></a>
                 </div>
                 <div class="nav-section">
                     <div class="nav-section-title">Danh mục</div>
-                    <a href="#" class="nav-item"><i class="bi bi-list-ul"></i> Hệ thống TK</a>
+                    <a href="#" class="nav-item"><i class="bi bi-list-ul"></i> <span>Hệ thống TK</span></a>
                 </div>
             </nav>
         </aside>
 
-        <!-- Main content -->
-        <main class="main-content">
-            {% if messages %}
-            <div class="messages">
-                {% for message in messages %}
-                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-                {% endfor %}
+        <!-- Content + Tab bar -->
+        <div class="content-wrapper" style="flex:1; display:flex; flex-direction:column; min-width:0;">
+            <!-- Tab bar -->
+            <div class="tab-bar tabs-container" x-data="initTabs()" x-init="init()" x-cloak>
+                <template x-for="tab in tabs" :key="tab.id">
+                    <div class="tab-item" :class="{ 'active': activeTabId === tab.id }"
+                         @click="switchTab(tab.id)">
+                        <span x-text="tab.title"></span>
+                        <button class="tab-close" @click.stop="closeTab(tab.id)" aria-label="Close tab">×</button>
+                    </div>
+                </template>
             </div>
-            {% endif %}
+            <!-- Main content -->
+            <main class="main-content" id="tab-content">
+                {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
 
-            {% block content %}{% endblock %}
-        </main>
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+
+        <!-- Right sidebar -->
+        <aside class="right-sidebar context-panel">
+            {% include 'modern/base/_right_sidebar.html' %}
+        </aside>
     </div>
+
+    <!-- Right toggle when collapsed -->
+    <button class="right-toggle" @click="toggleRight()" x-show="rightCollapsed" x-cloak
+            title="Hiện panel ngữ cảnh" aria-label="Show context panel">
+        <i class="bi bi-chevron-left"></i>
+    </button>
 
     {% include 'shared/_layout_switcher.html' %}
 
     <script src="{% static 'vendor/js/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'vendor/js/htmx.min.js' %}"></script>
+    <script src="{% static 'modern/js/layout.js' %}"></script>
     <script src="{% static 'vendor/js/alpine.min.js' %}" defer></script>
     {% block extra_js %}{% endblock %}
 </body>
