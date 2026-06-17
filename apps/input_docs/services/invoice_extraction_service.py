@@ -75,7 +75,11 @@ class InvoiceExtractionService:
 
         # Date — formats dd/mm/yyyy or yyyy-mm-dd
         date_val = None
-        m = re.search(r"Ng[àa]y[:\s]*([0-9]{1,2})[/-]([0-9]{1,2})[/-]([0-9]{4})", text, re.IGNORECASE)
+        m = re.search(
+            r"Ng[àa]y[:\s]*([0-9]{1,2})[/-]([0-9]{1,2})[/-]([0-9]{4})",
+            text,
+            re.IGNORECASE,
+        )
         if m:
             d, mo, y = (int(x) for x in m.groups())
             try:

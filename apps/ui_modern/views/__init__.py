@@ -20,6 +20,11 @@ from .document_views import (
 )
 from .health_views import health_detailed, health_simple
 from .hr_views import EmployeeCreateView, EmployeeListView
+from .input_invoice_views import (
+    InputInvoiceListView,
+    InputInvoiceProcessView,
+    InputInvoiceUploadView,
+)
 from .ledger_views import VoucherCreateView, VoucherDetailView, VoucherListView
 from .payroll_views import PayrollRunView
 from .product_views import (
@@ -47,6 +52,7 @@ from .stock_views import (
     StockVoucherCreateView,
     StockVoucherListView,
 )
+from .recurring_views import RecurringListView, RecurringRunView
 from .treasury_views import CashPaymentCreateView, CashReceiptCreateView
 from .vendor_views import (
     VendorCreateView,
@@ -99,4 +105,9 @@ __all__ = [
     "CashPaymentCreateView",
     "ContractListView",
     "ContractCreateView",
+    "InputInvoiceListView",
+    "InputInvoiceUploadView",
+    "InputInvoiceProcessView",
+    "RecurringListView",
+    "RecurringRunView",
 ]

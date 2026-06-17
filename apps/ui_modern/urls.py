@@ -20,6 +20,9 @@ from .views import (
     EmployeeListView,
     GeneralJournalView,
     GeneralLedgerView,
+    InputInvoiceListView,
+    InputInvoiceProcessView,
+    InputInvoiceUploadView,
     PayrollRunView,
     PeriodClosingView,
     PnLView,
@@ -28,6 +31,8 @@ from .views import (
     ProductUpdateView,
     PurchaseInvoiceCreateView,
     PurchaseInvoiceListView,
+    RecurringListView,
+    RecurringRunView,
     SalesInvoiceCreateView,
     SalesInvoiceListView,
     StockVoucherCreateView,
@@ -254,5 +259,32 @@ urlpatterns = [
         "contracts/new/",
         login_required(ContractCreateView.as_view()),
         name="contract_create",
+    ),
+    # Input invoices (đầu vào)
+    path(
+        "input-invoices/",
+        login_required(InputInvoiceListView.as_view()),
+        name="input_invoice_list",
+    ),
+    path(
+        "input-invoices/upload/",
+        login_required(InputInvoiceUploadView.as_view()),
+        name="input_invoice_upload",
+    ),
+    path(
+        "input-invoices/<int:pk>/process/",
+        login_required(InputInvoiceProcessView.as_view()),
+        name="input_invoice_process",
+    ),
+    # Recurring entries
+    path(
+        "recurring/",
+        login_required(RecurringListView.as_view()),
+        name="recurring_list",
+    ),
+    path(
+        "recurring/run/",
+        login_required(RecurringRunView.as_view()),
+        name="recurring_run",
     ),
 ]

@@ -1,0 +1,48 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:input_invoice_list' %}">Hóa đơn đầu vào</a></li>
+            <li class="breadcrumb-item active">Tải lên</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <p class="text-muted">
+                Dán nội dung text (từ PDF/OCR) hoặc XML hóa đơn điện tử (TCT).
+                Hệ thống tự trích xuất MST, số hóa đơn, ngày, tiền trước VAT, VAT, tổng cộng.
+            </p>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="form-label">Hoặc tải lên tệp (.txt, .xml)</label>
+                    <input type="file" name="file" class="form-control" accept=".txt,.xml,text/plain,application/xml">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Nội dung XML hóa đơn điện tử</label>
+                    <textarea name="xml_text" rows="6" class="form-control font-monospace"
+                              placeholder="&lt;HoaDon&gt;...&lt;/HoaDon&gt;"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Hoặc nội dung text trích từ PDF/scan</label>
+                    <textarea name="raw_text" rows="8" class="form-control"
+                              placeholder="HÓA ĐƠN GTGT, Mã số thuế: 0109876543, TỔNG CỘNG THANH TOÁN: 110000 ..."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-magic"></i> Trích xuất &amp; xem trước
+                </button>
+                <a href="{% url 'ui_modern:input_invoice_list' %}" class="btn btn-link">Huỷ</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

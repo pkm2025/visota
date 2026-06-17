@@ -8,8 +8,7 @@ import pytest
 from apps.core.models import Company
 from apps.input_docs.models import InputInvoice
 from apps.input_docs.services import InvoiceExtractionService
-from apps.ledger.models import AccountingVoucher
-from apps.master_data.models import Product, Vendor
+from apps.master_data.models import Product
 from apps.purchasing.models import PurchaseInvoice
 
 
