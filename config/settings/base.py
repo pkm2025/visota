@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'apps.purchasing',
     'apps.inventory',
     'apps.assets',
+    'apps.hr',
 
     # Local — UI layout packs
     'apps.ui_modern',
