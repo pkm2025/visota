@@ -37,6 +37,8 @@ INSTALLED_APPS = [
     'apps.reporting',
     'apps.documents',
     'apps.contracts',
+    'apps.input_docs',
+    'apps.recurring',
 
     # Local — UI layout packs
     'apps.ui_modern',
