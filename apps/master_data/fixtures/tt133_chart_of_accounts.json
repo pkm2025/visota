@@ -1,0 +1,12 @@
+[
+  {"code": 1, "name": "Tài sản ngắn hạn", "balance_type": "debit", "category": "asset"},
+  {"code": 2, "name": "Tài sản dài hạn", "balance_type": "debit", "category": "asset"},
+  {"code": 3, "name": "Nợ phải trả", "balance_type": "credit", "category": "liability"},
+  {"code": 4, "name": "Vốn chủ sở hữu", "balance_type": "credit", "category": "equity"},
+  {"code": 5, "name": "Doanh thu", "balance_type": "credit", "category": "revenue"},
+  {"code": 6, "name": "Chi phí sản xuất kinh doanh", "balance_type": "debit", "category": "expense"},
+  {"code": 7, "name": "Thu nhập khác", "balance_type": "credit", "category": "other_income"},
+  {"code": 8, "name": "Chi phí khác", "balance_type": "debit", "category": "other_expense"},
+  {"code": 9, "name": "Xác định kết quả kinh doanh", "balance_type": "credit", "category": "off_balance"},
+  {"code": 0, "name": "Tài khoản ngoài bảng", "balance_type": "debit", "category": "off_balance"}
+]
