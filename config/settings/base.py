@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'apps.core',
     'apps.identity',
     'apps.master_data',
+    'apps.ledger',
 
     # Local — UI layout packs
     'apps.ui_modern',
