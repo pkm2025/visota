@@ -82,5 +82,116 @@
             </div>
         </div>
     </div>
+
+    <!-- Documents section -->
+    <div class="card mt-3">
+        <div class="card-header d-flex justify-content-between align-items-center py-2">
+            <strong><i class="bi bi-paperclip"></i> Chứng từ đính kèm</strong>
+            <div class="btn-group btn-group-sm">
+                <a href="{% url 'ui_modern:voucher_print' voucher.id %}" target="_blank"
+                   class="btn btn-outline-primary">
+                    <i class="bi bi-printer"></i> In chứng từ (PDF)
+                </a>
+                <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                    <i class="bi bi-upload"></i> Tải lên scan
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if voucher.documents.all %}
+            <table class="table table-sm mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Tiêu đề</th>
+                        <th>Loại</th>
+                        <th>File</th>
+                        <th>Trạng thái</th>
+                        <th>Ngày tạo</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in voucher.documents.all %}
+                    <tr>
+                        <td>{{ doc.title }}</td>
+                        <td>
+                            {% if doc.document_type == 'print_template' %}
+                            <span class="badge bg-info">In hệ thống</span>
+                            {% elif doc.document_type == 'scanned_upload' %}
+                            <span class="badge bg-success">Scan</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ doc.document_type }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>{{ doc.file_type|upper }} ({{ doc.file_size|filesizeformat }})</small>
+                        </td>
+                        <td>
+                            {% if doc.status == 'printed' %}<span class="badge bg-info">Đã in</span>
+                            {% elif doc.status == 'signed' %}<span class="badge bg-primary">Đã ký</span>
+                            {% elif doc.status == 'scanned' %}<span class="badge bg-success">Đã scan</span>
+                            {% else %}<span class="badge bg-secondary">{{ doc.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td><small>{{ doc.created_at|date:"d/m/Y H:i" }}</small></td>
+                        <td class="text-nowrap">
+                            <a href="{% url 'ui_modern:document_download' doc.id %}"
+                               class="btn btn-sm btn-outline-secondary py-0">
+                                <i class="bi bi-download"></i>
+                            </a>
+                            <form method="post" action="{% url 'ui_modern:document_delete' doc.id %}"
+                                  class="d-inline" onsubmit="return confirm('Xóa file này?')">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-outline-danger py-0">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted text-center py-3 mb-0">
+                <i class="bi bi-paperclip"></i> Chưa có file đính kèm.
+                In chứng từ hoặc tải lên scan đã ký.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div class="modal fade" id="uploadModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" action="{% url 'ui_modern:voucher_upload' voucher.id %}"
+                      enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title">Tải lên chứng từ scan</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Tiêu đề</label>
+                            <input type="text" name="title" class="form-control"
+                                   value="Scan {{ voucher.voucher_no }} đã ký" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Chọn file (PDF, JPG, PNG)</label>
+                            <input type="file" name="file" class="form-control" required
+                                   accept=".pdf,.jpg,.jpeg,.png">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-upload"></i> Tải lên
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

@@ -10,6 +10,8 @@ from .views import (
     CustomerUpdateView,
     DashboardView,
     DepreciationRunView,
+    DocumentDeleteView,
+    DocumentDownloadView,
     EmployeeCreateView,
     EmployeeListView,
     PayrollRunView,
@@ -32,6 +34,8 @@ from .views import (
     VoucherCreateView,
     VoucherDetailView,
     VoucherListView,
+    VoucherPrintView,
+    VoucherUploadView,
 )
 
 app_name = "ui_modern"
@@ -52,6 +56,26 @@ urlpatterns = [
         "vouchers/<int:pk>/",
         login_required(VoucherDetailView.as_view()),
         name="voucher_detail",
+    ),
+    path(
+        "vouchers/<int:pk>/print/",
+        login_required(VoucherPrintView.as_view()),
+        name="voucher_print",
+    ),
+    path(
+        "vouchers/<int:pk>/upload/",
+        login_required(VoucherUploadView.as_view()),
+        name="voucher_upload",
+    ),
+    path(
+        "documents/<int:pk>/download/",
+        login_required(DocumentDownloadView.as_view()),
+        name="document_download",
+    ),
+    path(
+        "documents/<int:pk>/delete/",
+        login_required(DocumentDeleteView.as_view()),
+        name="document_delete",
     ),
     path(
         "reports/trial-balance/",
