@@ -1,0 +1,115 @@
+{% extends 'modern/base/layout.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'modern/css/ledger.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item active">Phiếu kế toán</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+        </div>
+        <div>
+            <button class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-download"></i> Xuất Excel
+            </button>
+            <a href="#" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus"></i> Thêm mới
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="get" class="row g-2 mb-3">
+                <div class="col-auto">
+                    <input type="text" class="form-control form-control-sm" name="search"
+                           placeholder="Tìm theo số CT hoặc diễn giải..."
+                           value="{{ request.GET.search }}">
+                </div>
+                <div class="col-auto">
+                    <select class="form-select form-select-sm" name="status">
+                        <option value="">Tất cả trạng thái</option>
+                        {% for code, label in status_choices %}
+                        <option value="{{ code }}" {% if request.GET.status == code|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-funnel"></i> Lọc
+                    </button>
+                </div>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ngày</th>
+                            <th>Số CT</th>
+                            <th>Loại</th>
+                            <th>Diễn giải</th>
+                            <th class="text-end">Tổng tiền (VND)</th>
+                            <th>Trạng thái</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for voucher in vouchers %}
+                        <tr>
+                            <td>{{ voucher.voucher_date|date:"d/m/Y" }}</td>
+                            <td><a href="#" class="text-decoration-none">{{ voucher.voucher_no }}</a></td>
+                            <td><small class="text-muted">{{ voucher.get_voucher_type_display }}</small></td>
+                            <td>{{ voucher.description|truncatechars:60 }}</td>
+                            <td class="text-end font-mono">{{ voucher.total_vnd|floatformat:0 }}</td>
+                            <td>
+                                {% if voucher.status == 0 %}<span class="badge bg-warning">Lưu tạm</span>
+                                {% elif voucher.status == 1 %}<span class="badge bg-info">Sổ phụ</span>
+                                {% elif voucher.status == 2 %}<span class="badge bg-success">Đã ghi sổ</span>
+                                {% elif voucher.status == 3 %}<span class="badge bg-secondary">Đã khóa</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="#" class="btn btn-sm btn-outline-secondary py-0">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                                Chưa có phiếu kế toán nào. Bấm "Thêm mới" để tạo.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if is_paginated %}
+            <nav>
+                <ul class="pagination pagination-sm justify-content-end">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">←</a></li>
+                    {% endif %}
+                    <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">→</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

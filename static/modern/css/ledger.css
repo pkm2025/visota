@@ -1,0 +1,2 @@
+.font-mono { font-family: 'JetBrains Mono', 'Consolas', monospace; font-variant-numeric: tabular-nums; }
+.table-hover tbody tr:hover { cursor: pointer; }
