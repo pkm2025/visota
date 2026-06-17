@@ -13,7 +13,7 @@ from .customer_views import (
 from .dashboard_views import DashboardView
 from .health_views import health_detailed, health_simple
 from .hr_views import EmployeeCreateView, EmployeeListView
-from .ledger_views import VoucherCreateView, VoucherListView
+from .ledger_views import VoucherCreateView, VoucherDetailView, VoucherListView
 from .payroll_views import PayrollRunView
 from .product_views import (
     ProductCreateView,
@@ -56,6 +56,7 @@ __all__ = [
     "health_detailed",
     "VoucherListView",
     "VoucherCreateView",
+    "VoucherDetailView",
     "TrialBalanceView",
     "BalanceSheetView",
     "PnLView",

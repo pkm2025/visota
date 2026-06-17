@@ -67,7 +67,7 @@
                         {% for voucher in vouchers %}
                         <tr>
                             <td>{{ voucher.voucher_date|date:"d/m/Y" }}</td>
-                            <td><a href="#" class="text-decoration-none">{{ voucher.voucher_no }}</a></td>
+                            <td><a href="{% url 'ui_modern:voucher_detail' voucher.id %}" class="text-decoration-none">{{ voucher.voucher_no }}</a></td>
                             <td><small class="text-muted">{{ voucher.get_voucher_type_display }}</small></td>
                             <td>{{ voucher.description|truncatechars:60 }}</td>
                             <td class="text-end font-mono">{{ voucher.total_vnd|floatformat:0 }}</td>
@@ -79,7 +79,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="#" class="btn btn-sm btn-outline-secondary py-0">
+                                <a href="{% url 'ui_modern:voucher_detail' voucher.id %}" class="btn btn-sm btn-outline-secondary py-0">
                                     <i class="bi bi-eye"></i>
                                 </a>
                             </td>

@@ -1,0 +1,86 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:voucher_list' %}">Phiếu kế toán</a></li>
+            <li class="breadcrumb-item active">{{ voucher.voucher_no }}</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <strong>Thông tin chứng từ</strong>
+            {% if voucher.status == 0 %}<span class="badge bg-warning">Lưu tạm</span>
+            {% elif voucher.status == 1 %}<span class="badge bg-info">Sổ phụ</span>
+            {% elif voucher.status == 2 %}<span class="badge bg-success">Đã ghi sổ</span>
+            {% elif voucher.status == 3 %}<span class="badge bg-secondary">Đã khóa</span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-2">Số CT</dt>
+                <dd class="col-sm-4 font-mono">{{ voucher.voucher_no }}</dd>
+                <dt class="col-sm-2">Loại</dt>
+                <dd class="col-sm-4">{{ voucher.get_voucher_type_display }}</dd>
+                <dt class="col-sm-2">Ngày</dt>
+                <dd class="col-sm-4">{{ voucher.voucher_date|date:"d/m/Y" }}</dd>
+                <dt class="col-sm-2">Kỳ</dt>
+                <dd class="col-sm-4">Tháng {{ voucher.period }} / {{ voucher.fiscal_year }}</dd>
+                <dt class="col-sm-2">Diễn giải</dt>
+                <dd class="col-sm-10">{{ voucher.description }}</dd>
+                <dt class="col-sm-2">Tổng tiền</dt>
+                <dd class="col-sm-4 font-mono">{{ voucher.total_vnd|floatformat:0 }} VND</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><strong>Bút toán (hạch toán)</strong></div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Line</th>
+                            <th>Tài khoản</th>
+                            <th>Đối tượng</th>
+                            <th class="text-end">Nợ (VND)</th>
+                            <th class="text-end">Có (VND)</th>
+                            <th>Diễn giải</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for line in voucher.lines.all %}
+                        <tr data-account_code="{{ line.account_code }}">
+                            <td>{{ line.line_no }}</td>
+                            <td class="font-mono">{{ line.account_code }}</td>
+                            <td>
+                                {% if line.object_code %}{{ line.object_code }}{% else %}-{% endif %}
+                            </td>
+                            <td class="text-end font-mono">
+                                {% if line.debit_vnd %}{{ line.debit_vnd|floatformat:0 }}{% else %}-{% endif %}
+                            </td>
+                            <td class="text-end font-mono">
+                                {% if line.credit_vnd %}{{ line.credit_vnd|floatformat:0 }}{% else %}-{% endif %}
+                            </td>
+                            <td>{{ line.description }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                                Chưa có bút toán nào trong phiếu này.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

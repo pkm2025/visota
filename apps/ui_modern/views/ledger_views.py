@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect, render
 from django.views import View
-from django.views.generic import ListView
+from django.views.generic import DetailView, ListView
 
 from apps.ledger.models import AccountingVoucher, VoucherLine
 from apps.ledger.services import VoucherPostingService
@@ -144,3 +144,20 @@ class VoucherCreateView(LoginRequiredMixin, View):
             messages.error(request, str(e))
 
         return redirect("ui_modern:voucher_list")
+
+
+class VoucherDetailView(LoginRequiredMixin, DetailView):
+    """Detail view of a single accounting voucher with its lines."""
+
+    template_name = "modern/ledger/voucher_detail.html"
+    context_object_name = "voucher"
+    login_url = "/auth/login/"
+    pk_url_kwarg = "pk"
+
+    def get_queryset(self):
+        return AccountingVoucher.objects.prefetch_related("lines")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = f"Phiếu {self.object.voucher_no}"
+        return ctx

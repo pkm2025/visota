@@ -30,6 +30,7 @@ from .views import (
     VendorListView,
     VendorUpdateView,
     VoucherCreateView,
+    VoucherDetailView,
     VoucherListView,
 )
 
@@ -46,6 +47,11 @@ urlpatterns = [
         "vouchers/new/",
         login_required(VoucherCreateView.as_view()),
         name="voucher_create",
+    ),
+    path(
+        "vouchers/<int:pk>/",
+        login_required(VoucherDetailView.as_view()),
+        name="voucher_detail",
     ),
     path(
         "reports/trial-balance/",
