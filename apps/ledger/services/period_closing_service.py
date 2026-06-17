@@ -1,13 +1,12 @@
 """PeriodClosingService — kết chuyển cuối kỳ."""
 
-from decimal import Decimal
 from datetime import date
+from decimal import Decimal
 
 from django.db import transaction
 
-from apps.ledger.models import AccountingVoucher, VoucherLine, AccountPeriodBalance
+from apps.ledger.models import AccountingVoucher, AccountPeriodBalance, VoucherLine
 from apps.ledger.services.voucher_posting_service import VoucherPostingService
-
 
 # Account code prefixes that get closed
 REVENUE_PREFIXES = ("5", "7")  # 511, 515, 711 → credit balances → N to close
@@ -56,16 +55,14 @@ class PeriodClosingService:
             net_credit = period_c - period_d  # revenue net
             net_debit = period_d - period_c  # expense net
 
-            if code.startswith(REVENUE_PREFIXES):
-                if net_credit > 0:
-                    # KC: N5111 (close revenue by debiting)
-                    kc_lines.append((code, True, net_credit))
-                    total_revenue += net_credit
-            elif code.startswith(EXPENSE_PREFIXES):
-                if net_debit > 0:
-                    # KC: C642 (close expense by crediting)
-                    kc_lines.append((code, False, net_debit))
-                    total_expense += net_debit
+            if code.startswith(REVENUE_PREFIXES) and net_credit > 0:
+                # KC: N5111 (close revenue by debiting)
+                kc_lines.append((code, True, net_credit))
+                total_revenue += net_credit
+            elif code.startswith(EXPENSE_PREFIXES) and net_debit > 0:
+                # KC: C642 (close expense by crediting)
+                kc_lines.append((code, False, net_debit))
+                total_expense += net_debit
 
         if not kc_lines:
             return {
