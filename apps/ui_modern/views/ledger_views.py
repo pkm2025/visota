@@ -73,16 +73,26 @@ class VoucherCreateView(LoginRequiredMixin, View):
         if not header_form.is_valid() or not line_formset.is_valid():
             return render(request, self.template_name, ctx_base, status=200)
 
-        # Compute totals
+        # Filter to non-empty lines (skip rows without account_code)
+        valid_lines = []
         total_debit = Decimal("0")
         total_credit = Decimal("0")
         for line_form in line_formset:
-            if line_form.cleaned_data.get("DELETE"):
+            cd_line = line_form.cleaned_data
+            if cd_line.get("DELETE"):
                 continue
-            d = line_form.cleaned_data.get("debit_vnd") or Decimal("0")
-            c = line_form.cleaned_data.get("credit_vnd") or Decimal("0")
+            acc = cd_line.get("account_code", "")
+            if not acc:
+                continue  # skip empty rows
+            valid_lines.append(cd_line)
+            d = cd_line.get("debit_vnd") or Decimal("0")
+            c = cd_line.get("credit_vnd") or Decimal("0")
             total_debit += d
             total_credit += c
+
+        if not valid_lines:
+            messages.error(request, "Phải có ít nhất 1 dòng bút toán có tài khoản.")
+            return render(request, self.template_name, ctx_base, status=200)
 
         if abs(total_debit - total_credit) > Decimal("0.01"):
             messages.error(
@@ -122,17 +132,15 @@ class VoucherCreateView(LoginRequiredMixin, View):
         )
 
         line_no = 1
-        for line_form in line_formset:
-            if line_form.cleaned_data.get("DELETE"):
-                continue
+        for cd_line in valid_lines:
             VoucherLine.objects.create(
                 voucher=voucher,
                 line_no=line_no,
-                account_code=line_form.cleaned_data["account_code"],
-                object_code=line_form.cleaned_data.get("object_code", ""),
-                debit_vnd=line_form.cleaned_data.get("debit_vnd") or Decimal("0"),
-                credit_vnd=line_form.cleaned_data.get("credit_vnd") or Decimal("0"),
-                description=line_form.cleaned_data.get("description", ""),
+                account_code=cd_line["account_code"],
+                object_code=cd_line.get("object_code") or "",
+                debit_vnd=cd_line.get("debit_vnd") or Decimal("0"),
+                credit_vnd=cd_line.get("credit_vnd") or Decimal("0"),
+                description=cd_line.get("description") or "",
             )
             line_no += 1
 
