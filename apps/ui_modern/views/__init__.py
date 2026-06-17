@@ -1,7 +1,7 @@
 from .auth_views import PMKetoanLoginView, PMKetoanLogoutView
 from .dashboard_views import DashboardView
 from .health_views import health_detailed, health_simple
-from .ledger_views import VoucherListView
+from .ledger_views import VoucherCreateView, VoucherListView
 
 __all__ = [
     "DashboardView",
@@ -10,4 +10,5 @@ __all__ = [
     "health_simple",
     "health_detailed",
     "VoucherListView",
+    "VoucherCreateView",
 ]

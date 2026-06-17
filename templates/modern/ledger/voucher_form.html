@@ -1,0 +1,116 @@
+{% extends 'modern/base/layout.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'modern/css/ledger.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:voucher_list' %}">Phiếu kế toán</a></li>
+                    <li class="breadcrumb-item active">{{ page_title }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+        </div>
+        <a href="{% url 'ui_modern:voucher_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Hủy
+        </a>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <div class="card mb-3">
+            <div class="card-header py-2"><strong>Thông tin chung</strong></div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-md-2">
+                        <label class="form-label small">Ngày sổ cái *</label>
+                        {{ header_form.voucher_date }}
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Số CT</label>
+                        {{ header_form.voucher_no }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Loại CT</label>
+                        {{ header_form.voucher_type }}
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small">Diễn giải</label>
+                        {{ header_form.description }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <strong>Bút toán</strong>
+                <span class="text-muted small">Tối thiểu 2 dòng</span>
+            </div>
+            <div class="card-body p-0">
+                {{ line_formset.management_form }}
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th style="width: 120px;">Tài khoản</th>
+                            <th style="width: 150px;">Đối tượng</th>
+                            <th class="text-end" style="width: 150px;">Nợ (VND)</th>
+                            <th class="text-end" style="width: 150px;">Có (VND)</th>
+                            <th>Diễn giải</th>
+                            <th style="width: 40px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for form in line_formset %}
+                        <tr>
+                            <td class="text-muted">{{ forloop.counter }}</td>
+                            <td>{{ form.account_code }}</td>
+                            <td>{{ form.object_code }}</td>
+                            <td>{{ form.debit_vnd }}</td>
+                            <td>{{ form.credit_vnd }}</td>
+                            <td>{{ form.description }}</td>
+                            <td>{{ form.DELETE }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    {% if total_debit is not None %}
+                    <tfoot>
+                        <tr class="table-light fw-bold">
+                            <td colspan="3" class="text-end">Tổng cộng:</td>
+                            <td class="text-end font-mono">{{ total_debit|floatformat:0 }}</td>
+                            <td class="text-end font-mono">{{ total_credit|floatformat:0 }}</td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <a href="{% url 'ui_modern:voucher_list' %}" class="btn btn-outline-secondary btn-sm">Hủy</a>
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="bi bi-check-circle"></i> Lưu & ghi sổ
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
