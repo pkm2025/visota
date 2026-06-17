@@ -21,31 +21,29 @@
 <!-- Legal references -->
 <div class="right-sidebar-section">
     <h6><i class="bi bi-book"></i> Quy định pháp luật</h6>
-    <a href="https://thuvienphapluat.vn/van-ban/Doanh-nghiep/Thong-tu-133-2016-TT-BTC-huong-dan-che-do-ke-toan-doanh-nghiep-nho-va-vua-284997.aspx"
-       target="_blank" rel="noopener" class="ref-item">
-        <span class="badge bg-primary">TT133</span>
-        Chế độ kế toán DN nhỏ và vừa
-    </a>
-    <a href="https://thuvienphapluat.vn/van-ban/Doanh-nghiep/Thong-tu-200-2014-TT-BTC-huong-dan-Che-do-ke-toan-Doanh-nghiep-263599.aspx"
-       target="_blank" rel="noopener" class="ref-item">
-        <span class="badge bg-info">TT200</span>
-        Chế độ kế toán DN (đầy đủ)
-    </a>
-    <a href="https://thuvienphapluat.vn/van-ban/Thue-Phi-Le-Phi/Thong-tu-80-2021-TT-BTC-ban-hanh-mau-to-khai-thue-502620.aspx"
-       target="_blank" rel="noopener" class="ref-item">
-        <span class="badge bg-warning text-dark">TT80</span>
-        Tờ khai thuế GTGT (01/GTGT)
-    </a>
-    <a href="https://thuvienphapluat.vn/van-ban/Thue-Phi-Le-Phi/Thong-tu-78-2021-TT-BTC-huong-dan-Luat-Quan-ly-thue-Nghi-dinh-123-2020-ND-CP-hoa-don-chung-tu-477966.aspx"
-       target="_blank" rel="noopener" class="ref-item">
-        <span class="badge bg-success">TT78</span>
-        Hóa đơn điện tử
-    </a>
-    <a href="https://thuvienphapluat.vn/van-ban/Doanh-nghiep/Luat-Ke-toan-88-2015-QH13-296441.aspx"
-       target="_blank" rel="noopener" class="ref-item">
-        <span class="badge bg-danger">Luật KT</span>
-        Luật Kế toán 2015
-    </a>
+    {% load legal_refs %}
+    {% legal_reference_list as legal_refs %}
+    {% if legal_refs %}
+        {% for ref in legal_refs %}
+        <a href="{{ ref.url|default:'#' }}"
+           target="_blank" rel="noopener" class="ref-item"
+           title="{{ ref.full_name }}">
+            <span class="badge {% if ref.status == 'superseded' %}bg-secondary{% elif ref.status == 'repealed' %}bg-danger{% else %}bg-primary{% endif %}">{{ ref.code }}</span>
+            {{ ref.name }}
+        </a>
+        {% endfor %}
+    {% else %}
+        <a href="https://thuvienphapluat.vn/van-ban/Doanh-nghiep/Thong-tu-133-2016-TT-BTC-huong-dan-che-do-ke-toan-doanh-nghiep-nho-va-vua-284997.aspx"
+           target="_blank" rel="noopener" class="ref-item">
+            <span class="badge bg-primary">TT133</span>
+            Chế độ kế toán DN nhỏ và vừa
+        </a>
+        <a href="https://thuvienphapluat.vn/van-ban/Doanh-nghiep/Luat-Ke-toan-88-2015-QH13-296441.aspx"
+           target="_blank" rel="noopener" class="ref-item">
+            <span class="badge bg-danger">Luật KT</span>
+            Luật Kế toán 2015
+        </a>
+    {% endif %}
 </div>
 
 <!-- Quick stats -->

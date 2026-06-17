@@ -291,6 +291,13 @@ class Command(BaseCommand):
         templates = RecurringService().setup_defaults(company)
         self.stdout.write(f"Created {len(templates)} recurring templates")
 
+        # 9. Seed contract templates
+        from django.core.management import call_command as _call
+
+        _call("seed_contract_templates", verbosity=0)
+        _call("seed_legal_references", verbosity=0)
+        self.stdout.write("Seeded contract templates + legal references")
+
         self.stdout.write(
             self.style.SUCCESS(
                 f"Seed complete. Company: {company.code}, User: admin, "

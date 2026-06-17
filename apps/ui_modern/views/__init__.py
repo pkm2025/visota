@@ -6,6 +6,11 @@ from .asset_views import (
 from .auth_views import PMKetoanLoginView, PMKetoanLogoutView
 from .closing_views import PeriodClosingView
 from .contract_views import ContractCreateView, ContractListView
+from .contract_template_views import (
+    ContractGenerateView,
+    ContractTemplateListView,
+    ContractTemplatePreviewView,
+)
 from .customer_views import (
     CustomerCreateView,
     CustomerListView,
@@ -116,6 +121,9 @@ __all__ = [
     "CashPaymentCreateView",
     "ContractListView",
     "ContractCreateView",
+    "ContractTemplateListView",
+    "ContractGenerateView",
+    "ContractTemplatePreviewView",
     "InputInvoiceListView",
     "InputInvoiceUploadView",
     "InputInvoiceProcessView",

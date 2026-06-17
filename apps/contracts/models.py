@@ -73,6 +73,28 @@ class Contract(CompanyOwnedModel):
         return f"{self.contract_no} ({self.party_name})"
 
 
+class ContractTemplate(models.Model):
+    """Pre-built contract template with standard clauses."""
+
+    code = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=255)
+    contract_type = models.CharField(max_length=20)  # labor_fixed, labor_indefinite, labor_probation, sale, purchase, service, construction
+    template_html = models.TextField()  # Django template HTML for PDF
+    required_fields = models.JSONField(default=list)  # ['employee_name', 'salary', ...]
+    is_active = models.BooleanField(default=True)
+    legal_basis = models.TextField(blank=True, default="")
+    version = models.CharField(max_length=20, default="2026")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "contract_template"
+        ordering = ["code"]
+
+    def __str__(self):
+        return f"{self.code} — {self.name}"
+
+
 class Minutes(CompanyOwnedModel):
     """Biên bản — handover/acceptance/inventory/liquidation/reconciliation/etc."""
 

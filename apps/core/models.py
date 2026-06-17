@@ -78,3 +78,35 @@ class Company(models.Model):
     @property
     def display_name(self):
         return self.brand_name or self.name
+
+
+class LegalReference(models.Model):
+    """Vietnamese legal document reference — for compliance tracking."""
+
+    code = models.CharField(max_length=50, unique=True)  # 'TT133', 'TT99', 'TT32'
+    name = models.CharField(max_length=500)
+    full_name = models.TextField()
+    issuing_body = models.CharField(max_length=100)  # 'Bộ Tài chính'
+    issue_date = models.DateField()
+    effective_date = models.DateField()
+    expiry_date = models.DateField(null=True, blank=True)
+    replaced_by = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="replaces",
+    )
+    status = models.CharField(max_length=20, default="active")  # active/superseded/repealed
+    url = models.URLField(blank=True)
+    summary = models.TextField(blank=True, default="")
+    applicable_to = models.JSONField(default=list)  # ['accounting', 'hr', 'tax', 'e-invoice']
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "legal_reference"
+        ordering = ["code"]
+
+    def __str__(self):
+        return f"{self.code} — {self.name}"

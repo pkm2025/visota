@@ -8,7 +8,9 @@ from .views import (
     CashPaymentCreateView,
     CashReceiptCreateView,
     ContractCreateView,
+    ContractGenerateView,
     ContractListView,
+    ContractTemplateListView,
     CustomerCreateView,
     CustomerListView,
     CustomerUpdateView,
@@ -317,6 +319,17 @@ urlpatterns = [
         "contracts/new/",
         login_required(ContractCreateView.as_view()),
         name="contract_create",
+    ),
+    # Contract templates
+    path(
+        "contract-templates/",
+        login_required(ContractTemplateListView.as_view()),
+        name="contract_template_list",
+    ),
+    path(
+        "contract-templates/generate/<str:template_code>/<int:contract_id>/",
+        login_required(ContractGenerateView.as_view()),
+        name="contract_template_generate",
     ),
     # Input invoices (đầu vào)
     path(
