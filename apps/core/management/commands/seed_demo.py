@@ -123,7 +123,64 @@ class Command(BaseCommand):
             },
         )
 
-        self.stdout.write("Sample master data: 1 customer, 1 vendor, 1 product, 1 warehouse")
+        # 6. Sample fixed asset (TSCĐ): TS001 Xe Toyota Vios
+        from apps.assets.models import (
+            AssetCategory,
+            AssetUsingDepartment,
+            FixedAsset,
+        )
+
+        category, _ = AssetCategory.objects.update_or_create(
+            company=company,
+            code="PTVT",
+            defaults={
+                "name": "Phương tiện vận tải",
+                "level": "group",
+                "is_for_tool": False,
+                "default_gl_account": "2112",
+                "default_depreciation_account": "2141",
+                "default_expense_account": "642",
+                "default_depreciation_rate": "0.20",
+                "default_useful_life_months": 60,
+            },
+        )
+
+        department, _ = AssetUsingDepartment.objects.update_or_create(
+            company=company,
+            code="BP_HC",
+            defaults={
+                "name": "Bộ phận Hành chính",
+                "default_expense_account": "642",
+            },
+        )
+
+        from decimal import Decimal
+
+        fixed_asset, fa_created = FixedAsset.objects.update_or_create(
+            company=company,
+            asset_code="TS001",
+            defaults={
+                "asset_name": "Xe Toyota Vios",
+                "category": category,
+                "using_department": department,
+                "gl_account": "2112",
+                "depreciation_account": "2141",
+                "expense_account": "642",
+                "original_cost": Decimal("800000000"),
+                "currency_code": "VND",
+                "depreciation_method": FixedAsset.DepreciationMethod.STRAIGHT_LINE,
+                "depreciation_rate": Decimal("0.20"),
+                "useful_life_months": 60,
+                "start_date": "2024-01-01",
+                "is_tool": False,
+                "status": FixedAsset.Status.ACTIVE,
+            },
+        )
+
+        self.stdout.write(
+            "Sample master data: 1 customer, 1 vendor, 1 product, 1 warehouse"
+            + (", 1 fixed asset" if fa_created else "")
+        )
 
         self.stdout.write(
             self.style.SUCCESS(
