@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     # Local — shared backend
     'apps.core',
     'apps.identity',
+    'apps.master_data',
 
     # Local — UI layout packs
     'apps.ui_modern',
