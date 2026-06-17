@@ -168,6 +168,12 @@ class TaxRateConfig(models.Model):
     pit_dependent_deduction = models.DecimalField(
         max_digits=15, decimal_places=4, default=4400000
     )
+    # Progressive PIT brackets — list of [threshold_cap, rate] pairs, ordered ascending.
+    # Per TT 111/2013 (monthly taxable income, VND): 5%/10%/15%/20%/25%/30%/35%.
+    pit_brackets = models.JSONField(
+        default=list,
+        help_text="[[5000000, 0.05], [10000000, 0.10], ...]",
+    )
 
     # Insurance
     bhxh_cap = models.DecimalField(

@@ -315,6 +315,15 @@ class Command(BaseCommand):
                 "vat_rate_reduced_active": True,  # ND 174/2025 active until 31/12/2026
                 "pit_personal_deduction": _Decimal("11000000"),
                 "pit_dependent_deduction": _Decimal("4400000"),
+                "pit_brackets": [
+                    [5000000, "0.05"],
+                    [10000000, "0.10"],
+                    [18000000, "0.15"],
+                    [32000000, "0.20"],
+                    [52000000, "0.25"],
+                    [80000000, "0.30"],
+                    [999999999, "0.35"],
+                ],
                 "bhxh_cap": _Decimal("46800000"),
                 "base_salary": _Decimal("2340000"),
                 "effective_date": _date(2025, 7, 1),

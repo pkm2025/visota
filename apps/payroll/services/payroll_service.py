@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from django.db import transaction
 
+from apps.core.services.tax_config_service import TaxConfigService
 from apps.hr.models import Employee
 from apps.hr.services import InsuranceService
 from apps.ledger.models import AccountingVoucher, VoucherLine
@@ -37,14 +38,20 @@ PERSONAL_DEDUCTION = Decimal("11000000")  # Giảm trừ gia cảnh bản thân
 DEPENDENT_DEDUCTION = Decimal("4400000")  # Mỗi người phụ thuộc
 
 
-def calculate_pit(taxable_income: Decimal) -> Decimal:
-    """Progressive PIT calculation based on brackets."""
+def calculate_pit(taxable_income: Decimal, brackets=None) -> Decimal:
+    """Progressive PIT calculation based on brackets.
+
+    ``brackets`` is an optional iterable of ``(cap, rate)`` pairs; if omitted,
+    the hardcoded ``PIT_BRACKETS`` (per TT 111/2013) are used as fallback.
+    """
     if taxable_income <= 0:
         return Decimal("0")
     pit = Decimal("0")
     remaining = taxable_income
     prev_cap = Decimal("0")
-    for cap, rate in PIT_BRACKETS:
+    for cap, rate in brackets if brackets is not None else PIT_BRACKETS:
+        cap = Decimal(str(cap))
+        rate = Decimal(str(rate))
         if remaining <= 0:
             break
         slab = min(remaining, cap - prev_cap)
@@ -99,6 +106,18 @@ class PayrollService:
 
         ins_svc = InsuranceService(company=self.company)
 
+        # Read PIT deductions + brackets from TaxRateConfig (Luật TNCN 2025 ready);
+        # fall back to hardcoded TT 111/2013 values if no active config.
+        config = TaxConfigService.get_active(self.company)
+        if config is not None:
+            personal_deduction = config.pit_personal_deduction
+            dependent_deduction = config.pit_dependent_deduction
+            pit_brackets = config.pit_brackets or None
+        else:
+            personal_deduction = PERSONAL_DEDUCTION
+            dependent_deduction = DEPENDENT_DEDUCTION
+            pit_brackets = None
+
         for idx, emp in enumerate(employees, start=1):
             # Prorated base salary by work days (simplified — assume full month)
             gross = emp.base_salary + emp.allowance
@@ -130,11 +149,11 @@ class PayrollService:
             # Simplified active filter: registered + valid_from <= today
             # (Dependent.is_active property is the canonical check, but it's
             #  per-instance — using queryset for efficiency.)
-            total_deduction = PERSONAL_DEDUCTION + (
-                DEPENDENT_DEDUCTION * Decimal(active_dependents)
+            total_deduction = personal_deduction + (
+                dependent_deduction * Decimal(active_dependents)
             )
             taxable = gross - ins_emp_total - total_deduction
-            pit = calculate_pit(taxable) if taxable > 0 else Decimal("0")
+            pit = calculate_pit(taxable, brackets=pit_brackets) if taxable > 0 else Decimal("0")
 
             net = gross - ins_emp_total - pit
 
