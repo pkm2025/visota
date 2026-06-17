@@ -1,0 +1,122 @@
+{% extends 'modern/base/layout.html' %}
+{% load static humanize %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'modern/css/ledger.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item">Báo cáo</li>
+                    <li class="breadcrumb-item">Sổ sách</li>
+                    <li class="breadcrumb-item active">Sổ cái</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+            <p class="text-muted mb-0">Kỳ: Tháng {{ period }} / {{ fiscal_year }}</p>
+        </div>
+        <form method="get" class="d-flex gap-2 align-items-center">
+            <input type="text" name="account_code" value="{{ account_code }}" placeholder="Mã TK, vd 131" class="form-control form-control-sm" style="width: 120px;">
+            <select name="fiscal_year" class="form-select form-select-sm">
+                {% for y in year_choices %}
+                <option value="{{ y }}" {% if y == fiscal_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+            <select name="period" class="form-select form-select-sm">
+                {% for p in period_choices %}
+                <option value="{{ p }}" {% if p == period %}selected{% endif %}>Tháng {{ p }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">Xem</button>
+        </form>
+    </div>
+
+    {% if account_code %}
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <div class="row">
+                <div class="col">
+                    <strong>Tồn đầu kỳ:</strong>
+                    <span class="font-mono">{{ opening_balance|intcomma }}</span>
+                </div>
+                <div class="col">
+                    <strong>PS Nợ:</strong>
+                    <span class="font-mono">{{ total_debit|intcomma }}</span>
+                </div>
+                <div class="col">
+                    <strong>PS Có:</strong>
+                    <span class="font-mono">{{ total_credit|intcomma }}</span>
+                </div>
+                <div class="col">
+                    <strong>Tồn cuối kỳ:</strong>
+                    <span class="font-mono">{{ closing_balance|intcomma }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 110px;">Chứng từ</th>
+                            <th style="width: 90px;">Ngày</th>
+                            <th>Diễn giải</th>
+                            <th style="width: 90px;" class="text-end">TK ĐƯ</th>
+                            <th style="width: 130px;" class="text-end">Ps Nợ</th>
+                            <th style="width: 130px;" class="text-end">Ps Có</th>
+                            <th style="width: 140px;" class="text-end">Cộng</th>
+                            <th style="width: 140px;" class="text-end">Tồn</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if account_code and opening_balance %}
+                        <tr class="table-light">
+                            <td colspan="6" class="text-end"><strong>Tồn đầu kỳ</strong></td>
+                            <td class="text-end font-mono"><strong>{{ opening_balance|intcomma }}</strong></td>
+                            <td class="text-end font-mono"><strong>{{ opening_balance|intcomma }}</strong></td>
+                        </tr>
+                        {% endif %}
+                        {% for row in rows %}
+                        <tr>
+                            <td class="font-mono">{{ row.voucher_no }}</td>
+                            <td>{{ row.voucher_date|date:"d/m/Y" }}</td>
+                            <td>{{ row.description }}</td>
+                            <td class="text-end font-mono">{{ row.offset_account }}</td>
+                            <td class="text-end font-mono">{% if row.debit %}{{ row.debit|intcomma }}{% endif %}</td>
+                            <td class="text-end font-mono">{% if row.credit %}{{ row.credit|intcomma }}{% endif %}</td>
+                            <td class="text-end font-mono"></td>
+                            <td class="text-end font-mono">{{ row.running|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                {% if account_code %}Không có dữ liệu.{% else %}Vui lòng nhập mã tài khoản.{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    {% if rows %}
+                    <tfoot class="table-light">
+                        <tr>
+                            <th colspan="4" class="text-end">Cộng phát sinh</th>
+                            <th class="text-end font-mono">{{ total_debit|intcomma }}</th>
+                            <th class="text-end font-mono">{{ total_credit|intcomma }}</th>
+                            <th colspan="2" class="text-end font-mono">{{ closing_balance|intcomma }}</th>
+                        </tr>
+                    </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

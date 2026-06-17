@@ -14,6 +14,8 @@ from .views import (
     DocumentDownloadView,
     EmployeeCreateView,
     EmployeeListView,
+    GeneralJournalView,
+    GeneralLedgerView,
     PayrollRunView,
     PeriodClosingView,
     PnLView,
@@ -96,6 +98,16 @@ urlpatterns = [
         "reports/vat-return/",
         login_required(VATReturnView.as_view()),
         name="vat_return",
+    ),
+    path(
+        "reports/general-journal/",
+        login_required(GeneralJournalView.as_view()),
+        name="general_journal",
+    ),
+    path(
+        "reports/general-ledger/",
+        login_required(GeneralLedgerView.as_view()),
+        name="general_ledger",
     ),
     # Master data — Customer
     path(
