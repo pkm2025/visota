@@ -46,6 +46,7 @@ from .stock_views import (
     StockVoucherCreateView,
     StockVoucherListView,
 )
+from .treasury_views import CashPaymentCreateView, CashReceiptCreateView
 from .vendor_views import (
     VendorCreateView,
     VendorListView,
@@ -93,4 +94,6 @@ __all__ = [
     "EmployeeListView",
     "EmployeeCreateView",
     "PayrollRunView",
+    "CashReceiptCreateView",
+    "CashPaymentCreateView",
 ]

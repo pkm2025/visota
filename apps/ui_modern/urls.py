@@ -38,6 +38,8 @@ from .views import (
     VoucherListView,
     VoucherPrintView,
     VoucherUploadView,
+    CashReceiptCreateView,
+    CashPaymentCreateView,
 )
 
 app_name = "ui_modern"
@@ -228,5 +230,16 @@ urlpatterns = [
         "closing/",
         login_required(PeriodClosingView.as_view()),
         name="period_closing",
+    ),
+    # Treasury — phiếu thu / phiếu chi
+    path(
+        "treasury/receipt/new/",
+        login_required(CashReceiptCreateView.as_view()),
+        name="cash_receipt_create",
+    ),
+    path(
+        "treasury/payment/new/",
+        login_required(CashPaymentCreateView.as_view()),
+        name="cash_payment_create",
     ),
 ]

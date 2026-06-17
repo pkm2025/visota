@@ -1,0 +1,80 @@
+{% extends 'modern/base/layout.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item">Cập nhật số liệu</li>
+            <li class="breadcrumb-item active">{{ page_title }}</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-4">{{ page_title }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }} py-2">{{ message }}</div>
+                {% endfor %}
+                {% endif %}
+
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Số phiếu</label>
+                        <input type="text" name="voucher_no" value="{{ voucher_no|default:'' }}" class="form-control" placeholder="Tự sinh nếu để trống">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Ngày lập</label>
+                        <input type="date" name="voucher_date" value="{{ voucher_date|default:today }}" class="form-control" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">
+                            {% if voucher_type == 'cash_receipt' %}Người nộp{% else %}Người nhận{% endif %}
+                        </label>
+                        <input type="text" name="{% if voucher_type == 'cash_receipt' %}payer{% else %}payee{% endif %}"
+                               value="{% if voucher_type == 'cash_receipt' %}{{ payer|default:'' }}{% else %}{{ payee|default:'' }}{% endif %}"
+                               class="form-control" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Số tiền (VND)</label>
+                        <input type="number" name="amount" value="{{ amount|default:'' }}" class="form-control" min="1" step="1" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">
+                            {% if voucher_type == 'cash_receipt' %}Tài khoản có{% else %}Tài khoản nợ{% endif %}
+                        </label>
+                        <input type="text" name="{% if voucher_type == 'cash_receipt' %}credit_account{% else %}debit_account{% endif %}"
+                               value="{% if voucher_type == 'cash_receipt' %}{{ credit_account|default:'131' }}{% else %}{{ debit_account|default:'331' }}{% endif %}"
+                               class="form-control font-mono" required>
+                    </div>
+                    <div class="col-md-9">
+                        <label class="form-label">Lý do</label>
+                        <input type="text" name="reason" value="{{ reason|default:'' }}" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> Lưu phiếu
+                    </button>
+                    <a href="{% url 'ui_modern:voucher_list' %}" class="btn btn-outline-secondary">Hủy</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="alert alert-info mt-3 small">
+        <i class="bi bi-info-circle"></i>
+        {% if voucher_type == 'cash_receipt' %}
+        Hạch toán: <strong>Nợ TK 111 / Có TK {{ credit_account|default:'131' }}</strong>. Phiếu thu được ghi sổ tự động.
+        {% else %}
+        Hạch toán: <strong>Nợ TK {{ debit_account|default:'331' }} / Có TK 111</strong>. Phiếu chi được ghi sổ tự động.
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

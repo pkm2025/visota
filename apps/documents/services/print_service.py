@@ -18,8 +18,8 @@ class PrintService:
 
     TEMPLATE_MAP = {
         "journal": "documents/print/voucher_print.html",
-        "cash_receipt": "documents/print/voucher_print.html",
-        "cash_payment": "documents/print/voucher_print.html",
+        "cash_receipt": "documents/print/cash_receipt.html",
+        "cash_payment": "documents/print/cash_payment.html",
         "sales_invoice": "documents/print/voucher_print.html",
         "purchase_invoice": "documents/print/voucher_print.html",
         "stock_voucher": "documents/print/voucher_print.html",
