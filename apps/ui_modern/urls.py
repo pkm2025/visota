@@ -4,6 +4,7 @@ from django.urls import path
 from .views import (
     AssetCreateView,
     AssetListView,
+    BalanceSheetView,
     CustomerCreateView,
     CustomerListView,
     CustomerUpdateView,
@@ -47,6 +48,11 @@ urlpatterns = [
         "reports/trial-balance/",
         login_required(TrialBalanceView.as_view()),
         name="trial_balance",
+    ),
+    path(
+        "reports/balance-sheet/",
+        login_required(BalanceSheetView.as_view()),
+        name="balance_sheet",
     ),
     # Master data — Customer
     path(

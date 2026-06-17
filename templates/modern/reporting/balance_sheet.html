@@ -1,0 +1,135 @@
+{% extends 'modern/base/layout.html' %}
+{% load static humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item">Báo cáo</li>
+                    <li class="breadcrumb-item active">BCTH tài chính</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+            <p class="text-muted mb-0">Kỳ: Tháng {{ period }} / {{ fiscal_year }}</p>
+        </div>
+        <form method="get" class="d-flex gap-2">
+            <select name="fiscal_year" class="form-select form-select-sm">
+                {% for y in year_choices %}
+                <option value="{{ y }}" {% if y == fiscal_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+            <select name="period" class="form-select form-select-sm">
+                {% for p in period_choices %}
+                <option value="{{ p }}" {% if p == period %}selected{% endif %}>Tháng {{ p }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">Xem</button>
+        </form>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-light fw-bold">TÀI SẢN</div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-bordered mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:20%">Mã TK</th>
+                                <th>Chỉ tiêu</th>
+                                <th class="text-end">Số tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in assets.rows %}
+                            <tr>
+                                <td class="font-mono">{{ r.account_code }}</td>
+                                <td>Tài sản — TK {{ r.account_code }}</td>
+                                <td class="text-end font-mono">{{ r.amount|floatformat:0|intcomma }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted py-3">
+                                <i class="bi bi-inbox d-block"></i> Không có dữ liệu
+                            </td></tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light fw-bold">
+                            <tr>
+                                <td colspan="2">TỔNG CỘNG TÀI SẢN</td>
+                                <td class="text-end font-mono">{{ assets.total|floatformat:0|intcomma }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-light fw-bold">NGUỒN VỐN</div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-bordered mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:20%">Mã TK</th>
+                                <th>Chỉ tiêu</th>
+                                <th class="text-end">Số tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="table-light">
+                                <td colspan="3" class="fw-bold">I. Nợ phải trả</td>
+                            </tr>
+                            {% for r in liabilities_equity.liabilities %}
+                            <tr>
+                                <td class="font-mono">{{ r.account_code }}</td>
+                                <td>Nợ phải trả — TK {{ r.account_code }}</td>
+                                <td class="text-end font-mono">{{ r.amount|floatformat:0|intcomma }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted py-2 small">—</td></tr>
+                            {% endfor %}
+                            <tr class="table-light">
+                                <td colspan="3" class="fw-bold">II. Vốn chủ sở hữu</td>
+                            </tr>
+                            {% for r in liabilities_equity.equity %}
+                            <tr>
+                                <td class="font-mono">{{ r.account_code }}</td>
+                                <td>Vốn — TK {{ r.account_code }}</td>
+                                <td class="text-end font-mono">{{ r.amount|floatformat:0|intcomma }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted py-2 small">—</td></tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light fw-bold">
+                            <tr>
+                                <td colspan="2">TỔNG CỘNG NGUỒN VỐN</td>
+                                <td class="text-end font-mono">{{ liabilities_equity.total|floatformat:0|intcomma }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-footer d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+                {% if is_balanced %}
+                <span class="text-success"><i class="bi bi-check-circle"></i> Cân đối: Tài sản = Nợ phải trả + Vốn chủ sở hữu</span>
+                {% else %}
+                <span class="text-danger"><i class="bi bi-exclamation-triangle"></i> Mất cân đối!</span>
+                {% endif %}
+            </small>
+            <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+                <i class="bi bi-printer"></i> In / PDF
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
