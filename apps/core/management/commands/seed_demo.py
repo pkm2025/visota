@@ -231,6 +231,60 @@ class Command(BaseCommand):
         )
         self.stdout.write("Sample employees: NV001 (15M), NV002 (20M)")
 
+        # 7b. Sample HR detail data: contract, dependent, leave balance for NV001
+        from datetime import date as _date
+        from decimal import Decimal as _Decimal
+
+        from apps.hr.models import (
+            Dependent,
+            LaborContract,
+            LeaveBalance,
+        )
+
+        nv001 = Employee.objects.get(company=company, code="NV001")
+        LaborContract.objects.update_or_create(
+            company=company,
+            contract_no="HDL001",
+            defaults={
+                "employee": nv001,
+                "contract_type": LaborContract.ContractType.FIXED_TERM,
+                "start_date": _date(2024, 1, 1),
+                "end_date": _date(2026, 12, 31),
+                "salary_base": _Decimal("15000000"),
+                "salary_gross": _Decimal("17000000"),
+                "allowance_amount": _Decimal("2000000"),
+                "insurance_salary_base": _Decimal("15000000"),
+                "join_insurance": True,
+                "position_title": "Kế toán viên",
+                "department": dept_hr,
+                "status": LaborContract.Status.ACTIVE,
+            },
+        )
+        Dependent.objects.update_or_create(
+            employee=nv001,
+            full_name="Nguyễn Minh Khôi",
+            defaults={
+                "relationship": Dependent.Relationship.CHILD,
+                "birth_date": _date(2015, 3, 10),
+                "deduction_amount": _Decimal("4400000"),
+                "valid_from": _date(2024, 1, 1),
+                "registration_status": Dependent.RegistrationStatus.REGISTERED,
+            },
+        )
+        LeaveBalance.objects.update_or_create(
+            employee=nv001,
+            fiscal_year=2026,
+            defaults={
+                "standard_days": _Decimal("12"),
+                "carried_forward": _Decimal("0"),
+                "used_days": _Decimal("0"),
+            },
+        )
+        self.stdout.write(
+            "Sample HR detail: NV001 contract (15M), 1 dependent (4.4M), "
+            "2026 leave balance (12 days)"
+        )
+
         # 8. Default recurring templates (bút toán định kỳ)
         from apps.recurring.services import RecurringService
 

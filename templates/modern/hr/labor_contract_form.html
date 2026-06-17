@@ -1,0 +1,104 @@
+{% extends 'modern/base/layout.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:labor_contract_list' %}">Hợp đồng lao động</a></li>
+            <li class="breadcrumb-item active">Thêm mới</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Nhân viên</label>
+                        {{ form.employee|attr:"class:form-select" }}
+                        {{ form.employee.errors }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Số hợp đồng</label>
+                        {{ form.contract_no|attr:"class:form-control" }}
+                        {{ form.contract_no.errors }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Loại hợp đồng</label>
+                        {{ form.contract_type|attr:"class:form-select" }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Ngày bắt đầu</label>
+                        {{ form.start_date|attr:"class:form-control" }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Ngày kết thúc</label>
+                        {{ form.end_date|attr:"class:form-control" }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Hết thử việc</label>
+                        {{ form.probation_end_date|attr:"class:form-control" }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Ngày ký</label>
+                        {{ form.signing_date|attr:"class:form-control" }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Lương cơ sở</label>
+                        {{ form.salary_base|attr:"class:form-control" }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Lương gross</label>
+                        {{ form.salary_gross|attr:"class:form-control" }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Phụ cấp</label>
+                        {{ form.allowance_amount|attr:"class:form-control" }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Lương đóng BH</label>
+                        {{ form.insurance_salary_base|attr:"class:form-control" }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Chức danh</label>
+                        {{ form.position_title|attr:"class:form-control" }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Phòng ban</label>
+                        {{ form.department|attr:"class:form-select" }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Nơi làm việc</label>
+                        {{ form.work_location|attr:"class:form-control" }}
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check mt-2">
+                            {{ form.join_insurance|attr:"class:form-check-input" }}
+                            <label class="form-check-label">Tham gia BHXH</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Trạng thái</label>
+                        {{ form.status|attr:"class:form-select" }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Ghi chú</label>
+                        {{ form.notes|attr:"class:form-control"|attr:"rows:2" }}
+                    </div>
+                </div>
+                <div class="mt-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Lưu</button>
+                    <a href="{% url 'ui_modern:labor_contract_list' %}" class="btn btn-outline-secondary">Hủy</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

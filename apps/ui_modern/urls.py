@@ -12,7 +12,9 @@ from .views import (
     CustomerCreateView,
     CustomerListView,
     CustomerUpdateView,
+    D62ReportView,
     DashboardView,
+    DependentListView,
     DepreciationRunView,
     DocumentDeleteView,
     DocumentDownloadView,
@@ -23,8 +25,14 @@ from .views import (
     InputInvoiceListView,
     InputInvoiceProcessView,
     InputInvoiceUploadView,
+    InsuranceDashboardView,
+    LaborContractCreateView,
+    LaborContractListView,
+    LaborUsageReportView,
+    LeaveRequestView,
     PayrollRunView,
     PeriodClosingView,
+    PITMonthlyReportView,
     PnLView,
     ProductCreateView,
     ProductListView,
@@ -33,6 +41,7 @@ from .views import (
     PurchaseInvoiceListView,
     RecurringListView,
     RecurringRunView,
+    SalaryFundReportView,
     SalesInvoiceCreateView,
     SalesInvoiceListView,
     StockVoucherCreateView,
@@ -117,6 +126,26 @@ urlpatterns = [
         "reports/general-ledger/",
         login_required(GeneralLedgerView.as_view()),
         name="general_ledger",
+    ),
+    path(
+        "reports/d62/",
+        login_required(D62ReportView.as_view()),
+        name="report_d62",
+    ),
+    path(
+        "reports/labor-usage/",
+        login_required(LaborUsageReportView.as_view()),
+        name="report_labor_usage",
+    ),
+    path(
+        "reports/salary-fund/",
+        login_required(SalaryFundReportView.as_view()),
+        name="report_salary_fund",
+    ),
+    path(
+        "reports/pit-monthly/",
+        login_required(PITMonthlyReportView.as_view()),
+        name="report_pit_monthly",
     ),
     # Master data — Customer
     path(
@@ -225,6 +254,35 @@ urlpatterns = [
         "employees/new/",
         login_required(EmployeeCreateView.as_view()),
         name="employee_create",
+    ),
+    # HR — Labor contracts
+    path(
+        "labor-contracts/",
+        login_required(LaborContractListView.as_view()),
+        name="labor_contract_list",
+    ),
+    path(
+        "labor-contracts/new/",
+        login_required(LaborContractCreateView.as_view()),
+        name="labor_contract_create",
+    ),
+    # HR — Dependents
+    path(
+        "dependents/",
+        login_required(DependentListView.as_view()),
+        name="dependent_list",
+    ),
+    # HR — Leave request
+    path(
+        "leave/request/",
+        login_required(LeaveRequestView.as_view()),
+        name="leave_request",
+    ),
+    # HR — Insurance dashboard
+    path(
+        "insurance/",
+        login_required(InsuranceDashboardView.as_view()),
+        name="insurance_dashboard",
     ),
     # Payroll
     path(

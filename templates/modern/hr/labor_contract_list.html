@@ -1,0 +1,66 @@
+{% extends 'modern/base/layout.html' %}
+{% load static humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item">Nhân sự</li>
+                    <li class="breadcrumb-item active">Hợp đồng lao động</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+        </div>
+        <a href="{% url 'ui_modern:labor_contract_create' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg"></i> Thêm HĐLĐ
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Số HĐ</th>
+                            <th>Nhân viên</th>
+                            <th>Loại</th>
+                            <th>Ngày bắt đầu</th>
+                            <th>Ngày kết thúc</th>
+                            <th class="text-end">Lương cơ sở</th>
+                            <th class="text-end">Lương GH</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in contracts %}
+                        <tr>
+                            <td>{{ c.contract_no }}</td>
+                            <td>{{ c.employee.code }} — {{ c.employee.full_name }}</td>
+                            <td>{{ c.get_contract_type_display }}</td>
+                            <td>{{ c.start_date|date:"d/m/Y" }}</td>
+                            <td>{{ c.end_date|date:"d/m/Y"|default:"—" }}</td>
+                            <td class="text-end">{{ c.salary_base|intcomma }}</td>
+                            <td class="text-end">{{ c.salary_gross|intcomma }}</td>
+                            <td>
+                                <span class="badge {% if c.status == 'active' %}bg-success{% elif c.status == 'expired' or c.status == 'terminated' %}bg-secondary{% else %}bg-warning{% endif %}">
+                                    {{ c.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="8" class="text-center text-muted py-3">Chưa có hợp đồng lao động.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% if is_paginated %}
+    {% include 'modern/base/_pagination.html' %}
+    {% endif %}
+</div>
+{% endblock %}

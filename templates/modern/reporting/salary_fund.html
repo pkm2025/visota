@@ -1,0 +1,86 @@
+{% extends 'modern/base/layout.html' %}
+{% load static humanize %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'modern/css/ledger.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item">Báo cáo</li>
+                    <li class="breadcrumb-item active">Quỹ lương</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+            <p class="text-muted mb-0">Kỳ: Tháng {{ period_num }} / {{ fiscal_year }} — Trạng thái: {{ status|default:"—" }}</p>
+        </div>
+        <form method="get" class="d-flex gap-2">
+            <select name="fiscal_year" class="form-select form-select-sm">
+                {% for y in year_choices %}<option value="{{ y }}" {% if y == fiscal_year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+            </select>
+            <select name="period" class="form-select form-select-sm">
+                {% for p in period_choices %}<option value="{{ p }}" {% if p == period_num %}selected{% endif %}>Tháng {{ p }}</option>{% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">Xem</button>
+        </form>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-3"><div class="card text-center"><div class="card-body">
+            <div class="text-muted small">Tổng gross</div>
+            <div class="h3 mb-0">{{ total_gross|intcomma }}</div>
+        </div></div></div>
+        <div class="col-md-3"><div class="card text-center"><div class="card-body">
+            <div class="text-muted small">BHXH NV đóng</div>
+            <div class="h3 mb-0">{{ total_insurance_employee|intcomma }}</div>
+        </div></div></div>
+        <div class="col-md-3"><div class="card text-center"><div class="card-body">
+            <div class="text-muted small">Thuế TNCN</div>
+            <div class="h3 mb-0 text-danger">{{ total_pit|intcomma }}</div>
+        </div></div></div>
+        <div class="col-md-3"><div class="card text-center"><div class="card-body">
+            <div class="text-muted small">Thực nhận</div>
+            <div class="h3 mb-0 text-success">{{ total_net|intcomma }}</div>
+        </div></div></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Chi tiết theo nhân viên</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã NV</th>
+                            <th>Họ tên</th>
+                            <th class="text-end">Gross</th>
+                            <th class="text-end">BHXH NV</th>
+                            <th class="text-end">TNCN</th>
+                            <th class="text-end">Net</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in lines %}
+                        <tr>
+                            <td>{{ l.employee.code }}</td>
+                            <td>{{ l.employee.full_name }}</td>
+                            <td class="text-end">{{ l.gross_salary|intcomma }}</td>
+                            <td class="text-end">{{ l.social_insurance_employee|add:l.health_insurance_employee|add:l.unemployment_insurance_employee|intcomma }}</td>
+                            <td class="text-end">{{ l.pit|intcomma }}</td>
+                            <td class="text-end">{{ l.net_salary|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted py-3">Chưa có kỳ lương cho tháng này.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

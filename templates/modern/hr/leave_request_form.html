@@ -1,0 +1,57 @@
+{% extends 'modern/base/layout.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item">Nhân sự</li>
+            <li class="breadcrumb-item active">Xin nghỉ phép</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Nhân viên</label>
+                        {{ form.employee|attr:"class:form-select" }}
+                        {{ form.employee.errors }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Loại nghỉ</label>
+                        {{ form.leave_type|attr:"class:form-select" }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Từ ngày</label>
+                        {{ form.start_date|attr:"class:form-control" }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Đến ngày</label>
+                        {{ form.end_date|attr:"class:form-control" }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Số ngày</label>
+                        {{ form.days|attr:"class:form-control" }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Lý do</label>
+                        {{ form.reason|attr:"class:form-control"|attr:"rows:3" }}
+                    </div>
+                </div>
+                <div class="mt-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Gửi đơn</button>
+                    <a href="{% url 'ui_modern:employee_list' %}" class="btn btn-outline-secondary">Hủy</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

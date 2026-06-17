@@ -19,6 +19,13 @@ from .document_views import (
     VoucherUploadView,
 )
 from .health_views import health_detailed, health_simple
+from .hr_management_views import (
+    DependentListView,
+    InsuranceDashboardView,
+    LaborContractCreateView,
+    LaborContractListView,
+    LeaveRequestView,
+)
 from .hr_views import EmployeeCreateView, EmployeeListView
 from .input_invoice_views import (
     InputInvoiceListView,
@@ -39,9 +46,13 @@ from .purchase_views import (
 from .recurring_views import RecurringListView, RecurringRunView
 from .report_views import (
     BalanceSheetView,
+    D62ReportView,
     GeneralJournalView,
     GeneralLedgerView,
+    LaborUsageReportView,
+    PITMonthlyReportView,
     PnLView,
+    SalaryFundReportView,
     TrialBalanceView,
     VATReturnView,
 )
@@ -110,4 +121,14 @@ __all__ = [
     "InputInvoiceProcessView",
     "RecurringListView",
     "RecurringRunView",
+    # HR reports & management (Task 4 + 5)
+    "D62ReportView",
+    "LaborUsageReportView",
+    "SalaryFundReportView",
+    "PITMonthlyReportView",
+    "LaborContractListView",
+    "LaborContractCreateView",
+    "DependentListView",
+    "LeaveRequestView",
+    "InsuranceDashboardView",
 ]

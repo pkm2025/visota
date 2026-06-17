@@ -14,6 +14,12 @@ from apps.reporting.services import (
     PnLService,
     VATReturnService,
 )
+from apps.reporting.services.hr_reports import (
+    D62ReportService,
+    LaborUsageReportService,
+    PITMonthlyReportService,
+    SalaryFundReportService,
+)
 
 
 class TrialBalanceView(LoginRequiredMixin, TemplateView):
@@ -380,3 +386,126 @@ class GeneralLedgerView(LoginRequiredMixin, TemplateView):
         if debit_natured:
             return d - c
         return c - d
+
+
+# --- HR Reports (Task 4) ---
+
+
+def _parse_period_kwargs(request):
+    """Extract fiscal_year + period (int) from query params."""
+    today = date.today()
+    try:
+        fiscal_year = int(request.GET.get("fiscal_year", today.year))
+    except (TypeError, ValueError):
+        fiscal_year = today.year
+    try:
+        period = int(request.GET.get("period", today.month))
+    except (TypeError, ValueError):
+        period = today.month
+    return fiscal_year, period
+
+
+def _common_period_choices():
+    return {
+        "period_choices": list(range(1, 13)),
+        "year_choices": [2024, 2025, 2026, 2027],
+    }
+
+
+class D62ReportView(LoginRequiredMixin, TemplateView):
+    """Báo cáo D62 — Bảng kê đóng BHXH hàng tháng."""
+
+    template_name = "modern/reporting/d62.html"
+    login_url = "/auth/login/"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        fiscal_year, period = _parse_period_kwargs(self.request)
+        company = Company.objects.first()
+        if company:
+            ctx.update(D62ReportService(company=company).generate(fiscal_year, period))
+        ctx.update(
+            {
+                "page_title": "Báo cáo D62 — Bảng kê BHXH",
+                "fiscal_year": fiscal_year,
+                "period": period,
+                **_common_period_choices(),
+            }
+        )
+        return ctx
+
+
+class LaborUsageReportView(LoginRequiredMixin, TemplateView):
+    """Tình hình sử dụng lao động theo phòng ban."""
+
+    template_name = "modern/reporting/labor_usage.html"
+    login_url = "/auth/login/"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        today = date.today()
+        try:
+            fiscal_year = int(self.request.GET.get("fiscal_year", today.year))
+        except (TypeError, ValueError):
+            fiscal_year = today.year
+        company = Company.objects.first()
+        if company:
+            ctx.update(LaborUsageReportService(company=company).generate(fiscal_year))
+        ctx.update(
+            {
+                "page_title": "Tình hình sử dụng lao động",
+                "fiscal_year": fiscal_year,
+                "year_choices": [2024, 2025, 2026, 2027],
+            }
+        )
+        return ctx
+
+
+class SalaryFundReportView(LoginRequiredMixin, TemplateView):
+    """Quỹ lương kỳ — tổng hợp PayrollRun."""
+
+    template_name = "modern/reporting/salary_fund.html"
+    login_url = "/auth/login/"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        fiscal_year, period = _parse_period_kwargs(self.request)
+        company = Company.objects.first()
+        if company:
+            ctx.update(
+                SalaryFundReportService(company=company).generate(fiscal_year, period)
+            )
+        ctx.update(
+            {
+                "page_title": "Quỹ lương kỳ",
+                "fiscal_year": fiscal_year,
+                "period": period,
+                **_common_period_choices(),
+            }
+        )
+        return ctx
+
+
+class PITMonthlyReportView(LoginRequiredMixin, TemplateView):
+    """Tờ khai thuế TNCN hàng tháng."""
+
+    template_name = "modern/reporting/pit_monthly.html"
+    login_url = "/auth/login/"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        fiscal_year, period = _parse_period_kwargs(self.request)
+        company = Company.objects.first()
+        if company:
+            ctx.update(
+                PITMonthlyReportService(company=company).generate(fiscal_year, period)
+            )
+        ctx.update(
+            {
+                "page_title": "Tờ khai thuế TNCN (tháng)",
+                "fiscal_year": fiscal_year,
+                "period": period,
+                **_common_period_choices(),
+            }
+        )
+        return ctx
