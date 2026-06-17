@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'apps.inventory',
     'apps.assets',
     'apps.hr',
+    'apps.payroll',
 
     # Local — UI layout packs
     'apps.ui_modern',
