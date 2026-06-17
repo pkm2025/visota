@@ -231,6 +231,12 @@ class Command(BaseCommand):
         )
         self.stdout.write("Sample employees: NV001 (15M), NV002 (20M)")
 
+        # 8. Default recurring templates (bút toán định kỳ)
+        from apps.recurring.services import RecurringService
+
+        templates = RecurringService().setup_defaults(company)
+        self.stdout.write(f"Created {len(templates)} recurring templates")
+
         self.stdout.write(
             self.style.SUCCESS(
                 f"Seed complete. Company: {company.code}, User: admin, "

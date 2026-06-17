@@ -2,7 +2,86 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <h1 class="h3 mb-3">{{ page_title }}</h1>
-    <p class="text-muted">Stub — Task 4 will populate this view.</p>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item active">Bút toán định kỳ</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+        </div>
+        <div>
+            <form method="post" action="{% url 'ui_modern:recurring_run' %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-play-circle"></i> Chạy tất cả đến hạn
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tên</th>
+                            <th>Mô tả</th>
+                            <th>Lịch trình</th>
+                            <th>Ngày chạy</th>
+                            <th>Lần chạy cuối</th>
+                            <th>Lần chạy tới</th>
+                            <th>Đang hoạt động</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tpl in templates %}
+                        <tr>
+                            <td>{{ tpl.name }}</td>
+                            <td class="text-muted">{{ tpl.description }}</td>
+                            <td>{{ tpl.get_schedule_type_display }}</td>
+                            <td>{{ tpl.day_of_month }}</td>
+                            <td>
+                                {% if tpl.last_run_at %}
+                                    {{ tpl.last_run_at|date:'d/m/Y H:i' }}
+                                    {% if tpl.last_run_result.status %}
+                                    <span class="badge bg-{% if tpl.last_run_result.status == 'ok' %}success{% else %}danger{% endif %}">
+                                        {{ tpl.last_run_result.status }}
+                                    </span>
+                                    {% endif %}
+                                {% else %}-{% endif %}
+                            </td>
+                            <td>
+                                {% if tpl.next_run_at %}{{ tpl.next_run_at|date:'d/m/Y H:i' }}{% else %}-{% endif %}
+                            </td>
+                            <td>
+                                {% if tpl.is_active %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Paused</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form method="post" action="{% url 'ui_modern:recurring_run' %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="template_id" value="{{ tpl.id }}">
+                                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-play"></i> Chạy
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="8" class="text-center text-muted py-4">Chưa có bút toán định kỳ nào.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
