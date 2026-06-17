@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'apps.ledger',
     'apps.sales',
     'apps.purchasing',
+    'apps.inventory',
 
     # Local — UI layout packs
     'apps.ui_modern',
