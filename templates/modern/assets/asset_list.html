@@ -1,0 +1,109 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item active">Tài sản</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'ui_modern:depreciation_run' %}" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-calculator"></i> Tính khấu hao kỳ
+            </a>
+            <a href="{% url 'ui_modern:asset_create' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus"></i> Thêm tài sản
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="get" class="row g-2 mb-3">
+                <div class="col-auto">
+                    <input type="text" class="form-control form-control-sm" name="search"
+                           placeholder="Tìm theo mã hoặc tên..."
+                           value="{{ request.GET.search }}">
+                </div>
+                <div class="col-auto">
+                    <select name="is_tool" class="form-select form-select-sm">
+                        <option value="">Tất cả</option>
+                        <option value="0" {% if request.GET.is_tool == '0' %}selected{% endif %}>TSCĐ</option>
+                        <option value="1" {% if request.GET.is_tool == '1' %}selected{% endif %}>CCDC</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-funnel"></i> Lọc
+                    </button>
+                </div>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã</th>
+                            <th>Tên</th>
+                            <th>Loại</th>
+                            <th>Bộ phận SD</th>
+                            <th class="text-end">Nguyên giá</th>
+                            <th class="text-end">Hao mòn LK</th>
+                            <th class="text-end">GT còn lại</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for asset in assets %}
+                        <tr>
+                            <td>{{ asset.asset_code }}</td>
+                            <td>{{ asset.asset_name }}</td>
+                            <td>
+                                {% if asset.is_tool %}<span class="badge bg-info">CCDC</span>
+                                {% else %}<span class="badge bg-primary">TSCĐ</span>{% endif %}
+                            </td>
+                            <td><small class="text-muted">{{ asset.using_department.code|default:"-" }}</small></td>
+                            <td class="text-end font-mono">{{ asset.original_cost|floatformat:0 }}</td>
+                            <td class="text-end font-mono">{{ asset.accumulated_depreciation|floatformat:0 }}</td>
+                            <td class="text-end font-mono fw-semibold">{{ asset.net_book_value|floatformat:0 }}</td>
+                            <td>
+                                {% if asset.status == 'active' %}<span class="badge bg-success">Đang dùng</span>
+                                {% elif asset.status == 'fully_depreciated' %}<span class="badge bg-warning">KH hết</span>
+                                {% elif asset.status == 'disposed' %}<span class="badge bg-secondary">Thanh lý</span>
+                                {% else %}<span class="badge bg-light text-dark">Lưu tạm</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                                Chưa có tài sản nào. Bấm "Thêm tài sản" để tạo.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if is_paginated %}
+            <nav>
+                <ul class="pagination pagination-sm justify-content-end">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">←</a></li>
+                    {% endif %}
+                    <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">→</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

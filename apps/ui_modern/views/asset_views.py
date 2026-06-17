@@ -1,0 +1,224 @@
+"""Asset UI views — list, create, depreciation run."""
+
+from decimal import Decimal
+
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import redirect, render
+from django.views import View
+from django.views.generic import ListView
+
+from apps.assets.models import (
+    AssetCategory,
+    AssetUsingDepartment,
+    FixedAsset,
+)
+from apps.assets.services import DepreciationService
+
+
+class AssetListView(LoginRequiredMixin, ListView):
+    """List of fixed assets (TSCĐ + CCDC) for the current company."""
+
+    template_name = "modern/assets/asset_list.html"
+    context_object_name = "assets"
+    paginate_by = 25
+    login_url = "/auth/login/"
+
+    def get_queryset(self):
+        qs = FixedAsset.objects.select_related(
+            "category", "using_department"
+        ).order_by("asset_code")
+        is_tool = self.request.GET.get("is_tool")
+        if is_tool in ("0", "1"):
+            qs = qs.filter(is_tool=(is_tool == "1"))
+        search = self.request.GET.get("search")
+        if search:
+            qs = qs.filter(asset_code__icontains=search) | qs.filter(
+                asset_name__icontains=search
+            )
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = "Tài sản"
+        return ctx
+
+
+class AssetCreateView(LoginRequiredMixin, View):
+    """Create a fixed asset. Custom POST pulls default GL accounts from the
+    selected category and using_department."""
+
+    template_name = "modern/assets/asset_form.html"
+    login_url = "/auth/login/"
+
+    def get(self, request, *args, **kwargs):
+        return render(
+            request,
+            self.template_name,
+            self._build_context(),
+        )
+
+    def post(self, request, *args, **kwargs):
+        ctx = self._build_context()
+        required = [
+            "asset_code",
+            "asset_name",
+            "category",
+            "using_department",
+            "original_cost",
+            "start_date",
+        ]
+        missing = [f for f in required if not request.POST.get(f)]
+        if missing:
+            messages.error(request, f"Thiếu trường bắt buộc: {', '.join(missing)}")
+            ctx["post_data"] = request.POST
+            return render(request, self.template_name, ctx, status=200)
+
+        try:
+            category = AssetCategory.objects.get(pk=request.POST.get("category"))
+        except AssetCategory.DoesNotExist:
+            messages.error(request, "Loại tài sản không hợp lệ")
+            ctx["post_data"] = request.POST
+            return render(request, self.template_name, ctx, status=200)
+
+        try:
+            dept = AssetUsingDepartment.objects.get(
+                pk=request.POST.get("using_department")
+            )
+        except AssetUsingDepartment.DoesNotExist:
+            messages.error(request, "Bộ phận sử dụng không hợp lệ")
+            ctx["post_data"] = request.POST
+            return render(request, self.template_name, ctx, status=200)
+
+        from apps.core.models import Company
+
+        company = Company.objects.first()
+        if not company:
+            messages.error(request, "Chưa có công ty nào được cấu hình.")
+            return redirect("ui_modern:asset_list")
+
+        # Pull default GL accounts from selected category / department
+        gl_account = request.POST.get("gl_account") or category.default_gl_account
+        depreciation_account = (
+            request.POST.get("depreciation_account")
+            or category.default_depreciation_account
+        )
+        expense_account = (
+            request.POST.get("expense_account")
+            or dept.default_expense_account
+            or category.default_expense_account
+            or "642"
+        )
+        dep_rate = request.POST.get("depreciation_rate") or (
+            category.default_depreciation_rate or Decimal("0")
+        )
+        useful_life = request.POST.get("useful_life_months") or (
+            category.default_useful_life_months or 0
+        )
+
+        try:
+            cost = Decimal(str(request.POST.get("original_cost")))
+        except Exception:
+            cost = Decimal("0")
+
+        # Build code lookup
+        if FixedAsset.objects.filter(
+            company=company, asset_code=request.POST.get("asset_code")
+        ).exists():
+            messages.error(request, "Mã tài sản đã tồn tại")
+            ctx["post_data"] = request.POST
+            return render(request, self.template_name, ctx, status=200)
+
+        asset = FixedAsset.objects.create(
+            company=company,
+            asset_code=request.POST.get("asset_code"),
+            asset_name=request.POST.get("asset_name"),
+            asset_name_en=request.POST.get("asset_name_en", ""),
+            category=category,
+            using_department=dept,
+            gl_account=gl_account,
+            depreciation_account=depreciation_account,
+            expense_account=expense_account,
+            original_cost=cost,
+            depreciation_method=FixedAsset.DepreciationMethod.STRAIGHT_LINE,
+            depreciation_rate=dep_rate,
+            useful_life_months=useful_life,
+            start_date=request.POST.get("start_date"),
+            is_tool=category.is_for_tool,
+            status=FixedAsset.Status.ACTIVE,
+            description=request.POST.get("description", ""),
+        )
+
+        messages.success(
+            request, f"Đã tạo tài sản {asset.asset_code} - {asset.asset_name}"
+        )
+        return redirect("ui_modern:asset_list")
+
+    def _build_context(self):
+        from apps.core.models import Company
+
+        company = Company.objects.first()
+        categories_qs = AssetCategory.objects.filter(is_active=True).order_by("code")
+        departments_qs = AssetUsingDepartment.objects.filter(is_active=True).order_by(
+            "code"
+        )
+        if company:
+            categories_qs = categories_qs.filter(company=company)
+            departments_qs = departments_qs.filter(company=company)
+        return {
+            "page_title": "Thêm tài sản",
+            "categories": categories_qs,
+            "departments": departments_qs,
+            "is_new": True,
+            "post_data": None,
+        }
+
+
+class DepreciationRunView(LoginRequiredMixin, View):
+    """GET shows form; POST runs DepreciationService.calculate_period."""
+
+    template_name = "modern/assets/depreciation_run.html"
+    login_url = "/auth/login/"
+
+    def get(self, request, *args, **kwargs):
+        from datetime import date
+
+        today = date.today()
+        return render(
+            request,
+            self.template_name,
+            {
+                "page_title": "Tính khấu hao kỳ",
+                "default_year": today.year,
+                "default_month": today.month,
+            },
+        )
+
+    def post(self, request, *args, **kwargs):
+        from apps.core.models import Company
+
+        try:
+            year = int(request.POST.get("year"))
+            month = int(request.POST.get("month"))
+        except (TypeError, ValueError):
+            messages.error(request, "Năm/tháng không hợp lệ")
+            return redirect("ui_modern:depreciation_run")
+
+        if not (1 <= month <= 12) or year < 2000:
+            messages.error(request, "Năm/tháng không hợp lệ")
+            return redirect("ui_modern:depreciation_run")
+
+        company = Company.objects.first()
+        if not company:
+            messages.error(request, "Chưa có công ty nào được cấu hình.")
+            return redirect("ui_modern:asset_list")
+
+        result = DepreciationService(company).calculate_period(year, month)
+
+        messages.success(
+            request,
+            f"Đã tính khấu hao {year}-{month:02d}: "
+            f"{result.get('assets_processed', 0)} tài sản, "
+            f"tổng {result.get('total_depreciation', 0)} VND",
+        )
+        return redirect("ui_modern:asset_list")

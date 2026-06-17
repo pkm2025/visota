@@ -1,0 +1,121 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:asset_list' %}">Tài sản</a></li>
+            <li class="breadcrumb-item active">{{ is_new|yesno:"Thêm,Sửa" }}</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Mã tài sản <span class="text-danger">*</span></label>
+                        <input type="text" name="asset_code" class="form-control" required
+                               value="{{ post_data.asset_code }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Tên tài sản <span class="text-danger">*</span></label>
+                        <input type="text" name="asset_name" class="form-control" required
+                               value="{{ post_data.asset_name }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tên tiếng Anh</label>
+                        <input type="text" name="asset_name_en" class="form-control"
+                               value="{{ post_data.asset_name_en }}">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Loại tài sản <span class="text-danger">*</span></label>
+                        <select name="category" class="form-select" required>
+                            <option value="">— Chọn —</option>
+                            {% for c in categories %}
+                            <option value="{{ c.pk }}"
+                                {% if post_data.category == c.pk|stringformat:"s" %}selected{% endif %}>
+                                {{ c.code }} - {{ c.name }}
+                                {% if c.is_for_tool %} [CCDC]{% else %} [TSCĐ]{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">TK mặc định sẽ kế thừa từ loại tài sản.</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Bộ phận sử dụng <span class="text-danger">*</span></label>
+                        <select name="using_department" class="form-select" required>
+                            <option value="">— Chọn —</option>
+                            {% for d in departments %}
+                            <option value="{{ d.pk }}"
+                                {% if post_data.using_department == d.pk|stringformat:"s" %}selected{% endif %}>
+                                {{ d.code }} - {{ d.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">TK chi phí mặc định sẽ kế thừa từ bộ phận sử dụng.</small>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Nguyên giá <span class="text-danger">*</span></label>
+                        <input type="number" step="any" name="original_cost" class="form-control" required
+                               value="{{ post_data.original_cost }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tỷ lệ KH/năm</label>
+                        <input type="number" step="0.0001" name="depreciation_rate" class="form-control"
+                               placeholder="vd 0.20 = 20%/năm"
+                               value="{{ post_data.depreciation_rate }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Số tháng SD</label>
+                        <input type="number" name="useful_life_months" class="form-control"
+                               value="{{ post_data.useful_life_months }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Ngày bắt đầu <span class="text-danger">*</span></label>
+                        <input type="date" name="start_date" class="form-control" required
+                               value="{{ post_data.start_date }}">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">TK tài sản (override)</label>
+                        <input type="text" name="gl_account" class="form-control"
+                               placeholder="(mặc định từ loại TS)"
+                               value="{{ post_data.gl_account }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">TK hao mòn (override)</label>
+                        <input type="text" name="depreciation_account" class="form-control"
+                               placeholder="(mặc định từ loại TS)"
+                               value="{{ post_data.depreciation_account }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">TK chi phí (override)</label>
+                        <input type="text" name="expense_account" class="form-control"
+                               placeholder="(mặc định từ BP SD)"
+                               value="{{ post_data.expense_account }}">
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Mô tả</label>
+                        <textarea name="description" class="form-control" rows="2">{{ post_data.description }}</textarea>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Lưu
+                    </button>
+                    <a href="{% url 'ui_modern:asset_list' %}" class="btn btn-outline-secondary">Hủy</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

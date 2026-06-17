@@ -2,10 +2,13 @@ from django.contrib.auth.decorators import login_required
 from django.urls import path
 
 from .views import (
+    AssetCreateView,
+    AssetListView,
     CustomerCreateView,
     CustomerListView,
     CustomerUpdateView,
     DashboardView,
+    DepreciationRunView,
     ProductCreateView,
     ProductListView,
     ProductUpdateView,
@@ -122,5 +125,21 @@ urlpatterns = [
         "stock-vouchers/new/",
         login_required(StockVoucherCreateView.as_view()),
         name="stock_voucher_create",
+    ),
+    # Fixed assets
+    path(
+        "assets/",
+        login_required(AssetListView.as_view()),
+        name="asset_list",
+    ),
+    path(
+        "assets/new/",
+        login_required(AssetCreateView.as_view()),
+        name="asset_create",
+    ),
+    path(
+        "assets/depreciation/",
+        login_required(DepreciationRunView.as_view()),
+        name="depreciation_run",
     ),
 ]

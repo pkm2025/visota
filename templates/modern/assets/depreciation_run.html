@@ -1,0 +1,45 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:asset_list' %}">Tài sản</a></li>
+            <li class="breadcrumb-item active">Tính khấu hao</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                Chạy khấu hao sẽ tính hao mòn cho <strong>tất cả tài sản đang dùng</strong>
+                trong kỳ được chọn, sau đó tạo <strong>1 phiếu kế toán</strong> tổng hợp
+                (Nợ TK chi phí / Có TK hao mòn lũy kế) và tự động ghi sổ.
+                <br>Thao tác này <strong>idempotent</strong>: các tài sản đã tính trong kỳ sẽ bị bỏ qua.
+            </div>
+
+            <form method="post" class="row g-3 align-items-end">
+                {% csrf_token %}
+                <div class="col-auto">
+                    <label class="form-label">Năm</label>
+                    <input type="number" name="year" class="form-control"
+                           value="{{ default_year }}" min="2000" max="2100" required>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label">Tháng</label>
+                    <input type="number" name="month" class="form-control"
+                           value="{{ default_month }}" min="1" max="12" required>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-play-fill"></i> Chạy khấu hao
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
