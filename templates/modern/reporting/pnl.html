@@ -1,0 +1,117 @@
+{% extends 'modern/base/layout.html' %}
+{% load static humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item">Báo cáo</li>
+                    <li class="breadcrumb-item active">Kết quả HĐKD</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+            <p class="text-muted mb-0">Kỳ: Tháng {{ period }} / {{ fiscal_year }}</p>
+        </div>
+        <form method="get" class="d-flex gap-2">
+            <select name="fiscal_year" class="form-select form-select-sm">
+                {% for y in year_choices %}
+                <option value="{{ y }}" {% if y == fiscal_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+            <select name="period" class="form-select form-select-sm">
+                {% for p in period_choices %}
+                <option value="{{ p }}" {% if p == period %}selected{% endif %}>Tháng {{ p }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">Xem</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:60%">Chỉ tiêu</th>
+                            <th class="text-end">Số tiền (VND)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="table-light fw-bold"><td colspan="2">1. Doanh thu và lợi nhuận gộp</td></tr>
+                        <tr>
+                            <td class="ps-4">Doanh thu bán hàng và cung cấp dịch vụ (TK 511, 512)</td>
+                            <td class="text-end font-mono">{{ revenue|floatformat:0|intcomma }}</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-4">Giá vốn hàng bán (TK 632)</td>
+                            <td class="text-end font-mono">({{ cogs|floatformat:0|intcomma }})</td>
+                        </tr>
+                        <tr class="fw-bold">
+                            <td class="ps-4">Lợi nhuận gộp về bán hàng và cung cấp dịch vụ</td>
+                            <td class="text-end font-mono">{{ gross_profit|floatformat:0|intcomma }}</td>
+                        </tr>
+
+                        <tr class="table-light fw-bold"><td colspan="2">2. Lợi nhuận thuần từ HĐKD</td></tr>
+                        <tr>
+                            <td class="ps-4">Doanh thu hoạt động tài chính (TK 515)</td>
+                            <td class="text-end font-mono">{{ financial_income|floatformat:0|intcomma }}</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-4">Chi phí tài chính (TK 635)</td>
+                            <td class="text-end font-mono">({{ financial_expense|floatformat:0|intcomma }})</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-4">Chi phí bán hàng (TK 641)</td>
+                            <td class="text-end font-mono">({{ selling_expense|floatformat:0|intcomma }})</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-4">Chi phí quản lý doanh nghiệp (TK 642)</td>
+                            <td class="text-end font-mono">({{ admin_expense|floatformat:0|intcomma }})</td>
+                        </tr>
+                        <tr class="fw-bold">
+                            <td class="ps-4">Lợi nhuận thuần từ hoạt động kinh doanh</td>
+                            <td class="text-end font-mono">{{ operating_profit|floatformat:0|intcomma }}</td>
+                        </tr>
+
+                        <tr class="table-light fw-bold"><td colspan="2">3. Lợi nhuận khác</td></tr>
+                        <tr>
+                            <td class="ps-4">Thu nhập khác (TK 711)</td>
+                            <td class="text-end font-mono">{{ other_income|floatformat:0|intcomma }}</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-4">Chi phí khác (TK 811)</td>
+                            <td class="text-end font-mono">({{ other_expense|floatformat:0|intcomma }})</td>
+                        </tr>
+                        <tr class="fw-bold">
+                            <td class="ps-4">Lợi nhuận khác</td>
+                            <td class="text-end font-mono">{{ other_profit|floatformat:0|intcomma }}</td>
+                        </tr>
+
+                        <tr class="table-light fw-bold">
+                            <td>Tổng lợi nhuận kế toán trước thuế</td>
+                            <td class="text-end font-mono">{{ profit_before_tax|floatformat:0|intcomma }}</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-4">Chi phí thuế TNDN (TK 821)</td>
+                            <td class="text-end font-mono">({{ pit_expense|floatformat:0|intcomma }})</td>
+                        </tr>
+                        <tr class="table-success fw-bold">
+                            <td>NET PROFIT — Lợi nhuận sau thuế</td>
+                            <td class="text-end font-mono">{{ profit_after_tax|floatformat:0|intcomma }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end">
+            <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+                <i class="bi bi-printer"></i> In / PDF
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}

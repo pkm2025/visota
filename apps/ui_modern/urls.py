@@ -13,6 +13,7 @@ from .views import (
     EmployeeCreateView,
     EmployeeListView,
     PayrollRunView,
+    PnLView,
     ProductCreateView,
     ProductListView,
     ProductUpdateView,
@@ -53,6 +54,11 @@ urlpatterns = [
         "reports/balance-sheet/",
         login_required(BalanceSheetView.as_view()),
         name="balance_sheet",
+    ),
+    path(
+        "reports/pnl/",
+        login_required(PnLView.as_view()),
+        name="pnl",
     ),
     # Master data — Customer
     path(

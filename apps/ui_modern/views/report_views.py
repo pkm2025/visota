@@ -8,7 +8,7 @@ from django.views.generic import TemplateView
 
 from apps.core.models import Company
 from apps.ledger.models import AccountPeriodBalance
-from apps.reporting.services import BalanceSheetService
+from apps.reporting.services import BalanceSheetService, PnLService
 
 
 class TrialBalanceView(LoginRequiredMixin, TemplateView):
@@ -110,6 +110,41 @@ class BalanceSheetView(LoginRequiredMixin, TemplateView):
         ctx.update(
             {
                 "page_title": "Báo cáo tình hình tài chính (B01-DN)",
+                "fiscal_year": fiscal_year,
+                "period": period,
+                "period_choices": list(range(1, 13)),
+                "year_choices": [2024, 2025, 2026, 2027],
+            }
+        )
+        return ctx
+
+
+class PnLView(LoginRequiredMixin, TemplateView):
+    """Báo cáo kết quả hoạt động kinh doanh (B02a-DN)."""
+
+    template_name = "modern/reporting/pnl.html"
+    login_url = "/auth/login/"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        today = date.today()
+        try:
+            fiscal_year = int(self.request.GET.get("fiscal_year", today.year))
+        except (TypeError, ValueError):
+            fiscal_year = today.year
+        try:
+            period = int(self.request.GET.get("period", today.month))
+        except (TypeError, ValueError):
+            period = today.month
+
+        company = Company.objects.first()
+        if company:
+            data = PnLService(company=company).generate(fiscal_year, period)
+            ctx.update(data)
+
+        ctx.update(
+            {
+                "page_title": "Kết quả hoạt động kinh doanh (B02-DN)",
                 "fiscal_year": fiscal_year,
                 "period": period,
                 "period_choices": list(range(1, 13)),
