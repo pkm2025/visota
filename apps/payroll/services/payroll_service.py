@@ -6,11 +6,13 @@ from decimal import Decimal
 from django.db import transaction
 
 from apps.hr.models import Employee
+from apps.hr.services import InsuranceService
 from apps.ledger.models import AccountingVoucher, VoucherLine
 from apps.ledger.services import VoucherPostingService
 from apps.payroll.models import PayrollLine, PayrollRun
 
-# 2024-2026 Vietnamese insurance rates
+# 2024-2026 Vietnamese insurance rates (legacy inline rates — kept for reference;
+# calculations now delegate to InsuranceService for cap + correct rate table).
 INSURANCE_RATES = {
     "social_employee": Decimal("0.08"),  # BHXH NV đóng 8%
     "social_employer": Decimal("0.175"),  # BHXH DN đóng 17.5%
@@ -92,24 +94,46 @@ class PayrollService:
         total_ins_er = Decimal("0")
         total_pit = Decimal("0")
         total_net = Decimal("0")
+        total_kpcd = Decimal("0")
+        total_bhtnld = Decimal("0")
+
+        ins_svc = InsuranceService(company=self.company)
 
         for idx, emp in enumerate(employees, start=1):
             # Prorated base salary by work days (simplified — assume full month)
             gross = emp.base_salary + emp.allowance
 
-            # Insurance — employee portion
-            si_emp = (gross * INSURANCE_RATES["social_employee"]).quantize(Decimal("1"))
-            hi_emp = (gross * INSURANCE_RATES["health_employee"]).quantize(Decimal("1"))
-            ui_emp = (gross * INSURANCE_RATES["unemployment_employee"]).quantize(Decimal("1"))
-            ins_emp_total = si_emp + hi_emp + ui_emp
+            # Delegate to InsuranceService — handles 46.8M cap + correct 2025 rates.
+            # Insurance base is base_salary only (allowance treated as non-insurance pay
+            # in line with VN practice for capped allowances); capped inside service.
+            ic = ins_svc.calculate_monthly(emp, period)
 
-            # Insurance — employer portion
-            si_er = (gross * INSURANCE_RATES["social_employer"]).quantize(Decimal("1"))
-            hi_er = (gross * INSURANCE_RATES["health_employer"]).quantize(Decimal("1"))
-            ui_er = (gross * INSURANCE_RATES["unemployment_employer"]).quantize(Decimal("1"))
+            # Employee portion (BHXH/BHYT/BHTN) from InsuranceContribution
+            si_emp = ic.bhxh_employee
+            hi_emp = ic.bhyt_employee
+            ui_emp = ic.bhtn_employee
+            ins_emp_total = ic.total_employee
+
+            # Employer portion — BHXH/BHYT/BHTN + extra KPCĐ/BHTNLĐ-BNN
+            si_er = ic.bhxh_employer
+            hi_er = ic.bhyt_employer
+            ui_er = ic.bhtn_employer
+            kpcd_er = ic.kpcd_employer
+            bhtnld_er = ic.bhtnld_employer
 
             # PIT: taxable = gross - insurance_employee - personal deduction
-            taxable = gross - ins_emp_total - PERSONAL_DEDUCTION
+            #      - dependent deduction (4.4M per active dependent)
+            active_dependents = emp.dependents.filter(
+                registration_status="registered",
+                valid_from__lte=date.today(),
+            ).count()
+            # Simplified active filter: registered + valid_from <= today
+            # (Dependent.is_active property is the canonical check, but it's
+            #  per-instance — using queryset for efficiency.)
+            total_deduction = PERSONAL_DEDUCTION + (
+                DEPENDENT_DEDUCTION * Decimal(active_dependents)
+            )
+            taxable = gross - ins_emp_total - total_deduction
             pit = calculate_pit(taxable) if taxable > 0 else Decimal("0")
 
             net = gross - ins_emp_total - pit
@@ -128,6 +152,8 @@ class PayrollService:
                 social_insurance_employer=si_er,
                 health_insurance_employer=hi_er,
                 unemployment_insurance_employer=ui_er,
+                kpcd_employer=kpcd_er,
+                bhtnld_employer=bhtnld_er,
                 pit=pit,
                 net_salary=net,
             )
@@ -135,12 +161,16 @@ class PayrollService:
             total_gross += gross
             total_ins_emp += ins_emp_total
             total_ins_er += si_er + hi_er + ui_er
+            total_kpcd += kpcd_er
+            total_bhtnld += bhtnld_er
             total_pit += pit
             total_net += net
 
         run.total_gross = total_gross
         run.total_insurance_employee = total_ins_emp
         run.total_insurance_employer = total_ins_er
+        run.total_kpcd_employer = total_kpcd
+        run.total_bhtnld_employer = total_bhtnld
         run.total_pit = total_pit
         run.total_net = total_net
         run.status = "calculated"
@@ -152,18 +182,26 @@ class PayrollService:
     def post(self, run: PayrollRun) -> AccountingVoucher:
         """Post payroll → generate accounting voucher.
 
-        Bút toán (simplified — all employees in one dept):
-        N642 (total gross + employer insurance) — salary expense
-        C334 (net payable to employees)
-        C3336 (PIT payable)
-        C3383 (BHXH payable — employee + employer)
-        C3384 (BHYT payable)
-        C3386 (BHTN payable)
+        Bút toán (8 lines):
+        N642   (total gross + employer insurance + KPCĐ + BHTNLĐ) — salary expense
+        C334   (net payable to employees)
+        C3336  (PIT payable)
+        C3382  (KPCĐ payable — kinh phí công đoàn)
+        C3383  (BHXH payable — employee + employer)
+        C3384  (BHYT payable)
+        C3386  (BHTN payable)
+        C3339  (BHTNLĐ-BNN payable — other statutory payables)
         """
         if run.status == "posted":
             return run.gl_voucher
 
         voucher_date = date(run.fiscal_year, run.period_num, 1)
+
+        employer_total_cost = (
+            run.total_insurance_employer
+            + run.total_kpcd_employer
+            + run.total_bhtnld_employer
+        )
 
         voucher = AccountingVoucher.objects.create(
             company=run.company,
@@ -173,7 +211,7 @@ class PayrollService:
             voucher_type="payroll",
             voucher_date=voucher_date,
             currency_code="VND",
-            total_vnd=run.total_gross + run.total_insurance_employer,
+            total_vnd=run.total_gross + employer_total_cost,
             status=AccountingVoucher.Status.DRAFT,
             source="payroll",
             source_reference_id=run.id,
@@ -181,13 +219,13 @@ class PayrollService:
         )
 
         line_no = 1
-        # N642 — total cost = gross + employer insurance
+        # N642 — total cost = gross + employer insurance + KPCĐ + BHTNLĐ
         VoucherLine.objects.create(
             voucher=voucher,
             line_no=line_no,
             account_code="642",
-            debit_vnd=run.total_gross + run.total_insurance_employer,
-            description=f"CP lương + BHXH DN kỳ {run.period}",
+            debit_vnd=run.total_gross + employer_total_cost,
+            description=f"CP lương + BHXH/KPCĐ/BHTNLĐ DN kỳ {run.period}",
         )
         line_no += 1
 
@@ -209,6 +247,17 @@ class PayrollService:
                 account_code="3336",
                 credit_vnd=run.total_pit,
                 description=f"Thuế TNCN kỳ {run.period}",
+            )
+            line_no += 1
+
+        # C3382 — Kinh phí công đoàn (employer only, 2%)
+        if run.total_kpcd_employer > 0:
+            VoucherLine.objects.create(
+                voucher=voucher,
+                line_no=line_no,
+                account_code="3382",
+                credit_vnd=run.total_kpcd_employer,
+                description=f"Kinh phí công đoàn kỳ {run.period}",
             )
             line_no += 1
 
@@ -252,6 +301,17 @@ class PayrollService:
                 account_code="3386",
                 credit_vnd=total_bhtn,
                 description=f"BHTN kỳ {run.period}",
+            )
+            line_no += 1
+
+        # C3339 — BHTNLĐ-BNN payable (employer only, 0.5%)
+        if run.total_bhtnld_employer > 0:
+            VoucherLine.objects.create(
+                voucher=voucher,
+                line_no=line_no,
+                account_code="3339",
+                credit_vnd=run.total_bhtnld_employer,
+                description=f"BHTNLĐ-BNN kỳ {run.period}",
             )
             line_no += 1
 

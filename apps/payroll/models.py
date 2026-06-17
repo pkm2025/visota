@@ -81,6 +81,8 @@ class PayrollRun(models.Model):
     total_insurance_employer = models.DecimalField(max_digits=20, decimal_places=4, default=0)
     total_pit = models.DecimalField(max_digits=20, decimal_places=4, default=0)
     total_net = models.DecimalField(max_digits=20, decimal_places=4, default=0)
+    total_kpcd_employer = models.DecimalField(max_digits=20, decimal_places=4, default=0)
+    total_bhtnld_employer = models.DecimalField(max_digits=20, decimal_places=4, default=0)
 
     gl_voucher = models.ForeignKey(
         "ledger.AccountingVoucher",
@@ -141,6 +143,9 @@ class PayrollLine(models.Model):
     unemployment_insurance_employer = models.DecimalField(
         max_digits=20, decimal_places=4, default=0
     )
+    # Additional employer contributions (Task 3)
+    kpcd_employer = models.DecimalField(max_digits=20, decimal_places=4, default=0)
+    bhtnld_employer = models.DecimalField(max_digits=20, decimal_places=4, default=0)
 
     pit = models.DecimalField(max_digits=20, decimal_places=4, default=0)
     net_salary = models.DecimalField(max_digits=20, decimal_places=4, default=0)
