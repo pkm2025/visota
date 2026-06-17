@@ -76,11 +76,7 @@ class PnLService:
         revenue_net = revenue
         gross_profit = revenue_net - cogs
         operating_profit = (
-            gross_profit
-            + financial_income
-            - financial_expense
-            - selling_expense
-            - admin_expense
+            gross_profit + financial_income - financial_expense - selling_expense - admin_expense
         )
         other_profit = other_income - other_expense
         profit_before_tax = operating_profit + other_profit
