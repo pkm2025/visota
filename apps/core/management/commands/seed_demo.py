@@ -26,8 +26,9 @@ class Command(BaseCommand):
 
         # Load TT133 chart of accounts
         from django.core.management import call_command
-        call_command('load_tt133', company_code=company.code)
-        self.stdout.write(f'Loaded TT133 chart for {company.code}')
+
+        call_command("load_tt133", company_code=company.code)
+        self.stdout.write(f"Loaded TT133 chart for {company.code}")
 
         # 2. Create admin user
         admin, created = User.objects.get_or_create(

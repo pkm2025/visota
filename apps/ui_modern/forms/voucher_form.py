@@ -1,4 +1,5 @@
 """Forms for voucher creation."""
+
 from django import forms
 from django.forms import formset_factory
 
@@ -13,27 +14,25 @@ class VoucherHeaderForm(forms.Form):
         required=False,
         widget=forms.TextInput(
             attrs={
-                'class': 'form-control form-control-sm',
-                'placeholder': 'Tự động nếu để trống',
+                "class": "form-control form-control-sm",
+                "placeholder": "Tự động nếu để trống",
             }
         ),
     )
     voucher_date = forms.DateField(
-        widget=forms.DateInput(
-            attrs={'class': 'form-control form-control-sm', 'type': 'date'}
-        ),
+        widget=forms.DateInput(attrs={"class": "form-control form-control-sm", "type": "date"}),
     )
     voucher_type = forms.ChoiceField(
         choices=AccountingVoucher.VoucherType.choices,
         initial=AccountingVoucher.VoucherType.JOURNAL,
-        widget=forms.Select(attrs={'class': 'form-select form-select-sm'}),
+        widget=forms.Select(attrs={"class": "form-select form-select-sm"}),
     )
     description = forms.CharField(
         required=False,
         widget=forms.Textarea(
             attrs={
-                'class': 'form-control form-control-sm',
-                'rows': 2,
+                "class": "form-control form-control-sm",
+                "rows": 2,
             }
         ),
     )
@@ -46,9 +45,9 @@ class VoucherLineForm(forms.Form):
         max_length=20,
         widget=forms.TextInput(
             attrs={
-                'class': 'form-control form-control-sm font-mono',
-                'placeholder': 'TK',
-                'list': 'account-list',
+                "class": "form-control form-control-sm font-mono",
+                "placeholder": "TK",
+                "list": "account-list",
             }
         ),
     )
@@ -57,8 +56,8 @@ class VoucherLineForm(forms.Form):
         max_length=50,
         widget=forms.TextInput(
             attrs={
-                'class': 'form-control form-control-sm',
-                'placeholder': 'Đối tượng',
+                "class": "form-control form-control-sm",
+                "placeholder": "Đối tượng",
             }
         ),
     )
@@ -68,8 +67,8 @@ class VoucherLineForm(forms.Form):
         decimal_places=4,
         widget=forms.NumberInput(
             attrs={
-                'class': 'form-control form-control-sm text-end font-mono',
-                'step': '0.0001',
+                "class": "form-control form-control-sm text-end font-mono",
+                "step": "0.0001",
             }
         ),
     )
@@ -79,8 +78,8 @@ class VoucherLineForm(forms.Form):
         decimal_places=4,
         widget=forms.NumberInput(
             attrs={
-                'class': 'form-control form-control-sm text-end font-mono',
-                'step': '0.0001',
+                "class": "form-control form-control-sm text-end font-mono",
+                "step": "0.0001",
             }
         ),
     )
@@ -88,8 +87,8 @@ class VoucherLineForm(forms.Form):
         required=False,
         widget=forms.TextInput(
             attrs={
-                'class': 'form-control form-control-sm',
-                'placeholder': 'Diễn giải dòng',
+                "class": "form-control form-control-sm",
+                "placeholder": "Diễn giải dòng",
             }
         ),
     )

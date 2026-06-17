@@ -1,4 +1,5 @@
 """Account balance projections — pre-computed for fast reporting."""
+
 from django.db import models
 
 
@@ -10,14 +11,16 @@ class AccountPeriodBalance(models.Model):
     """
 
     company = models.ForeignKey(
-        'core.Company', on_delete=models.CASCADE, related_name='balances',
+        "core.Company",
+        on_delete=models.CASCADE,
+        related_name="balances",
         db_index=True,
     )
     fiscal_year = models.SmallIntegerField()
     period = models.PositiveSmallIntegerField()
     account_code = models.CharField(max_length=20)
-    object_type = models.CharField(max_length=20, blank=True, default='')
-    object_code = models.CharField(max_length=50, blank=True, default='')
+    object_type = models.CharField(max_length=20, blank=True, default="")
+    object_code = models.CharField(max_length=50, blank=True, default="")
 
     opening_debit = models.DecimalField(max_digits=20, decimal_places=4, default=0)
     opening_credit = models.DecimalField(max_digits=20, decimal_places=4, default=0)
@@ -37,18 +40,18 @@ class AccountPeriodBalance(models.Model):
     transaction_count = models.PositiveIntegerField(default=0)
 
     class Meta:
-        db_table = 'account_period_balance'
+        db_table = "account_period_balance"
         unique_together = [
-            ('company', 'fiscal_year', 'period', 'account_code', 'object_type', 'object_code'),
+            ("company", "fiscal_year", "period", "account_code", "object_type", "object_code"),
         ]
         indexes = [
-            models.Index(fields=['company', 'fiscal_year', 'period']),
-            models.Index(fields=['account_code']),
-            models.Index(fields=['object_type', 'object_code']),
+            models.Index(fields=["company", "fiscal_year", "period"]),
+            models.Index(fields=["account_code"]),
+            models.Index(fields=["object_type", "object_code"]),
         ]
 
     def __str__(self):
-        return f'{self.account_code} P{self.period}/{self.fiscal_year}'
+        return f"{self.account_code} P{self.period}/{self.fiscal_year}"
 
     def recalculate_closing(self):
         """Compute closing from opening + period. Side with larger value wins."""

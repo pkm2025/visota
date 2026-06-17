@@ -1,4 +1,4 @@
-from .voucher import AccountingVoucher, VoucherLine
 from .balance import AccountPeriodBalance
+from .voucher import AccountingVoucher, VoucherLine
 
-__all__ = ['AccountingVoucher', 'VoucherLine', 'AccountPeriodBalance']
+__all__ = ["AccountingVoucher", "VoucherLine", "AccountPeriodBalance"]

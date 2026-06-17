@@ -1,4 +1,5 @@
 """Ledger views — voucher list, form, detail."""
+
 from decimal import Decimal
 
 from django.contrib import messages
@@ -16,86 +17,82 @@ from apps.ui_modern.forms import VoucherHeaderForm, VoucherLineFormSet
 class VoucherListView(LoginRequiredMixin, ListView):
     """List of accounting vouchers for the current company."""
 
-    template_name = 'modern/ledger/voucher_list.html'
-    context_object_name = 'vouchers'
+    template_name = "modern/ledger/voucher_list.html"
+    context_object_name = "vouchers"
     paginate_by = 25
-    login_url = '/auth/login/'
+    login_url = "/auth/login/"
 
     def get_queryset(self):
-        qs = AccountingVoucher.objects.select_related('company').order_by(
-            '-voucher_date', '-id'
-        )
-        status = self.request.GET.get('status')
+        qs = AccountingVoucher.objects.select_related("company").order_by("-voucher_date", "-id")
+        status = self.request.GET.get("status")
         if status:
             qs = qs.filter(status=status)
-        search = self.request.GET.get('search')
+        search = self.request.GET.get("search")
         if search:
-            qs = qs.filter(voucher_no__icontains=search) | qs.filter(
-                description__icontains=search
-            )
+            qs = qs.filter(voucher_no__icontains=search) | qs.filter(description__icontains=search)
         return qs
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['page_title'] = 'Phiếu kế toán'
-        ctx['status_choices'] = AccountingVoucher.Status.choices
+        ctx["page_title"] = "Phiếu kế toán"
+        ctx["status_choices"] = AccountingVoucher.Status.choices
         return ctx
 
 
 class VoucherCreateView(LoginRequiredMixin, View):
     """Create a new accounting voucher (Standard style — full form)."""
 
-    template_name = 'modern/ledger/voucher_form.html'
-    login_url = '/auth/login/'
+    template_name = "modern/ledger/voucher_form.html"
+    login_url = "/auth/login/"
 
     def get(self, request, *args, **kwargs):
         header_form = VoucherHeaderForm()
-        line_formset = VoucherLineFormSet(prefix='lines')
+        line_formset = VoucherLineFormSet(prefix="lines")
         return render(
             request,
             self.template_name,
             {
-                'page_title': 'Tạo phiếu kế toán',
-                'header_form': header_form,
-                'line_formset': line_formset,
-                'is_new': True,
+                "page_title": "Tạo phiếu kế toán",
+                "header_form": header_form,
+                "line_formset": line_formset,
+                "is_new": True,
             },
         )
 
     def post(self, request, *args, **kwargs):
         header_form = VoucherHeaderForm(request.POST)
-        line_formset = VoucherLineFormSet(request.POST, prefix='lines')
+        line_formset = VoucherLineFormSet(request.POST, prefix="lines")
 
         ctx_base = {
-            'page_title': 'Tạo phiếu kế toán',
-            'header_form': header_form,
-            'line_formset': line_formset,
-            'is_new': True,
+            "page_title": "Tạo phiếu kế toán",
+            "header_form": header_form,
+            "line_formset": line_formset,
+            "is_new": True,
         }
 
         if not header_form.is_valid() or not line_formset.is_valid():
             return render(request, self.template_name, ctx_base, status=200)
 
         # Compute totals
-        total_debit = Decimal('0')
-        total_credit = Decimal('0')
+        total_debit = Decimal("0")
+        total_credit = Decimal("0")
         for line_form in line_formset:
-            if line_form.cleaned_data.get('DELETE'):
+            if line_form.cleaned_data.get("DELETE"):
                 continue
-            d = line_form.cleaned_data.get('debit_vnd') or Decimal('0')
-            c = line_form.cleaned_data.get('credit_vnd') or Decimal('0')
+            d = line_form.cleaned_data.get("debit_vnd") or Decimal("0")
+            c = line_form.cleaned_data.get("credit_vnd") or Decimal("0")
             total_debit += d
             total_credit += c
 
-        if abs(total_debit - total_credit) > Decimal('0.01'):
+        if abs(total_debit - total_credit) > Decimal("0.01"):
             messages.error(
                 request,
-                f'Chứng từ không cân đối: Nợ={total_debit} Có={total_credit}',
+                f"Chứng từ không cân đối: Nợ={total_debit} Có={total_credit}",
             )
             ctx_base.update(
                 {
-                    'total_debit': total_debit,
-                    'total_credit': total_credit,
+                    "total_debit": total_debit,
+                    "total_credit": total_credit,
                 }
             )
             return render(request, self.template_name, ctx_base, status=200)
@@ -105,21 +102,20 @@ class VoucherCreateView(LoginRequiredMixin, View):
 
         company = Company.objects.first()
         if not company:
-            messages.error(request, 'No company configured.')
-            return redirect('ui_modern:voucher_list')
+            messages.error(request, "No company configured.")
+            return redirect("ui_modern:voucher_list")
 
         cd = header_form.cleaned_data
         voucher = AccountingVoucher.objects.create(
             company=company,
-            fiscal_year=cd['voucher_date'].year,
-            period=cd['voucher_date'].month,
-            voucher_no=cd.get('voucher_no')
-            or f"AUTO-{AccountingVoucher.objects.count() + 1:04d}",
-            voucher_type=cd['voucher_type'],
-            voucher_date=cd['voucher_date'],
-            description=cd.get('description', ''),
-            currency_code='VND',
-            exchange_rate=Decimal('1'),
+            fiscal_year=cd["voucher_date"].year,
+            period=cd["voucher_date"].month,
+            voucher_no=cd.get("voucher_no") or f"AUTO-{AccountingVoucher.objects.count() + 1:04d}",
+            voucher_type=cd["voucher_type"],
+            voucher_date=cd["voucher_date"],
+            description=cd.get("description", ""),
+            currency_code="VND",
+            exchange_rate=Decimal("1"),
             total_vnd=total_debit,
             status=AccountingVoucher.Status.DRAFT,
             created_by=request.user,
@@ -127,24 +123,24 @@ class VoucherCreateView(LoginRequiredMixin, View):
 
         line_no = 1
         for line_form in line_formset:
-            if line_form.cleaned_data.get('DELETE'):
+            if line_form.cleaned_data.get("DELETE"):
                 continue
             VoucherLine.objects.create(
                 voucher=voucher,
                 line_no=line_no,
-                account_code=line_form.cleaned_data['account_code'],
-                object_code=line_form.cleaned_data.get('object_code', ''),
-                debit_vnd=line_form.cleaned_data.get('debit_vnd') or Decimal('0'),
-                credit_vnd=line_form.cleaned_data.get('credit_vnd') or Decimal('0'),
-                description=line_form.cleaned_data.get('description', ''),
+                account_code=line_form.cleaned_data["account_code"],
+                object_code=line_form.cleaned_data.get("object_code", ""),
+                debit_vnd=line_form.cleaned_data.get("debit_vnd") or Decimal("0"),
+                credit_vnd=line_form.cleaned_data.get("credit_vnd") or Decimal("0"),
+                description=line_form.cleaned_data.get("description", ""),
             )
             line_no += 1
 
         # Auto-post
         try:
             VoucherPostingService().post(voucher)
-            messages.success(request, f'Đã ghi sổ phiếu {voucher.voucher_no}')
+            messages.success(request, f"Đã ghi sổ phiếu {voucher.voucher_no}")
         except VoucherNotBalancedError as e:
             messages.error(request, str(e))
 
-        return redirect('ui_modern:voucher_list')
+        return redirect("ui_modern:voucher_list")
