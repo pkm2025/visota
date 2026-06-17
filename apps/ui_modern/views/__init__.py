@@ -18,8 +18,11 @@ from .customer_views import (
 )
 from .dashboard_views import DashboardView
 from .document_views import (
+    ContractExportDocxView,
     DocumentDeleteView,
     DocumentDownloadView,
+    TrialBalanceDocxView,
+    VoucherPrintDocxView,
     VoucherPrintView,
     VoucherUploadView,
 )
@@ -84,6 +87,9 @@ __all__ = [
     "DocumentDeleteView",
     "DocumentDownloadView",
     "VoucherPrintView",
+    "VoucherPrintDocxView",
+    "ContractExportDocxView",
+    "TrialBalanceDocxView",
     "VoucherUploadView",
     "AssetListView",
     "AssetCreateView",

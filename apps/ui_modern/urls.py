@@ -8,6 +8,7 @@ from .views import (
     CashPaymentCreateView,
     CashReceiptCreateView,
     ContractCreateView,
+    ContractExportDocxView,
     ContractGenerateView,
     ContractListView,
     ContractTemplateListView,
@@ -48,6 +49,7 @@ from .views import (
     SalesInvoiceListView,
     StockVoucherCreateView,
     StockVoucherListView,
+    TrialBalanceDocxView,
     TrialBalanceView,
     VATReturnView,
     VendorCreateView,
@@ -56,6 +58,7 @@ from .views import (
     VoucherCreateView,
     VoucherDetailView,
     VoucherListView,
+    VoucherPrintDocxView,
     VoucherPrintView,
     VoucherUploadView,
 )
@@ -85,6 +88,11 @@ urlpatterns = [
         name="voucher_print",
     ),
     path(
+        "vouchers/<int:pk>/print-docx/",
+        login_required(VoucherPrintDocxView.as_view()),
+        name="voucher_print_docx",
+    ),
+    path(
         "vouchers/<int:pk>/upload/",
         login_required(VoucherUploadView.as_view()),
         name="voucher_upload",
@@ -103,6 +111,16 @@ urlpatterns = [
         "reports/trial-balance/",
         login_required(TrialBalanceView.as_view()),
         name="trial_balance",
+    ),
+    path(
+        "reports/trial-balance/docx/",
+        login_required(TrialBalanceDocxView.as_view()),
+        name="trial_balance_docx",
+    ),
+    path(
+        "contracts/<int:pk>/export-docx/",
+        login_required(ContractExportDocxView.as_view()),
+        name="contract_export_docx",
     ),
     path(
         "reports/balance-sheet/",

@@ -100,6 +100,10 @@
             <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
                 <i class="bi bi-printer"></i> In / PDF
             </button>
+            <a href="{% url 'ui_modern:trial_balance_docx' %}?fiscal_year={{ fiscal_year }}&period={{ period }}"
+               class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-file-word"></i> Word (.docx)
+            </a>
         </div>
         {% endif %}
     </div>

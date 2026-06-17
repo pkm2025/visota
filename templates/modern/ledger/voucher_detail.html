@@ -92,6 +92,10 @@
                    class="btn btn-outline-primary">
                     <i class="bi bi-printer"></i> In chứng từ (PDF)
                 </a>
+                <a href="{% url 'ui_modern:voucher_print_docx' voucher.id %}"
+                   class="btn btn-outline-secondary">
+                    <i class="bi bi-file-word"></i> Word (.docx)
+                </a>
                 <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#uploadModal">
                     <i class="bi bi-upload"></i> Tải lên scan
                 </button>
