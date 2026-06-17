@@ -13,6 +13,7 @@ from .dashboard_views import DashboardView
 from .health_views import health_detailed, health_simple
 from .hr_views import EmployeeCreateView, EmployeeListView
 from .ledger_views import VoucherCreateView, VoucherListView
+from .payroll_views import PayrollRunView
 from .product_views import (
     ProductCreateView,
     ProductListView,
@@ -27,7 +28,6 @@ from .sales_views import (
     SalesInvoiceCreateView,
     SalesInvoiceListView,
 )
-from .payroll_views import PayrollRunView
 from .stock_views import (
     StockVoucherCreateView,
     StockVoucherListView,

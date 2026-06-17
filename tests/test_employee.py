@@ -1,7 +1,9 @@
-import pytest
 from datetime import date
-from apps.hr.models import Department, Position, Employee
+
+import pytest
+
 from apps.core.models import Company
+from apps.hr.models import Department, Employee, Position
 
 
 @pytest.fixture

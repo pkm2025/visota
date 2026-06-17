@@ -182,6 +182,55 @@ class Command(BaseCommand):
             + (", 1 fixed asset" if fa_created else "")
         )
 
+        # 7. Sample HR data: department, position, 2 employees
+        from apps.hr.models import Department, Employee, Position
+
+        dept_hr, _ = Department.objects.update_or_create(
+            company=company,
+            code="KE_TOAN",
+            defaults={"name": "Kế toán"},
+        )
+        pos_nv, _ = Position.objects.update_or_create(
+            code="KE_TOAN_VIEN",
+            defaults={"name": "Kế toán viên", "level": 2},
+        )
+        Employee.objects.update_or_create(
+            company=company,
+            code="NV001",
+            defaults={
+                "full_name": "Nguyễn Thị Mai",
+                "birth_date": "1990-05-15",
+                "gender": "female",
+                "id_card_no": "001123456789",
+                "personal_tax_code": "037123456789",
+                "social_insurance_no": "1234567890",
+                "department": dept_hr,
+                "position": pos_nv,
+                "hire_date": "2020-01-01",
+                "base_salary": 15000000,
+                "allowance": 2000000,
+                "bank_account_no": "1234567890",
+                "bank_id": "VCB",
+                "status": "active",
+            },
+        )
+        Employee.objects.update_or_create(
+            company=company,
+            code="NV002",
+            defaults={
+                "full_name": "Trần Văn Hùng",
+                "birth_date": "1985-03-20",
+                "gender": "male",
+                "department": dept_hr,
+                "position": pos_nv,
+                "hire_date": "2019-06-01",
+                "base_salary": 20000000,
+                "allowance": 3000000,
+                "status": "active",
+            },
+        )
+        self.stdout.write("Sample employees: NV001 (15M), NV002 (20M)")
+
         self.stdout.write(
             self.style.SUCCESS(
                 f"Seed complete. Company: {company.code}, User: admin, "

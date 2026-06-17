@@ -1,9 +1,11 @@
-import pytest
 from datetime import date
 from decimal import Decimal
-from apps.payroll.models import AttendanceRecord, PayrollRun, PayrollLine
-from apps.hr.models import Department, Position, Employee
+
+import pytest
+
 from apps.core.models import Company
+from apps.hr.models import Department, Employee, Position
+from apps.payroll.models import AttendanceRecord, PayrollLine, PayrollRun
 
 
 @pytest.fixture
