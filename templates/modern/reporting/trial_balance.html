@@ -1,0 +1,107 @@
+{% extends 'modern/base/layout.html' %}
+{% load static humanize %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'modern/css/ledger.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item">Báo cáo</li>
+                    <li class="breadcrumb-item active">BCĐ tài khoản</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+            <p class="text-muted mb-0">Kỳ: Tháng {{ period }} / {{ fiscal_year }}</p>
+        </div>
+        <form method="get" class="d-flex gap-2">
+            <select name="fiscal_year" class="form-select form-select-sm">
+                {% for y in year_choices %}
+                <option value="{{ y }}" {% if y == fiscal_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+            <select name="period" class="form-select form-select-sm">
+                {% for p in period_choices %}
+                <option value="{{ p }}" {% if p == period %}selected{% endif %}>Tháng {{ p }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">Xem</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th rowspan="2">TK</th>
+                            <th colspan="2" class="text-center">Số dư đầu</th>
+                            <th colspan="2" class="text-center">Phát sinh trong kỳ</th>
+                            <th colspan="2" class="text-center">Số dư cuối</th>
+                        </tr>
+                        <tr>
+                            <th class="text-end">Nợ</th>
+                            <th class="text-end">Có</th>
+                            <th class="text-end">Nợ</th>
+                            <th class="text-end">Có</th>
+                            <th class="text-end">Nợ</th>
+                            <th class="text-end">Có</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in balances %}
+                        <tr>
+                            <td class="font-mono">{{ b.account_code }}</td>
+                            <td class="text-end font-mono">{{ b.opening_debit|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ b.opening_credit|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ b.period_debit|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ b.period_credit|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ b.closing_debit|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ b.closing_credit|floatformat:0|intcomma }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                            Không có dữ liệu cho kỳ này.
+                        </td></tr>
+                        {% endfor %}
+                    </tbody>
+                    {% if balances %}
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td>Tổng cộng</td>
+                            <td class="text-end font-mono">{{ total_opening_debit|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ total_opening_credit|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ total_period_debit|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ total_period_credit|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ total_closing_debit|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ total_closing_credit|floatformat:0|intcomma }}</td>
+                        </tr>
+                    </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+        {% if balances %}
+        <div class="card-footer d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+                {% if is_balanced %}
+                <span class="text-success"><i class="bi bi-check-circle"></i> Cân đối: Nợ = Có</span>
+                {% else %}
+                <span class="text-danger"><i class="bi bi-exclamation-triangle"></i> Mất cân đối!</span>
+                {% endif %}
+            </small>
+            <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+                <i class="bi bi-printer"></i> In / PDF
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

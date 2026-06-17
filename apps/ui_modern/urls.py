@@ -1,7 +1,12 @@
 from django.contrib.auth.decorators import login_required
 from django.urls import path
 
-from .views import DashboardView, VoucherCreateView, VoucherListView
+from .views import (
+    DashboardView,
+    TrialBalanceView,
+    VoucherCreateView,
+    VoucherListView,
+)
 
 app_name = "ui_modern"
 
@@ -16,5 +21,10 @@ urlpatterns = [
         "vouchers/new/",
         login_required(VoucherCreateView.as_view()),
         name="voucher_create",
+    ),
+    path(
+        "reports/trial-balance/",
+        login_required(TrialBalanceView.as_view()),
+        name="trial_balance",
     ),
 ]
