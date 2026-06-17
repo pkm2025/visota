@@ -5,18 +5,18 @@ from .asset_views import (
 )
 from .auth_views import PMKetoanLoginView, PMKetoanLogoutView
 from .closing_views import PeriodClosingView
-from .document_views import (
-    DocumentDeleteView,
-    DocumentDownloadView,
-    VoucherPrintView,
-    VoucherUploadView,
-)
 from .customer_views import (
     CustomerCreateView,
     CustomerListView,
     CustomerUpdateView,
 )
 from .dashboard_views import DashboardView
+from .document_views import (
+    DocumentDeleteView,
+    DocumentDownloadView,
+    VoucherPrintView,
+    VoucherUploadView,
+)
 from .health_views import health_detailed, health_simple
 from .hr_views import EmployeeCreateView, EmployeeListView
 from .ledger_views import VoucherCreateView, VoucherDetailView, VoucherListView

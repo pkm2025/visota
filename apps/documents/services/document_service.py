@@ -19,7 +19,7 @@ class DocumentService:
         user=None,
     ):
         """Upload a scanned/external file and link to voucher."""
-        doc = VoucherDocument.objects.create(
+        return VoucherDocument.objects.create(
             company=self.company,
             voucher=voucher,
             document_type=document_type,
@@ -29,7 +29,6 @@ class DocumentService:
             notes=notes,
             uploaded_by=user,
         )
-        return doc
 
     def generate_print(self, voucher, title=None):
         """Generate a placeholder DB record for a printed document.
@@ -40,7 +39,7 @@ class DocumentService:
         if not title:
             title = f"{voucher.get_voucher_type_display()} {voucher.voucher_no}"
 
-        doc = VoucherDocument.objects.create(
+        return VoucherDocument.objects.create(
             company=self.company,
             voucher=voucher,
             document_type="print_template",
@@ -48,7 +47,6 @@ class DocumentService:
             file=None,  # will be set by PrintService
             status="printed",
         )
-        return doc
 
     def get_voucher_documents(self, voucher):
         """Get all documents linked to a voucher, newest first."""

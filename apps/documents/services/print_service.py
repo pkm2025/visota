@@ -50,8 +50,7 @@ class PrintService:
             # Fallback: return HTML as bytes (for dev without WeasyPrint installed)
             return html_str.encode("utf-8")
 
-        pdf_bytes = HTML(string=html_str).write_pdf()
-        return pdf_bytes
+        return HTML(string=html_str).write_pdf()
 
     def generate_and_save(self, voucher) -> VoucherDocument:
         """Generate PDF and save as VoucherDocument linked to voucher."""
@@ -61,7 +60,7 @@ class PrintService:
         filename = f"{voucher.voucher_no}_{voucher.voucher_date}.{ext}"
         file_obj = ContentFile(pdf_bytes, name=filename)
 
-        doc = VoucherDocument.objects.create(
+        return VoucherDocument.objects.create(
             company=self.company,
             voucher=voucher,
             document_type="print_template",
@@ -69,4 +68,3 @@ class PrintService:
             file=file_obj,
             status="printed",
         )
-        return doc
