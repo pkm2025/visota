@@ -9,6 +9,12 @@ from .views import (
     ProductCreateView,
     ProductListView,
     ProductUpdateView,
+    PurchaseInvoiceCreateView,
+    PurchaseInvoiceListView,
+    SalesInvoiceCreateView,
+    SalesInvoiceListView,
+    StockVoucherCreateView,
+    StockVoucherListView,
     TrialBalanceView,
     VendorCreateView,
     VendorListView,
@@ -83,5 +89,38 @@ urlpatterns = [
         "products/<int:pk>/edit/",
         login_required(ProductUpdateView.as_view()),
         name="product_update",
+    ),
+    # Sales invoices
+    path(
+        "sales-invoices/",
+        login_required(SalesInvoiceListView.as_view()),
+        name="sales_invoice_list",
+    ),
+    path(
+        "sales-invoices/new/",
+        login_required(SalesInvoiceCreateView.as_view()),
+        name="sales_invoice_create",
+    ),
+    # Purchase invoices
+    path(
+        "purchase-invoices/",
+        login_required(PurchaseInvoiceListView.as_view()),
+        name="purchase_invoice_list",
+    ),
+    path(
+        "purchase-invoices/new/",
+        login_required(PurchaseInvoiceCreateView.as_view()),
+        name="purchase_invoice_create",
+    ),
+    # Stock vouchers
+    path(
+        "stock-vouchers/",
+        login_required(StockVoucherListView.as_view()),
+        name="stock_voucher_list",
+    ),
+    path(
+        "stock-vouchers/new/",
+        login_required(StockVoucherCreateView.as_view()),
+        name="stock_voucher_create",
     ),
 ]

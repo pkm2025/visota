@@ -1,0 +1,78 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item active">Kho</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+        </div>
+        <div>
+            <a href="{% url 'ui_modern:stock_voucher_create' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus"></i> Tạo phiếu
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ngày</th>
+                            <th>Số phiếu</th>
+                            <th>Loại</th>
+                            <th>Kho</th>
+                            <th>Lý do</th>
+                            <th>Số dòng</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in vouchers %}
+                        <tr>
+                            <td>{{ v.voucher_date|date:"d/m/Y" }}</td>
+                            <td>{{ v.voucher_no }}</td>
+                            <td>
+                                {% if v.voucher_type == 'receipt' %}<span class="badge bg-success">Nhập</span>
+                                {% elif v.voucher_type == 'issue' %}<span class="badge bg-danger">Xuất</span>
+                                {% else %}<span class="badge bg-info">Chuyển</span>{% endif %}
+                            </td>
+                            <td>{{ v.warehouse.code }}{% if v.to_warehouse %} → {{ v.to_warehouse.code }}{% endif %}</td>
+                            <td>{{ v.reason|truncatechars:60|default:"-" }}</td>
+                            <td>{{ v.lines.count }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                                Chưa có phiếu kho nào. Bấm "Tạo phiếu" để tạo.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if is_paginated %}
+            <nav>
+                <ul class="pagination pagination-sm justify-content-end">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">←</a></li>
+                    {% endif %}
+                    <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">→</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

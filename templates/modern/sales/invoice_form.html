@@ -1,0 +1,108 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4" x-data="invoiceForm()">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:sales_invoice_list' %}">Hóa đơn bán hàng</a></li>
+            <li class="breadcrumb-item active">Tạo mới</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <label class="form-label">Số hóa đơn <span class="text-danger">*</span></label>
+                        <input type="text" name="invoice_no" class="form-control" required
+                               placeholder="VD: BC00001">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Ngày hóa đơn <span class="text-danger">*</span></label>
+                        <input type="date" name="invoice_date" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Khách hàng <span class="text-danger">*</span></label>
+                        <select name="customer_id" class="form-select" required>
+                            <option value="">-- Chọn khách hàng --</option>
+                            {% for c in customers %}
+                            <option value="{{ c.pk }}">{{ c.code }} - {{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <h6 class="mb-2">Chi tiết hàng hóa</h6>
+                <div class="table-responsive mb-2">
+                    <table class="table table-sm align-middle" id="lines-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:50%">Hàng hóa</th>
+                                <th>Số lượng</th>
+                                <th>Đơn giá</th>
+                                <th>Thành tiền</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="(line, idx) in lines" :key="idx">
+                                <tr>
+                                    <td>
+                                        <select :name="'product_id[]'" class="form-select form-select-sm" x-model="line.product_id">
+                                            <option value="">-- Chọn hàng --</option>
+                                            {% for p in products %}
+                                            <option value="{{ p.pk }}" data-price="{{ p.default_unit_price }}">{{ p.code }} - {{ p.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="number" step="any" name="quantity[]" class="form-control form-control-sm" x-model="line.quantity">
+                                    </td>
+                                    <td>
+                                        <input type="number" step="any" name="unit_price[]" class="form-control form-control-sm" x-model="line.unit_price">
+                                    </td>
+                                    <td class="text-end font-mono" x-text="formatNum((line.quantity || 0) * (line.unit_price || 0))"></td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-danger py-0" @click="removeLine(idx)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary mb-3" @click="addLine()">
+                    <i class="bi bi-plus"></i> Thêm dòng
+                </button>
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Lưu và ghi sổ
+                    </button>
+                    <a href="{% url 'ui_modern:sales_invoice_list' %}" class="btn btn-outline-secondary">Hủy</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function invoiceForm() {
+    return {
+        lines: [{}],
+        addLine() { this.lines.push({}); },
+        removeLine(idx) {
+            if (this.lines.length > 1) this.lines.splice(idx, 1);
+        },
+        formatNum(n) {
+            return new Intl.NumberFormat('vi-VN').format(n);
+        }
+    };
+}
+</script>
+{% endblock %}

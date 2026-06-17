@@ -1,0 +1,111 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4" x-data="stockForm()">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:stock_voucher_list' %}">Kho</a></li>
+            <li class="breadcrumb-item active">Tạo mới</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <label class="form-label">Loại phiếu <span class="text-danger">*</span></label>
+                        <select name="voucher_type" class="form-select" required>
+                            {% for code, label in voucher_types %}
+                            <option value="{{ code }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Số phiếu <span class="text-danger">*</span></label>
+                        <input type="text" name="voucher_no" class="form-control" required placeholder="VD: PN00001">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Ngày <span class="text-danger">*</span></label>
+                        <input type="date" name="voucher_date" class="form-control" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Kho <span class="text-danger">*</span></label>
+                        <select name="warehouse_id" class="form-select" required>
+                            <option value="">-- Chọn kho --</option>
+                            {% for w in warehouses %}
+                            <option value="{{ w.pk }}">{{ w.code }} - {{ w.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <h6 class="mb-2">Chi tiết hàng hóa</h6>
+                <div class="table-responsive mb-2">
+                    <table class="table table-sm align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:55%">Hàng hóa</th>
+                                <th>Số lượng</th>
+                                <th>Đơn giá</th>
+                                <th>Thành tiền</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="(line, idx) in lines" :key="idx">
+                                <tr>
+                                    <td>
+                                        <select name="product_id[]" class="form-select form-select-sm" x-model="line.product_id">
+                                            <option value="">-- Chọn hàng --</option>
+                                            {% for p in products %}
+                                            <option value="{{ p.pk }}">{{ p.code }} - {{ p.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td><input type="number" step="any" name="quantity[]" class="form-control form-control-sm" x-model="line.quantity"></td>
+                                    <td><input type="number" step="any" name="unit_cost[]" class="form-control form-control-sm" x-model="line.unit_cost"></td>
+                                    <td class="text-end font-mono" x-text="formatNum((line.quantity || 0) * (line.unit_cost || 0))"></td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-danger py-0" @click="removeLine(idx)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary mb-3" @click="addLine()">
+                    <i class="bi bi-plus"></i> Thêm dòng
+                </button>
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Lưu phiếu
+                    </button>
+                    <a href="{% url 'ui_modern:stock_voucher_list' %}" class="btn btn-outline-secondary">Hủy</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function stockForm() {
+    return {
+        lines: [{}],
+        addLine() { this.lines.push({}); },
+        removeLine(idx) {
+            if (this.lines.length > 1) this.lines.splice(idx, 1);
+        },
+        formatNum(n) {
+            return new Intl.NumberFormat('vi-VN').format(n);
+        }
+    };
+}
+</script>
+{% endblock %}
