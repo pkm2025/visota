@@ -8,7 +8,11 @@ from django.views.generic import TemplateView
 
 from apps.core.models import Company
 from apps.ledger.models import AccountPeriodBalance
-from apps.reporting.services import BalanceSheetService, PnLService
+from apps.reporting.services import (
+    BalanceSheetService,
+    PnLService,
+    VATReturnService,
+)
 
 
 class TrialBalanceView(LoginRequiredMixin, TemplateView):
@@ -145,6 +149,41 @@ class PnLView(LoginRequiredMixin, TemplateView):
         ctx.update(
             {
                 "page_title": "Kết quả hoạt động kinh doanh (B02-DN)",
+                "fiscal_year": fiscal_year,
+                "period": period,
+                "period_choices": list(range(1, 13)),
+                "year_choices": [2024, 2025, 2026, 2027],
+            }
+        )
+        return ctx
+
+
+class VATReturnView(LoginRequiredMixin, TemplateView):
+    """Tờ khai thuế GTGT (01/GTGT)."""
+
+    template_name = "modern/reporting/vat_return.html"
+    login_url = "/auth/login/"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        today = date.today()
+        try:
+            fiscal_year = int(self.request.GET.get("fiscal_year", today.year))
+        except (TypeError, ValueError):
+            fiscal_year = today.year
+        try:
+            period = int(self.request.GET.get("period", today.month))
+        except (TypeError, ValueError):
+            period = today.month
+
+        company = Company.objects.first()
+        if company:
+            data = VATReturnService(company=company).generate(fiscal_year, period)
+            ctx.update(data)
+
+        ctx.update(
+            {
+                "page_title": "Tờ khai thuế GTGT (01/GTGT)",
                 "fiscal_year": fiscal_year,
                 "period": period,
                 "period_choices": list(range(1, 13)),

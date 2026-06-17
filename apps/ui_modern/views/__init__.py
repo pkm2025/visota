@@ -23,7 +23,12 @@ from .purchase_views import (
     PurchaseInvoiceCreateView,
     PurchaseInvoiceListView,
 )
-from .report_views import BalanceSheetView, PnLView, TrialBalanceView
+from .report_views import (
+    BalanceSheetView,
+    PnLView,
+    TrialBalanceView,
+    VATReturnView,
+)
 from .sales_views import (
     SalesInvoiceCreateView,
     SalesInvoiceListView,
@@ -52,6 +57,7 @@ __all__ = [
     "TrialBalanceView",
     "BalanceSheetView",
     "PnLView",
+    "VATReturnView",
     "CustomerListView",
     "CustomerCreateView",
     "CustomerUpdateView",

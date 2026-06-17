@@ -24,6 +24,7 @@ from .views import (
     StockVoucherCreateView,
     StockVoucherListView,
     TrialBalanceView,
+    VATReturnView,
     VendorCreateView,
     VendorListView,
     VendorUpdateView,
@@ -59,6 +60,11 @@ urlpatterns = [
         "reports/pnl/",
         login_required(PnLView.as_view()),
         name="pnl",
+    ),
+    path(
+        "reports/vat-return/",
+        login_required(VATReturnView.as_view()),
+        name="vat_return",
     ),
     # Master data — Customer
     path(
