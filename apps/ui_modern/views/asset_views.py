@@ -25,17 +25,15 @@ class AssetListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        qs = FixedAsset.objects.select_related(
-            "category", "using_department"
-        ).order_by("asset_code")
+        qs = FixedAsset.objects.select_related("category", "using_department").order_by(
+            "asset_code"
+        )
         is_tool = self.request.GET.get("is_tool")
         if is_tool in ("0", "1"):
             qs = qs.filter(is_tool=(is_tool == "1"))
         search = self.request.GET.get("search")
         if search:
-            qs = qs.filter(asset_code__icontains=search) | qs.filter(
-                asset_name__icontains=search
-            )
+            qs = qs.filter(asset_code__icontains=search) | qs.filter(asset_name__icontains=search)
         return qs
 
     def get_context_data(self, **kwargs):
@@ -82,9 +80,7 @@ class AssetCreateView(LoginRequiredMixin, View):
             return render(request, self.template_name, ctx, status=200)
 
         try:
-            dept = AssetUsingDepartment.objects.get(
-                pk=request.POST.get("using_department")
-            )
+            dept = AssetUsingDepartment.objects.get(pk=request.POST.get("using_department"))
         except AssetUsingDepartment.DoesNotExist:
             messages.error(request, "Bộ phận sử dụng không hợp lệ")
             ctx["post_data"] = request.POST
@@ -100,8 +96,7 @@ class AssetCreateView(LoginRequiredMixin, View):
         # Pull default GL accounts from selected category / department
         gl_account = request.POST.get("gl_account") or category.default_gl_account
         depreciation_account = (
-            request.POST.get("depreciation_account")
-            or category.default_depreciation_account
+            request.POST.get("depreciation_account") or category.default_depreciation_account
         )
         expense_account = (
             request.POST.get("expense_account")
@@ -149,9 +144,7 @@ class AssetCreateView(LoginRequiredMixin, View):
             description=request.POST.get("description", ""),
         )
 
-        messages.success(
-            request, f"Đã tạo tài sản {asset.asset_code} - {asset.asset_name}"
-        )
+        messages.success(request, f"Đã tạo tài sản {asset.asset_code} - {asset.asset_name}")
         return redirect("ui_modern:asset_list")
 
     def _build_context(self):
@@ -159,9 +152,7 @@ class AssetCreateView(LoginRequiredMixin, View):
 
         company = Company.objects.first()
         categories_qs = AssetCategory.objects.filter(is_active=True).order_by("code")
-        departments_qs = AssetUsingDepartment.objects.filter(is_active=True).order_by(
-            "code"
-        )
+        departments_qs = AssetUsingDepartment.objects.filter(is_active=True).order_by("code")
         if company:
             categories_qs = categories_qs.filter(company=company)
             departments_qs = departments_qs.filter(company=company)
