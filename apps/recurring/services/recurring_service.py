@@ -92,9 +92,7 @@ class RecurringService:
         now = timezone.now()
         template.last_run_at = now
         template.last_run_result = {"status": status, "result": result}
-        template.next_run_at = _compute_next_run(
-            template.schedule_type, template.day_of_month, now
-        )
+        template.next_run_at = _compute_next_run(template.schedule_type, template.day_of_month, now)
         template.save()
         return {"template_id": template.id, "name": template.name, **template.last_run_result}
 
@@ -102,9 +100,7 @@ class RecurringService:
     def run_all_due(self) -> list[dict[str, Any]]:
         """Find all active templates where next_run_at <= now, execute them."""
         now = timezone.now()
-        qs = RecurringTemplate.objects.filter(
-            is_active=True, next_run_at__lte=now
-        )
+        qs = RecurringTemplate.objects.filter(is_active=True, next_run_at__lte=now)
         if self.company is not None:
             qs = qs.filter(company=self.company)
         results = []
@@ -150,9 +146,7 @@ class RecurringService:
                     "schedule_type": d["schedule_type"],
                     "day_of_month": d["day_of_month"],
                     "is_active": True,
-                    "next_run_at": _compute_next_run(
-                        d["schedule_type"], d["day_of_month"], now
-                    ),
+                    "next_run_at": _compute_next_run(d["schedule_type"], d["day_of_month"], now),
                 },
             )
             created.append(tpl)

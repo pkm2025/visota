@@ -30,9 +30,7 @@ class InputInvoice(CompanyOwnedModel):
     seller_address = models.TextField(blank=True, default="")
 
     # Amounts — extracted
-    amount_before_vat = models.DecimalField(
-        max_digits=20, decimal_places=4, default=0
-    )
+    amount_before_vat = models.DecimalField(max_digits=20, decimal_places=4, default=0)
     vat_rate = models.DecimalField(max_digits=6, decimal_places=4, default=0)
     vat_amount = models.DecimalField(max_digits=20, decimal_places=4, default=0)
     total_amount = models.DecimalField(max_digits=20, decimal_places=4, default=0)
@@ -48,9 +46,7 @@ class InputInvoice(CompanyOwnedModel):
     )
 
     # Raw uploaded content
-    scanned_file = models.FileField(
-        upload_to="input_invoices/", null=True, blank=True
-    )
+    scanned_file = models.FileField(upload_to="input_invoices/", null=True, blank=True)
     einvoice_xml = models.TextField(blank=True, default="")
 
     # Processing state

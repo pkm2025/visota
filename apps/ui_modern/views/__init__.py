@@ -36,6 +36,7 @@ from .purchase_views import (
     PurchaseInvoiceCreateView,
     PurchaseInvoiceListView,
 )
+from .recurring_views import RecurringListView, RecurringRunView
 from .report_views import (
     BalanceSheetView,
     GeneralJournalView,
@@ -52,7 +53,6 @@ from .stock_views import (
     StockVoucherCreateView,
     StockVoucherListView,
 )
-from .recurring_views import RecurringListView, RecurringRunView
 from .treasury_views import CashPaymentCreateView, CashReceiptCreateView
 from .vendor_views import (
     VendorCreateView,

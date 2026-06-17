@@ -230,24 +230,16 @@ class InvoiceExtractionService:
         subtotal = _to_decimal(find_text(ttoan, "TgTThue") if ttoan is not None else "")
         # Fallback to TgTHang (sum of line amounts)
         if subtotal == 0:
-            subtotal = _to_decimal(
-                find_text(ttoan, "TgTHang") if ttoan is not None else ""
-            )
-        vat_amount = _to_decimal(
-            find_text(ttoan, "TgTGTGT") if ttoan is not None else ""
-        )
-        total_amount = _to_decimal(
-            find_text(ttoan, "TgTTTBSo") if ttoan is not None else ""
-        )
+            subtotal = _to_decimal(find_text(ttoan, "TgTHang") if ttoan is not None else "")
+        vat_amount = _to_decimal(find_text(ttoan, "TgTGTGT") if ttoan is not None else "")
+        total_amount = _to_decimal(find_text(ttoan, "TgTTTBSo") if ttoan is not None else "")
 
         # VAT rate — TSuat can be "10" or "10%"
         tsuat = find_text(ttoan, "TSuat") if ttoan is not None else ""
         vat_rate = Decimal("0")
         m = re.search(r"([0-9]+(?:\.[0-9]+)?)", tsuat)
         if m:
-            vat_rate = (Decimal(m.group(1)) / Decimal("100")).quantize(
-                Decimal("0.0001")
-            )
+            vat_rate = (Decimal(m.group(1)) / Decimal("100")).quantize(Decimal("0.0001"))
 
         if total_amount == 0 and subtotal > 0:
             total_amount = subtotal + vat_amount
@@ -280,23 +272,16 @@ class InvoiceExtractionService:
         # 1. Find or create Vendor
         vendor = None
         if input_invoice.seller_tax_code:
-            vendor = (
-                Vendor.objects.filter(
-                    company=self.company, tax_code=input_invoice.seller_tax_code
-                )
-                .first()
-            )
+            vendor = Vendor.objects.filter(
+                company=self.company, tax_code=input_invoice.seller_tax_code
+            ).first()
         if vendor is None:
             # generate vendor code from tax code or invoice_no
-            base = input_invoice.seller_tax_code or (
-                input_invoice.invoice_no or "VND"
-            )
+            base = input_invoice.seller_tax_code or (input_invoice.invoice_no or "VND")
             vcode = f"NCC_{base}"[:50]
             # ensure uniqueness
             n = 1
-            while Vendor.objects.filter(
-                company=self.company, code=vcode
-            ).exists():
+            while Vendor.objects.filter(company=self.company, code=vcode).exists():
                 vcode = f"NCC_{base}_{n}"[:50]
                 n += 1
             vendor = Vendor.objects.create(
@@ -308,9 +293,7 @@ class InvoiceExtractionService:
             )
 
         # 2. Build PI via PurchaseInvoiceService
-        unit_price = (
-            input_invoice.amount_before_vat or Decimal("0")
-        )
+        unit_price = input_invoice.amount_before_vat or Decimal("0")
         vat_rate = input_invoice.vat_rate or Decimal("0")
         if unit_price == 0 and input_invoice.total_amount:
             # derive unit_price from total minus vat
