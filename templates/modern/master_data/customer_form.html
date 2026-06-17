@@ -1,0 +1,111 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:customer_list' %}">Khách hàng</a></li>
+            <li class="breadcrumb-item active">{{ is_new|yesno:"Thêm,Sửa" }}</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Mã khách hàng <span class="text-danger">*</span></label>
+                        {{ form.code }}
+                        {% if form.code.errors %}<div class="text-danger small">{{ form.code.errors }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Tên khách hàng <span class="text-danger">*</span></label>
+                        {{ form.name }}
+                        {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tên viết tắt</label>
+                        {{ form.short_name }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tên tiếng Anh</label>
+                        {{ form.name_en }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Mã số thuế</label>
+                        {{ form.tax_code }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Điện thoại</label>
+                        {{ form.phone }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Email</label>
+                        {{ form.email }}
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Địa chỉ</label>
+                        {{ form.address }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Nhóm khách hàng</label>
+                        {{ form.customer_group_code }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">NV bán hàng</label>
+                        {{ form.sales_staff_code }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Điều khoản thanh toán</label>
+                        {{ form.payment_terms }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Hạn mức tín dụng</label>
+                        {{ form.credit_limit }}
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Loại tiền</label>
+                        {{ form.currency_code }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tỷ lệ VAT mặc định</label>
+                        {{ form.default_vat_rate }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">TK công nợ phải thu</label>
+                        {{ form.gl_account_receivable }}
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <div class="form-check">
+                            {{ form.is_supplier }} <label class="form-check-label">Cũng là NCC</label>
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <div class="form-check">
+                            {{ form.is_active }} <label class="form-check-label">Đang hoạt động</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Ghi chú</label>
+                        {{ form.notes }}
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Lưu
+                    </button>
+                    <a href="{% url 'ui_modern:customer_list' %}" class="btn btn-outline-secondary">Hủy</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
