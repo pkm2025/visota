@@ -74,6 +74,57 @@ class Command(BaseCommand):
         gl_perms = Permission.objects.filter(module="ledger")
         role.permissions.set(gl_perms)
 
+        # 5. Create sample master data
+        from apps.master_data.models import Customer, Product, Vendor, Warehouse
+
+        customer, _ = Customer.objects.update_or_create(
+            company=company,
+            code="KH001",
+            defaults={
+                "name": "Công ty ABC",
+                "tax_code": "0101234567",
+                "address": "Số 1 Đường A, Hà Nội",
+                "phone": "0241234567",
+                "payment_terms": "30 days",
+            },
+        )
+
+        vendor, _ = Vendor.objects.update_or_create(
+            company=company,
+            code="NCC001",
+            defaults={
+                "name": "Nhà cung cấp XYZ",
+                "tax_code": "0307654321",
+                "address": "Số 2 Đường B, Hồ Chí Minh",
+                "payment_terms": "15 days",
+            },
+        )
+
+        product, _ = Product.objects.update_or_create(
+            company=company,
+            code="SP001",
+            defaults={
+                "name": "Sản phẩm demo",
+                "product_type": "goods",
+                "unit_id": "CAI",
+                "gl_account_inv": "156",
+                "gl_account_cogs": "632",
+                "gl_account_revenue": "5111",
+                "default_unit_price": 100000,
+            },
+        )
+
+        warehouse, _ = Warehouse.objects.update_or_create(
+            company=company,
+            code="KHO_HN",
+            defaults={
+                "name": "Kho Hà Nội",
+                "warehouse_type": "finished",
+            },
+        )
+
+        self.stdout.write("Sample master data: 1 customer, 1 vendor, 1 product, 1 warehouse")
+
         self.stdout.write(
             self.style.SUCCESS(
                 f"Seed complete. Company: {company.code}, User: admin, "

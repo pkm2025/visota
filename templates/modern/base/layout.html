@@ -67,6 +67,27 @@
                     <a href="#" class="nav-item"><i class="bi bi-arrow-repeat"></i> Kết chuyển cuối kỳ</a>
                 </div>
                 <div class="nav-section">
+                    <div class="nav-section-title">Nghiệp vụ</div>
+                    <a href="{% url 'ui_modern:customer_list' %}" class="nav-item">
+                        <i class="bi bi-people"></i> Khách hàng
+                    </a>
+                    <a href="{% url 'ui_modern:vendor_list' %}" class="nav-item">
+                        <i class="bi bi-truck"></i> Nhà cung cấp
+                    </a>
+                    <a href="{% url 'ui_modern:product_list' %}" class="nav-item">
+                        <i class="bi bi-box"></i> Hàng hóa
+                    </a>
+                    <a href="{% url 'ui_modern:sales_invoice_list' %}" class="nav-item">
+                        <i class="bi bi-receipt-cutoff"></i> Hóa đơn bán
+                    </a>
+                    <a href="{% url 'ui_modern:purchase_invoice_list' %}" class="nav-item">
+                        <i class="bi bi-bag"></i> Phiếu nhập mua
+                    </a>
+                    <a href="{% url 'ui_modern:stock_voucher_list' %}" class="nav-item">
+                        <i class="bi bi-box-seam"></i> Phiếu nhập xuất
+                    </a>
+                </div>
+                <div class="nav-section">
                     <div class="nav-section-title">Sổ sách</div>
                     <a href="#" class="nav-item"><i class="bi bi-journal-book"></i> Nhật ký chung</a>
                     <a href="#" class="nav-item"><i class="bi bi-book"></i> Sổ cái</a>

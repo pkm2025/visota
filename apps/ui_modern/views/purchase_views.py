@@ -20,9 +20,7 @@ class PurchaseInvoiceListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        return PurchaseInvoice.objects.select_related("vendor").order_by(
-            "-invoice_date", "-id"
-        )
+        return PurchaseInvoice.objects.select_related("vendor").order_by("-invoice_date", "-id")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

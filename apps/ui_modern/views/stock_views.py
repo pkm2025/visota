@@ -20,9 +20,7 @@ class StockVoucherListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        return StockVoucher.objects.select_related("warehouse").order_by(
-            "-voucher_date", "-id"
-        )
+        return StockVoucher.objects.select_related("warehouse").order_by("-voucher_date", "-id")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
