@@ -1,0 +1,103 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page { size: A4; margin: 2cm; }
+        body { font-family: 'Times New Roman', serif; font-size: 12pt; color: #000; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .company-name { font-size: 14pt; font-weight: bold; text-transform: uppercase; }
+        .company-info { font-size: 10pt; }
+        .title { font-size: 16pt; font-weight: bold; text-align: center; margin: 20px 0; text-transform: uppercase; }
+        .voucher-info { margin: 15px 0; }
+        .voucher-info table { width: 100%; }
+        .voucher-info td { padding: 3px 10px; font-size: 11pt; }
+        .lines-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        .lines-table th, .lines-table td { border: 1px solid #333; padding: 5px 8px; font-size: 10pt; }
+        .lines-table th { background: #f0f0f0; text-align: center; }
+        .amount { text-align: right; font-family: 'Courier New', monospace; }
+        .signatures { margin-top: 40px; width: 100%; }
+        .signatures td { text-align: center; font-size: 10pt; width: 33%; }
+        .sign-line { margin-top: 50px; font-style: italic; }
+        .total-row { font-weight: bold; background: #f9f9f9; }
+        .amount-in-words { text-align: left; font-style: italic; margin: 10px 0; font-size: 11pt; }
+        .footer { margin-top: 30px; font-size: 9pt; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-name">{{ company.name }}</div>
+        <div class="company-info">
+            {% if company.address %}Địa chỉ: {{ company.address }}<br>{% endif %}
+            {% if company.tax_code %}MST: {{ company.tax_code }}{% endif %}
+        </div>
+    </div>
+
+    <div class="title">
+        {{ voucher.get_voucher_type_display }}<br>
+        {% if voucher.description %}{{ voucher.description }}{% endif %}
+    </div>
+
+    <div class="voucher-info">
+        <table>
+            <tr>
+                <td><strong>Số chứng từ:</strong> {{ voucher.voucher_no }}</td>
+                <td><strong>Ngày:</strong> {{ voucher.voucher_date|date:"d/m/Y" }}</td>
+            </tr>
+            <tr>
+                <td><strong>Kỳ:</strong> Tháng {{ voucher.period }} / {{ voucher.fiscal_year }}</td>
+                <td><strong>Trạng thái:</strong> {{ voucher.get_status_display }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <table class="lines-table">
+        <thead>
+            <tr>
+                <th style="width: 5%">#</th>
+                <th style="width: 12%">TK Nợ</th>
+                <th style="width: 12%">TK Có</th>
+                <th style="width: 15%">Đối tượng</th>
+                <th>Diễn giải</th>
+                <th style="width: 13%" class="amount">Số tiền</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in voucher.lines.all %}
+            <tr>
+                <td style="text-align: center">{{ line.line_no }}</td>
+                <td>{% if line.debit_vnd > 0 %}{{ line.account_code }}{% endif %}</td>
+                <td>{% if line.credit_vnd > 0 %}{{ line.account_code }}{% endif %}</td>
+                <td>{{ line.object_code|default:'' }}</td>
+                <td>{{ line.description }}</td>
+                <td class="amount">{% if line.debit_vnd > 0 %}{{ line.debit_vnd|floatformat:0|intcomma }}{% else %}{{ line.credit_vnd|floatformat:0|intcomma }}{% endif %}</td>
+            </tr>
+            {% endfor %}
+            <tr class="total-row">
+                <td colspan="5" style="text-align: right">Tổng cộng:</td>
+                <td class="amount">{{ voucher.total_vnd|floatformat:0|intcomma }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="amount-in-words">
+        Tổng số tiền viết bằng chữ: .......................................................
+    </div>
+
+    <div class="signatures">
+        <table>
+            <tr>
+                <td><strong>Người lập</strong><div class="sign-line">(Ký, họ tên)</div></td>
+                <td><strong>Kế toán trưởng</strong><div class="sign-line">(Ký, họ tên)</div></td>
+                <td><strong>Giám đốc</strong><div class="sign-line">(Ký, họ tên, đóng dấu)</div></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        Ngày ..... tháng ..... năm 20...<br>
+        {% if company.address %}Địa chỉ: {{ company.address }}{% endif %}{% if company.tax_code %} — MST: {{ company.tax_code }}{% endif %}
+    </div>
+</body>
+</html>
