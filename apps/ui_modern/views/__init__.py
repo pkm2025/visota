@@ -4,6 +4,7 @@ from .asset_views import (
     DepreciationRunView,
 )
 from .auth_views import PMKetoanLoginView, PMKetoanLogoutView
+from .closing_views import PeriodClosingView
 from .customer_views import (
     CustomerCreateView,
     CustomerListView,
@@ -47,6 +48,7 @@ __all__ = [
     "DashboardView",
     "PMKetoanLoginView",
     "PMKetoanLogoutView",
+    "PeriodClosingView",
     "AssetListView",
     "AssetCreateView",
     "DepreciationRunView",

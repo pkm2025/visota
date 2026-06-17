@@ -13,6 +13,7 @@ from .views import (
     EmployeeCreateView,
     EmployeeListView,
     PayrollRunView,
+    PeriodClosingView,
     PnLView,
     ProductCreateView,
     ProductListView,
@@ -179,5 +180,11 @@ urlpatterns = [
         "payroll/run/",
         login_required(PayrollRunView.as_view()),
         name="payroll_run",
+    ),
+    # Period closing
+    path(
+        "closing/",
+        login_required(PeriodClosingView.as_view()),
+        name="period_closing",
     ),
 ]

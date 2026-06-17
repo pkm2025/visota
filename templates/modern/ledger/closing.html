@@ -1,0 +1,50 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item active">Kết chuyển cuối kỳ</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="alert alert-info mb-3">
+                <i class="bi bi-info-circle"></i>
+                Chọn kỳ (năm/tháng) để kết chuyển doanh thu (5xx, 7xx) và chi phí (6xx, 8xx)
+                sang tài khoản <strong>911 — Xác định KQ</strong>, sau đó chuyển lãi/lỗ
+                sang <strong>421 — Lợi nhuận chưa phân phối</strong>.
+                Thao tác <strong>idempotent</strong> — chạy lại sẽ bỏ qua nếu đã kết chuyển.
+            </div>
+
+            <form method="post" class="row g-3 align-items-end">
+                {% csrf_token %}
+                <div class="col-auto">
+                    <label class="form-label">Năm</label>
+                    <select name="fiscal_year" class="form-select" required>
+                        {% for y in year_choices %}
+                        <option value="{{ y }}" {% if y == default_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label">Tháng</label>
+                    <select name="period" class="form-select" required>
+                        {% for p in period_choices %}
+                        <option value="{{ p }}" {% if p == default_month %}selected{% endif %}>{{ p }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-arrow-repeat"></i> Kết chuyển
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
