@@ -175,6 +175,67 @@ class TaxRateConfig(models.Model):
         help_text="[[5000000, 0.05], [10000000, 0.10], ...]",
     )
 
+    # --- PIT 2026 (Luật 09/2026/QH16 — effective 01/07/2026) ---
+    # New 5-bracket progressive system replacing the 7-bracket TT 111/2013 system.
+    pit_personal_deduction_2026 = models.DecimalField(
+        max_digits=15, decimal_places=4, default=15500000
+    )  # 15.5M from 1/7/2026
+    pit_dependent_deduction_2026 = models.DecimalField(
+        max_digits=15, decimal_places=4, default=6200000
+    )  # 6.2M from 1/7/2026
+    pit_brackets_2026 = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="5-bracket system from Luật 09/2026/QH16 (from 01/07/2026)",
+    )
+
+    # --- TTĐB rates (Luật TTĐB 66/2025/QH15) ---
+    ttdb_alcohol_high = models.DecimalField(
+        max_digits=6, decimal_places=4, default=0.65
+    )  # rượu ≥20° → 90% by 2031
+    ttdb_alcohol_low = models.DecimalField(
+        max_digits=6, decimal_places=4, default=0.35
+    )  # rượu <20° → 60% by 2031
+    ttdb_beer = models.DecimalField(
+        max_digits=6, decimal_places=4, default=0.65
+    )  # bia → 90% by 2031
+    ttdb_tobacco_rate = models.DecimalField(
+        max_digits=6, decimal_places=4, default=0.75
+    )  # thuốc lá tỷ lệ
+    ttdb_tobacco_absolute = models.DecimalField(
+        max_digits=15, decimal_places=4, default=5000
+    )  # 5.000đ/bao (thuế tuyệt đối)
+    ttdb_car_under_9 = models.DecimalField(
+        max_digits=6, decimal_places=4, default=0.15
+    )  # ô tô <9 chỗ (varies)
+    ttdb_car_hybrid_discount = models.DecimalField(
+        max_digits=6, decimal_places=4, default=0.70
+    )  # HEV = 70% mức thường
+
+    # --- Lệ phí môn bài (ND 22/2020) ---
+    fee_monbai_over_10b = models.DecimalField(
+        max_digits=15, decimal_places=4, default=3000000
+    )  # vốn >10 tỷ
+    fee_monbai_under_10b = models.DecimalField(
+        max_digits=15, decimal_places=4, default=2000000
+    )  # vốn ≤10 tỷ
+
+    # --- Lệ phí trước bạ (ND 10/2022) ---
+    fee_truoc_ba_real_estate = models.DecimalField(
+        max_digits=6, decimal_places=4, default=0.005
+    )  # 0.5% — nhà/đất/ô tô <9 chỗ
+    fee_truoc_ba_other = models.DecimalField(
+        max_digits=6, decimal_places=4, default=0.01
+    )  # 1% — tài sản khác
+
+    # --- Thuế nhà thầu (Foreign Contractor Tax — TT 20/2026) ---
+    fct_cit_rate = models.DecimalField(
+        max_digits=6, decimal_places=4, default=0.05
+    )  # TNDN 5%
+    fct_vat_rate = models.DecimalField(
+        max_digits=6, decimal_places=4, default=0.05
+    )  # VAT (varies)
+
     # Insurance
     bhxh_cap = models.DecimalField(
         max_digits=15, decimal_places=4, default=46800000
@@ -195,3 +256,34 @@ class TaxRateConfig(models.Model):
 
     def __str__(self):
         return f"TaxRateConfig (eff. {self.effective_date}, active={self.is_active})"
+
+
+class TaxType(models.Model):
+    """Master record of all Vietnamese tax types.
+
+    Covers direct (Thuế trực thu), indirect (gián thu), and fee (lệ phí) categories.
+    Acts as a reference dictionary; rates are stored in TaxRateConfig.
+    """
+
+    CATEGORY_DIRECT = "direct"
+    CATEGORY_INDIRECT = "indirect"
+    CATEGORY_FEE = "fee"
+
+    code = models.CharField(max_length=30, unique=True)
+    name = models.CharField(max_length=255)
+    name_en = models.CharField(max_length=255, blank=True, default="")
+    category = models.CharField(max_length=20)  # direct, indirect, fee
+    description = models.TextField(blank=True, default="")
+    current_rate_text = models.TextField(
+        help_text="Human-readable rate description"
+    )
+    legal_basis = models.CharField(max_length=100, blank=True, default="")
+    effective_date = models.DateField()
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "tax_type"
+        ordering = ["code"]
+
+    def __str__(self):
+        return f"{self.code} — {self.name}"

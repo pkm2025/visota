@@ -35,6 +35,25 @@ LEGAL_REFS = [
     {"code": "LuatTNCN2025", "name": "Luật Thuế TNCN 2025", "full_name": "Luật Thuế thu nhập cá nhân (sửa đổi) — dự thảo đang trình Quốc hội", "issuing_body": "Quốc hội", "issue_date": "2025-01-01", "effective_date": "2026-01-01", "url": "", "summary": "Đề xuất tăng giảm trừ gia cảnh, điều chỉnh biểu thuế lũy tiến. Theo dõi cập nhật.", "applicable_to": ["tax", "hr"]},
     # Other relevant
     {"code": "ND20", "name": "ND 20/2026", "full_name": "Nghị định 20/2026/NĐ-CP - Ưu đãi thuế TNDN (triển khai NQ 198/2025/QH15)", "issuing_body": "Chính phủ", "issue_date": "2026-01-15", "effective_date": "2026-02-01", "url": "", "summary": "Miễn thuế TNDN 3 năm cho DN nhỏ/vừa mới thành lập. Giảm 50% trong 4 năm tiếp theo cho startup đổi mới sáng tạo.", "applicable_to": ["tax", "sme"]},
+    # --- Comprehensive VN tax type additions (v1.4.0) ---
+    # Thuế Tiêu thụ Đặc biệt (TTĐB)
+    {"code": "LuatTTDB2025", "name": "Luật TTĐB 2025", "full_name": "Luật Thuế tiêu thụ đặc biệt số 66/2025/QH15 (sửa đổi)", "issuing_body": "Quốc hội", "issue_date": "2025-06-14", "effective_date": "2026-01-01", "url": "https://luatvietnam.vn/thue-phi-le-phi/diem-moi-cua-luat-thue-tieu-thu-dac-biet-565-98391-article.html", "summary": "TTĐB mới: rượu ≥20° 65%→90% (2031), bia 65%→90%, thuốc lá 75% + thuế tuyệt đối 5.000đ/bao, xe hybrid ưu đãi 70%. Phương pháp hỗn hợp (tỷ lệ + tuyệt đối).", "applicable_to": ["tax"]},
+    # Thuế Môn bài
+    {"code": "ND22", "name": "ND 22/2020", "full_name": "Nghị định 22/2020/NĐ-CP - Lệ phí môn bài", "issuing_body": "Chính phủ", "issue_date": "2020-02-24", "effective_date": "2020-04-10", "url": "https://thuvienphapluat.vn/van-ban/Doanh-nghiep/Nghi-dinh-22-2020-ND-CP-thue-mon-bai-374936.aspx", "summary": "DN vốn >10 tỷ: 3 triệu/năm. DN vốn ≤10 tỷ: 2 triệu/năm. Chi nhánh: 1 triệu. Hạn nộp: 30/01 hàng năm.", "applicable_to": ["tax"]},
+    # Lệ phí trước bạ
+    {"code": "LuatTruocBa", "name": "Luật Phí trước bạ", "full_name": "Nghị định 10/2022/NĐ-CP - Lệ phí trước bạ", "issuing_body": "Chính phủ", "issue_date": "2022-01-16", "effective_date": "2022-03-01", "url": "", "summary": "Nhà/đất/ô tô <9 chỗ: 0.5%. Tài sản khác: 1%. ND 50/2026 điều chỉnh tiền sử dụng đất.", "applicable_to": ["tax"]},
+    # Thuế tài nguyên
+    {"code": "LuatTaiNguyen", "name": "Luật Thuế tài nguyên", "full_name": "Luật Thuế tài nguyên số 38/2009/QH12", "issuing_body": "Quốc hội", "issue_date": "2009-06-17", "effective_date": "2010-01-01", "url": "", "summary": "Thuế gián thu đánh trên sản lượng tài nguyên khai thác × giá tính thuế × thuế suất theo từng loại khoáng sản.", "applicable_to": ["tax"]},
+    # Thuế bảo vệ môi trường
+    {"code": "LuatBVMT", "name": "Luật Thuế BVMT", "full_name": "Luật Thuế bảo vệ môi trường số 57/2010/QH12", "issuing_body": "Quốc hội", "issue_date": "2010-11-15", "effective_date": "2011-01-01", "url": "", "summary": "Áp cho xăng dầu, than, HCFC, túi nilon, thuốc trừ sâu. Thuế = SL × giá tính thuế.", "applicable_to": ["tax"]},
+    # Thuế sử dụng đất nông nghiệp
+    {"code": "LuatSDNN", "name": "Luật Thuế SD đất NN", "full_name": "Luật Thuế sử dụng đất nông nghiệp số 50/2010/QH12", "issuing_body": "Quốc hội", "issue_date": "2010-11-23", "effective_date": "2011-01-01", "url": "", "summary": "Nghị quyết 216/2025: miễn đến 31/12/2030. Chuyển NN sang ở: quy định mới từ 1/1/2026.", "applicable_to": ["tax"]},
+    # Thuế nhà thầu
+    {"code": "TT20", "name": "TT 20/2026", "full_name": "Thông tư 20/2026/TT-BTC - Thuế nhà thầu (thay TT 103/2014)", "issuing_body": "Bộ Tài chính", "issue_date": "2026-02-12", "effective_date": "2026-03-12", "url": "", "summary": "Thuế nhà thầu: TNDN thường 5%, kết hợp VAT có thể 15% tổng. DT tính = toàn bộ DT nhà thầu trước khi trừ thuế.", "applicable_to": ["tax"]},
+    # Thuế chuyển nhượng vốn
+    {"code": "ND320", "name": "ND 320/2025", "full_name": "Nghị định 320/2025/NĐ-CP - Chuyển nhượng vốn", "issuing_body": "Chính phủ", "issue_date": "2025-12-15", "effective_date": "2026-01-01", "url": "", "summary": "Chuyển nhượng vốn TNHH: 20%. Tái cơ cấu nội bộ: miễn nếu không đổi công ty mẹ. TT 20/2026 hướng dẫn chi tiết.", "applicable_to": ["tax"]},
+    # Luật GTGT mới
+    {"code": "LuatGTGT2026", "name": "Luật GTGT 2026", "full_name": "Luật Thuế giá trị gia tăng (sửa đổi) theo Luật số 09/2026/QH16", "issuing_body": "Quốc hội", "issue_date": "2026-04-24", "effective_date": "2026-01-01", "url": "https://thuvienphapluat.vn/phap-luat/ho-tro-phap-luat/luat-thue-gia-tri-gia-tang-moi-nhat-2026-va-cac-nghi-dinh-thong-tu-huong-dan-moi-nhat-hien-nay-398530-248988.html", "summary": "Bãi bỏ ngưỡng 500 triệu. Xe 10-16 chỗ: 2%→7% (2031). Hoàn thuế nếu đầu vào ≥300 triệu (cho HH 5%). Miễn thuế DN DT <1 tỷ.", "applicable_to": ["tax"]},
 ]
 
 

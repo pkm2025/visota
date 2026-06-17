@@ -296,7 +296,8 @@ class Command(BaseCommand):
 
         _call("seed_contract_templates", verbosity=0)
         _call("seed_legal_references", verbosity=0)
-        self.stdout.write("Seeded contract templates + legal references")
+        _call("seed_tax_types", verbosity=0)
+        self.stdout.write("Seeded contract templates + legal references + tax types")
 
         # 10. Default TaxRateConfig (Luật TNDN 2025 + ND 174/2025 VAT 8%)
         from datetime import date as _date
@@ -324,12 +325,39 @@ class Command(BaseCommand):
                     [80000000, "0.30"],
                     [999999999, "0.35"],
                 ],
+                # PIT 2026 (Luật 09/2026/QH16 — effective 01/07/2026)
+                "pit_personal_deduction_2026": _Decimal("15500000"),
+                "pit_dependent_deduction_2026": _Decimal("6200000"),
+                "pit_brackets_2026": [
+                    [5000000, "0.05"],
+                    [10000000, "0.10"],
+                    [18000000, "0.15"],
+                    [32000000, "0.20"],
+                    [999999999, "0.25"],
+                ],
+                # TTĐB rates (Luật TTĐB 66/2025/QH15)
+                "ttdb_alcohol_high": _Decimal("0.65"),
+                "ttdb_alcohol_low": _Decimal("0.35"),
+                "ttdb_beer": _Decimal("0.65"),
+                "ttdb_tobacco_rate": _Decimal("0.75"),
+                "ttdb_tobacco_absolute": _Decimal("5000"),
+                "ttdb_car_under_9": _Decimal("0.15"),
+                "ttdb_car_hybrid_discount": _Decimal("0.70"),
+                # Lệ phí môn bài (ND 22/2020)
+                "fee_monbai_over_10b": _Decimal("3000000"),
+                "fee_monbai_under_10b": _Decimal("2000000"),
+                # Lệ phí trước bạ (ND 10/2022)
+                "fee_truoc_ba_real_estate": _Decimal("0.005"),
+                "fee_truoc_ba_other": _Decimal("0.01"),
+                # Thuế nhà thầu (TT 20/2026)
+                "fct_cit_rate": _Decimal("0.05"),
+                "fct_vat_rate": _Decimal("0.05"),
                 "bhxh_cap": _Decimal("46800000"),
                 "base_salary": _Decimal("2340000"),
                 "effective_date": _date(2025, 7, 1),
             },
         )
-        self.stdout.write("Seeded TaxRateConfig (CIT 15/17/20%, VAT 8/10%)")
+        self.stdout.write("Seeded TaxRateConfig (CIT/VAT/PIT/TTĐB/môn bài/trước bạ/FCT)")
 
         self.stdout.write(
             self.style.SUCCESS(
