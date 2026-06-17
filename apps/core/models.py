@@ -31,6 +31,13 @@ class Company(models.Model):
     legal_representative = models.CharField(max_length=255, blank=True)
     chief_accountant = models.CharField(max_length=255, blank=True)
 
+    # SME classification (per ND 80/2021)
+    class SMESize(models.TextChoices):
+        MICRO = "micro", "Siêu nhỏ"
+        SMALL = "small", "Nhỏ"
+        MEDIUM = "medium", "Vừa"
+        LARGE = "large", "Lớn"
+
     # Configuration
     accounting_regime = models.CharField(
         max_length=10,
@@ -39,6 +46,16 @@ class Company(models.Model):
     )
     default_currency = models.CharField(max_length=3, default="VND")
     fiscal_year_start_month = models.PositiveSmallIntegerField(default=1)
+
+    # SME classification per ND 80/2021
+    sme_size = models.CharField(
+        max_length=10,
+        choices=SMESize.choices,
+        default=SMESize.SMALL,
+    )
+    annual_revenue = models.DecimalField(
+        max_digits=20, decimal_places=4, default=0
+    )  # for SME classification
 
     is_active = models.BooleanField(default=True)
 
@@ -110,3 +127,65 @@ class LegalReference(models.Model):
 
     def __str__(self):
         return f"{self.code} — {self.name}"
+
+
+class TaxRateConfig(models.Model):
+    """Configurable tax rates — updated when law changes.
+
+    Cit rates follow Luật Thuế TNDN 2025 (67/2025/QH15).
+    Vat reduction follows ND 174/2025 (8% from 01/07/2025 to 31/12/2026).
+    Pit deductions & BHXH cap follow TT 111/2013 + ND 74/2024.
+    """
+
+    company = models.ForeignKey(
+        "core.Company", on_delete=models.CASCADE, null=True, blank=True
+    )
+
+    # CIT rates (Luật TNDN 2025)
+    cit_rate_standard = models.DecimalField(
+        max_digits=6, decimal_places=4, default=0.20
+    )  # 20%
+    cit_rate_small = models.DecimalField(
+        max_digits=6, decimal_places=4, default=0.17
+    )  # 17% (3-50 tỷ)
+    cit_rate_micro = models.DecimalField(
+        max_digits=6, decimal_places=4, default=0.15
+    )  # 15% (<=3 tỷ)
+
+    # VAT rates (ND 174/2025)
+    vat_rate_standard = models.DecimalField(
+        max_digits=6, decimal_places=4, default=0.10
+    )  # 10%
+    vat_rate_reduced = models.DecimalField(
+        max_digits=6, decimal_places=4, default=0.08
+    )  # 8% (reduced 2025-2026)
+    vat_rate_reduced_active = models.BooleanField(default=True)  # toggle 8% on/off
+
+    # PIT (TNCN) — personal deduction
+    pit_personal_deduction = models.DecimalField(
+        max_digits=15, decimal_places=4, default=11000000
+    )
+    pit_dependent_deduction = models.DecimalField(
+        max_digits=15, decimal_places=4, default=4400000
+    )
+
+    # Insurance
+    bhxh_cap = models.DecimalField(
+        max_digits=15, decimal_places=4, default=46800000
+    )  # 20 x 2,340,000
+    base_salary = models.DecimalField(
+        max_digits=15, decimal_places=4, default=2340000
+    )
+
+    effective_date = models.DateField()
+    is_active = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "tax_rate_config"
+        ordering = ["-effective_date"]
+
+    def __str__(self):
+        return f"TaxRateConfig (eff. {self.effective_date}, active={self.is_active})"

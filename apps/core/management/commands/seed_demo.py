@@ -298,6 +298,30 @@ class Command(BaseCommand):
         _call("seed_legal_references", verbosity=0)
         self.stdout.write("Seeded contract templates + legal references")
 
+        # 10. Default TaxRateConfig (Luật TNDN 2025 + ND 174/2025 VAT 8%)
+        from datetime import date as _date
+        from decimal import Decimal as _Decimal
+
+        from apps.core.models import TaxRateConfig
+
+        TaxRateConfig.objects.update_or_create(
+            is_active=True,
+            defaults={
+                "cit_rate_standard": _Decimal("0.20"),
+                "cit_rate_small": _Decimal("0.17"),
+                "cit_rate_micro": _Decimal("0.15"),
+                "vat_rate_standard": _Decimal("0.10"),
+                "vat_rate_reduced": _Decimal("0.08"),
+                "vat_rate_reduced_active": True,  # ND 174/2025 active until 31/12/2026
+                "pit_personal_deduction": _Decimal("11000000"),
+                "pit_dependent_deduction": _Decimal("4400000"),
+                "bhxh_cap": _Decimal("46800000"),
+                "base_salary": _Decimal("2340000"),
+                "effective_date": _date(2025, 7, 1),
+            },
+        )
+        self.stdout.write("Seeded TaxRateConfig (CIT 15/17/20%, VAT 8/10%)")
+
         self.stdout.write(
             self.style.SUCCESS(
                 f"Seed complete. Company: {company.code}, User: admin, "
