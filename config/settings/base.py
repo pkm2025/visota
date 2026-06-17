@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'apps.payroll',
     'apps.reporting',
     'apps.documents',
+    'apps.contracts',
 
     # Local — UI layout packs
     'apps.ui_modern',
