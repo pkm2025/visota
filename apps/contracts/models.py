@@ -15,6 +15,10 @@ class Contract(CompanyOwnedModel):
         CONSTRUCTION = "construction", "Hợp đồng thi công"
         LABOR = "labor", "Hợp đồng lao động"
         LEASE = "lease", "Hợp đồng thuê"
+        # --- Bidding Law 22/2023/QH15 ---
+        BIDDING_LUMP_SUM = "bidding_lump_sum", "Hợp đồng đấu thầu trọn gói"
+        BIDDING_UNIT_PRICE = "bidding_unit_price", "Hợp đồng đấu thầu đơn giá điều chỉnh"
+        BIDDING_CONSULTING = "bidding_consulting", "Hợp đồng tư vấn đấu thầu"
         OTHER = "other", "Khác"
 
     class Status(models.TextChoices):

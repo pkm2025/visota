@@ -258,6 +258,36 @@ class TaxRateConfig(models.Model):
         return f"TaxRateConfig (eff. {self.effective_date}, active={self.is_active})"
 
 
+class PITRateHistory(models.Model):
+    """Historical PIT (Thuế TNCN) rates for audit and comparison.
+
+    Tracks changes in personal/dependent deduction + brackets across
+    Vietnamese PIT law revisions since 2009:
+    - 2009-2013: Luật TNCN 04/2007/QH12 (4M/1.6M, 7 brackets)
+    - 2013-2020: Luật 26/2012/QH13 (9M/3.6M, 7 brackets)
+    - 2020-2026: NQ 954/2020/UBTVQH14 (11M/4.4M, 7 brackets)
+    - 2026+:     Luật 09/2026/QH16 + NQ 110/2025 (15.5M/6.2M, 5 brackets)
+    """
+
+    period_start = models.DateField()
+    period_end = models.DateField(null=True, blank=True)
+    personal_deduction = models.DecimalField(max_digits=15, decimal_places=4)
+    dependent_deduction = models.DecimalField(max_digits=15, decimal_places=4)
+    brackets = models.JSONField(default=list)  # [[cap, rate], ...]
+    legal_basis = models.CharField(max_length=200)
+    is_current = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = "pit_rate_history"
+        ordering = ["-period_start"]
+        verbose_name = "PIT Rate History"
+        verbose_name_plural = "PIT Rate History"
+
+    def __str__(self):
+        end = self.period_end or "now"
+        return f"PIT {self.period_start} → {end} (GTGC {self.personal_deduction})"
+
+
 class TaxType(models.Model):
     """Master record of all Vietnamese tax types.
 
