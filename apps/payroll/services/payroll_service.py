@@ -217,9 +217,7 @@ class PayrollService:
         voucher_date = date(run.fiscal_year, run.period_num, 1)
 
         employer_total_cost = (
-            run.total_insurance_employer
-            + run.total_kpcd_employer
-            + run.total_bhtnld_employer
+            run.total_insurance_employer + run.total_kpcd_employer + run.total_bhtnld_employer
         )
 
         voucher = AccountingVoucher.objects.create(

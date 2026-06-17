@@ -137,14 +137,10 @@ class TaxRateConfig(models.Model):
     Pit deductions & BHXH cap follow TT 111/2013 + ND 74/2024.
     """
 
-    company = models.ForeignKey(
-        "core.Company", on_delete=models.CASCADE, null=True, blank=True
-    )
+    company = models.ForeignKey("core.Company", on_delete=models.CASCADE, null=True, blank=True)
 
     # CIT rates (Luật TNDN 2025)
-    cit_rate_standard = models.DecimalField(
-        max_digits=6, decimal_places=4, default=0.20
-    )  # 20%
+    cit_rate_standard = models.DecimalField(max_digits=6, decimal_places=4, default=0.20)  # 20%
     cit_rate_small = models.DecimalField(
         max_digits=6, decimal_places=4, default=0.17
     )  # 17% (3-50 tỷ)
@@ -153,21 +149,15 @@ class TaxRateConfig(models.Model):
     )  # 15% (<=3 tỷ)
 
     # VAT rates (ND 174/2025)
-    vat_rate_standard = models.DecimalField(
-        max_digits=6, decimal_places=4, default=0.10
-    )  # 10%
+    vat_rate_standard = models.DecimalField(max_digits=6, decimal_places=4, default=0.10)  # 10%
     vat_rate_reduced = models.DecimalField(
         max_digits=6, decimal_places=4, default=0.08
     )  # 8% (reduced 2025-2026)
     vat_rate_reduced_active = models.BooleanField(default=True)  # toggle 8% on/off
 
-    # PIT (TNCN) — personal deduction
-    pit_personal_deduction = models.DecimalField(
-        max_digits=15, decimal_places=4, default=11000000
-    )
-    pit_dependent_deduction = models.DecimalField(
-        max_digits=15, decimal_places=4, default=4400000
-    )
+    # PIT (TNCN) — personal deduction (Luật 09/2026/QH16 effective 01/01/2026)
+    pit_personal_deduction = models.DecimalField(max_digits=15, decimal_places=4, default=13200000)
+    pit_dependent_deduction = models.DecimalField(max_digits=15, decimal_places=4, default=5200000)
     # Progressive PIT brackets — list of [threshold_cap, rate] pairs, ordered ascending.
     # Per TT 111/2013 (monthly taxable income, VND): 5%/10%/15%/20%/25%/30%/35%.
     pit_brackets = models.JSONField(
@@ -229,20 +219,14 @@ class TaxRateConfig(models.Model):
     )  # 1% — tài sản khác
 
     # --- Thuế nhà thầu (Foreign Contractor Tax — TT 20/2026) ---
-    fct_cit_rate = models.DecimalField(
-        max_digits=6, decimal_places=4, default=0.05
-    )  # TNDN 5%
-    fct_vat_rate = models.DecimalField(
-        max_digits=6, decimal_places=4, default=0.05
-    )  # VAT (varies)
+    fct_cit_rate = models.DecimalField(max_digits=6, decimal_places=4, default=0.05)  # TNDN 5%
+    fct_vat_rate = models.DecimalField(max_digits=6, decimal_places=4, default=0.05)  # VAT (varies)
 
     # Insurance
     bhxh_cap = models.DecimalField(
         max_digits=15, decimal_places=4, default=46800000
     )  # 20 x 2,340,000
-    base_salary = models.DecimalField(
-        max_digits=15, decimal_places=4, default=2340000
-    )
+    base_salary = models.DecimalField(max_digits=15, decimal_places=4, default=2340000)
 
     effective_date = models.DateField()
     is_active = models.BooleanField(default=True)
@@ -304,9 +288,7 @@ class TaxType(models.Model):
     name_en = models.CharField(max_length=255, blank=True, default="")
     category = models.CharField(max_length=20)  # direct, indirect, fee
     description = models.TextField(blank=True, default="")
-    current_rate_text = models.TextField(
-        help_text="Human-readable rate description"
-    )
+    current_rate_text = models.TextField(help_text="Human-readable rate description")
     legal_basis = models.CharField(max_length=100, blank=True, default="")
     effective_date = models.DateField()
     is_active = models.BooleanField(default=True)

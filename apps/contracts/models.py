@@ -82,7 +82,9 @@ class ContractTemplate(models.Model):
 
     code = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=255)
-    contract_type = models.CharField(max_length=20)  # labor_fixed, labor_indefinite, labor_probation, sale, purchase, service, construction
+    contract_type = models.CharField(
+        max_length=20
+    )  # labor_fixed, labor_indefinite, labor_probation, sale, purchase, service, construction
     template_html = models.TextField()  # Django template HTML for PDF
     required_fields = models.JSONField(default=list)  # ['employee_name', 'salary', ...]
     is_active = models.BooleanField(default=True)

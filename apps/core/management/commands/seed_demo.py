@@ -314,18 +314,17 @@ class Command(BaseCommand):
                 "vat_rate_standard": _Decimal("0.10"),
                 "vat_rate_reduced": _Decimal("0.08"),
                 "vat_rate_reduced_active": True,  # ND 174/2025 active until 31/12/2026
-                "pit_personal_deduction": _Decimal("11000000"),
-                "pit_dependent_deduction": _Decimal("4400000"),
+                # Current PIT — Luật 09/2026/QH16 (hiệu lực từ 01/01/2026)
+                "pit_personal_deduction": _Decimal("13200000"),
+                "pit_dependent_deduction": _Decimal("5200000"),
                 "pit_brackets": [
                     [5000000, "0.05"],
                     [10000000, "0.10"],
                     [18000000, "0.15"],
                     [32000000, "0.20"],
-                    [52000000, "0.25"],
-                    [80000000, "0.30"],
-                    [999999999, "0.35"],
+                    [999999999, "0.25"],
                 ],
-                # PIT 2026 (Luật 09/2026/QH16 — effective 01/07/2026)
+                # Reserved for future NQ 110/2025 (dự kiến từ 01/07/2026)
                 "pit_personal_deduction_2026": _Decimal("15500000"),
                 "pit_dependent_deduction_2026": _Decimal("6200000"),
                 "pit_brackets_2026": [

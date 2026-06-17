@@ -96,7 +96,9 @@ class TaxConfigService:
         cap = Decimal(total_capital) if not isinstance(total_capital, Decimal) else total_capital
 
         # Take the lower classification from either revenue or capital
-        rev_tier = cls._tier_by_threshold(rev, cls.MICRO_REVENUE, cls.SMALL_REVENUE, cls.MEDIUM_REVENUE)
+        rev_tier = cls._tier_by_threshold(
+            rev, cls.MICRO_REVENUE, cls.SMALL_REVENUE, cls.MEDIUM_REVENUE
+        )
         cap_tier = cls._tier_by_threshold(cap, micro_cap, small_cap, medium_cap)
 
         # Lower tier wins (more conservative)

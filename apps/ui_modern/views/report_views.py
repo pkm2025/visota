@@ -472,9 +472,7 @@ class SalaryFundReportView(LoginRequiredMixin, TemplateView):
         fiscal_year, period = _parse_period_kwargs(self.request)
         company = Company.objects.first()
         if company:
-            ctx.update(
-                SalaryFundReportService(company=company).generate(fiscal_year, period)
-            )
+            ctx.update(SalaryFundReportService(company=company).generate(fiscal_year, period))
         ctx.update(
             {
                 "page_title": "Quỹ lương kỳ",
@@ -497,9 +495,7 @@ class PITMonthlyReportView(LoginRequiredMixin, TemplateView):
         fiscal_year, period = _parse_period_kwargs(self.request)
         company = Company.objects.first()
         if company:
-            ctx.update(
-                PITMonthlyReportService(company=company).generate(fiscal_year, period)
-            )
+            ctx.update(PITMonthlyReportService(company=company).generate(fiscal_year, period))
         ctx.update(
             {
                 "page_title": "Tờ khai thuế TNCN (tháng)",

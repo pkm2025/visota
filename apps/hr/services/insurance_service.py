@@ -7,15 +7,15 @@ from apps.hr.models.insurance import INSURANCE_CAP, InsuranceContribution
 # 2025 Vietnamese social insurance rates
 RATES = {
     # Employee portion — 10.5% total
-    "bhxh_emp": Decimal("0.08"),   # BHXH 8% (hưu + ốm + thai sản + TNLĐ-BNN)
+    "bhxh_emp": Decimal("0.08"),  # BHXH 8% (hưu + ốm + thai sản + TNLĐ-BNN)
     "bhyt_emp": Decimal("0.015"),  # BHYT 1.5%
-    "bhtn_emp": Decimal("0.01"),   # BHTN 1%
+    "bhtn_emp": Decimal("0.01"),  # BHTN 1%
     # Employer portion — 21.5% total
-    "bhxh_er": Decimal("0.17"),    # 14% hưu trí + 3% ốm/thai
-    "bhyt_er": Decimal("0.03"),    # BHYT 3%
-    "bhtn_er": Decimal("0.01"),    # BHTN 1%
-    "bhtnld_er": Decimal("0.005"), # BHTNLĐ-BNN 0.5% (employer only)
-    "kpcd_er": Decimal("0.02"),    # Kinh phí công đoàn 2%
+    "bhxh_er": Decimal("0.17"),  # 14% hưu trí + 3% ốm/thai
+    "bhyt_er": Decimal("0.03"),  # BHYT 3%
+    "bhtn_er": Decimal("0.01"),  # BHTN 1%
+    "bhtnld_er": Decimal("0.005"),  # BHTNLĐ-BNN 0.5% (employer only)
+    "kpcd_er": Decimal("0.02"),  # Kinh phí công đoàn 2%
 }
 
 

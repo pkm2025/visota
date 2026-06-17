@@ -173,7 +173,5 @@ class Command(BaseCommand):
             if created:
                 created_count += 1
         self.stdout.write(
-            self.style.SUCCESS(
-                f"Seeded {len(TAX_TYPES)} tax types ({created_count} new)."
-            )
+            self.style.SUCCESS(f"Seeded {len(TAX_TYPES)} tax types ({created_count} new).")
         )

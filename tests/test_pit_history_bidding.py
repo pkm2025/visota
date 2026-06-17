@@ -46,7 +46,7 @@ def test_pit_history_model_can_be_created(db):
 
 
 def test_pit_history_count(seeded_pit_history):
-    assert PITRateHistory.objects.count() >= 5
+    assert PITRateHistory.objects.count() >= 4
 
 
 def test_pit_2009_deduction(seeded_pit_history):
@@ -68,16 +68,23 @@ def test_pit_2020_deduction(seeded_pit_history):
 
 
 def test_pit_2026_deduction(seeded_pit_history):
-    h = PITRateHistory.objects.get(period_start="2026-07-01")
-    assert h.personal_deduction == 15500000
-    assert h.dependent_deduction == 6200000
+    """Luật 09/2026/QH16 effective 01/01/2026 — GTGC 13.2M, NPT 5.2M, 5 bậc."""
+    h = PITRateHistory.objects.get(period_start="2026-01-01")
+    assert h.personal_deduction == 13200000
+    assert h.dependent_deduction == 5200000
     assert len(h.brackets) == 5  # 5 bậc
 
 
-def test_pit_2025_current_marked(seeded_pit_history):
-    """The 2025-07-01 entry should be marked is_current."""
-    h = PITRateHistory.objects.get(period_start="2025-07-01")
+def test_pit_2026_current_marked(seeded_pit_history):
+    """The 2026-01-01 entry should be marked is_current (Luật 09/2026/QH16)."""
+    h = PITRateHistory.objects.get(period_start="2026-01-01")
     assert h.is_current is True
+
+
+def test_pit_2026_period_end_open(seeded_pit_history):
+    """Current PIT period has no end date."""
+    h = PITRateHistory.objects.get(period_start="2026-01-01")
+    assert h.period_end is None
 
 
 # --- Legal references ---

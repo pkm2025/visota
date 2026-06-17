@@ -114,18 +114,14 @@ class LaborUsageReportService:
         resigned = employees.filter(status=Employee.Status.RESIGNED).count()
         on_leave = employees.filter(status=Employee.Status.ON_LEAVE).count()
 
-        new_hires = employees.filter(
-            hire_date__gte=year_start, hire_date__lte=year_end
-        ).count()
+        new_hires = employees.filter(hire_date__gte=year_start, hire_date__lte=year_end).count()
 
         # Per-department breakdown
         depts = (
             Department.objects.filter(company=self.company)
             .annotate(
                 emp_count=Count("employees"),
-                active_count=Count(
-                    "employees", filter=Q(employees__status=Employee.Status.ACTIVE)
-                ),
+                active_count=Count("employees", filter=Q(employees__status=Employee.Status.ACTIVE)),
                 new_hire_count=Count(
                     "employees",
                     filter=Q(
@@ -168,9 +164,7 @@ class SalaryFundReportService:
     def generate(self, fiscal_year: int, period: int) -> dict:
         period_str = _period_str(fiscal_year, period)
         run = (
-            PayrollRun.objects.filter(
-                company=self.company, period=period_str
-            )
+            PayrollRun.objects.filter(company=self.company, period=period_str)
             .select_related("gl_voucher")
             .first()
         )
@@ -192,10 +186,7 @@ class SalaryFundReportService:
                 "lines": [],
             }
 
-        lines = (
-            run.lines.select_related("employee", "employee__department")
-            .order_by("line_no")
-        )
+        lines = run.lines.select_related("employee", "employee__department").order_by("line_no")
 
         return {
             "period": period_str,
@@ -226,9 +217,7 @@ class PITMonthlyReportService:
 
     def generate(self, fiscal_year: int, period: int) -> dict:
         period_str = _period_str(fiscal_year, period)
-        run = PayrollRun.objects.filter(
-            company=self.company, period=period_str
-        ).first()
+        run = PayrollRun.objects.filter(company=self.company, period=period_str).first()
 
         rows = []
         total_gross = Decimal("0")
@@ -238,9 +227,9 @@ class PITMonthlyReportService:
 
         if run:
             today = date.today()
-            for line in run.lines.select_related(
-                "employee", "employee__department"
-            ).order_by("line_no"):
+            for line in run.lines.select_related("employee", "employee__department").order_by(
+                "line_no"
+            ):
                 emp = line.employee
                 ins = (
                     line.social_insurance_employee
@@ -248,13 +237,17 @@ class PITMonthlyReportService:
                     + line.unemployment_insurance_employee
                 )
                 # Count active registered dependents
-                dep_count = emp.dependents.filter(
-                    registration_status="registered",
-                    valid_from__lte=today,
-                ).exclude(valid_to__lt=today).count() if hasattr(emp, "dependents") else 0
-                family_deduction = self.PERSONAL_DEDUCTION + (
-                    self.DEPENDENT_DEDUCTION * dep_count
+                dep_count = (
+                    emp.dependents.filter(
+                        registration_status="registered",
+                        valid_from__lte=today,
+                    )
+                    .exclude(valid_to__lt=today)
+                    .count()
+                    if hasattr(emp, "dependents")
+                    else 0
                 )
+                family_deduction = self.PERSONAL_DEDUCTION + (self.DEPENDENT_DEDUCTION * dep_count)
                 taxable = line.gross_salary - ins - family_deduction
                 if taxable < 0:
                     taxable = Decimal("0")

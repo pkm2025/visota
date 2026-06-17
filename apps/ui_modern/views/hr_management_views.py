@@ -26,9 +26,8 @@ class LaborContractListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        return (
-            LaborContract.objects.select_related("employee", "department", "company")
-            .order_by("-start_date")
+        return LaborContract.objects.select_related("employee", "department", "company").order_by(
+            "-start_date"
         )
 
     def get_context_data(self, **kwargs):
@@ -86,9 +85,7 @@ class DependentListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        return Dependent.objects.select_related("employee").order_by(
-            "-valid_from"
-        )
+        return Dependent.objects.select_related("employee").order_by("-valid_from")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

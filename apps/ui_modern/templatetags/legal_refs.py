@@ -11,9 +11,7 @@ register = template.Library()
 def legal_reference_list(limit=10):
     """Return active legal references, ordered by code."""
     try:
-        return list(
-            LegalReference.objects.filter(status="active").order_by("code")[:limit]
-        )
+        return list(LegalReference.objects.filter(status="active").order_by("code")[:limit])
     except Exception:
         # If table doesn't exist or other DB error, return empty
         return []

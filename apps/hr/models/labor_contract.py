@@ -54,12 +54,8 @@ class LaborContract(models.Model):
     work_location = models.CharField(max_length=255, blank=True, default="")
 
     signing_date = models.DateField(null=True, blank=True)
-    signed_file = models.FileField(
-        upload_to="contracts/labor/", null=True, blank=True
-    )
-    status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.DRAFT
-    )
+    signed_file = models.FileField(upload_to="contracts/labor/", null=True, blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     notes = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -100,9 +96,7 @@ class Dependent(models.Model):
     birth_date = models.DateField(null=True, blank=True)
     id_card_no = models.CharField(max_length=20, blank=True, default="")
     tax_code = models.CharField(max_length=20, blank=True, default="")
-    deduction_amount = models.DecimalField(
-        max_digits=20, decimal_places=4, default=4400000
-    )
+    deduction_amount = models.DecimalField(max_digits=20, decimal_places=4, default=4400000)
     valid_from = models.DateField()
     valid_to = models.DateField(null=True, blank=True)
     registration_status = models.CharField(
