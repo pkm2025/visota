@@ -114,12 +114,16 @@ class PayrollLine(models.Model):
     # Insurance — employee portion (deducted from gross)
     social_insurance_employee = models.DecimalField(max_digits=20, decimal_places=4, default=0)
     health_insurance_employee = models.DecimalField(max_digits=20, decimal_places=4, default=0)
-    unemployment_insurance_employee = models.DecimalField(max_digits=20, decimal_places=4, default=0)
+    unemployment_insurance_employee = models.DecimalField(
+        max_digits=20, decimal_places=4, default=0
+    )
 
     # Insurance — employer portion (additional cost)
     social_insurance_employer = models.DecimalField(max_digits=20, decimal_places=4, default=0)
     health_insurance_employer = models.DecimalField(max_digits=20, decimal_places=4, default=0)
-    unemployment_insurance_employer = models.DecimalField(max_digits=20, decimal_places=4, default=0)
+    unemployment_insurance_employer = models.DecimalField(
+        max_digits=20, decimal_places=4, default=0
+    )
 
     pit = models.DecimalField(max_digits=20, decimal_places=4, default=0)
     net_salary = models.DecimalField(max_digits=20, decimal_places=4, default=0)
