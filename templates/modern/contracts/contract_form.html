@@ -1,0 +1,104 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item">Nghiệp vụ</li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:contract_list' %}">Hợp đồng</a></li>
+            <li class="breadcrumb-item active">{{ page_title }}</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-4">{{ page_title }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }} py-2">{{ message }}</div>
+                {% endfor %}
+                {% endif %}
+
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Số hợp đồng <span class="text-danger">*</span></label>
+                        <input type="text" name="contract_no" value="{{ form_data.contract_no|default:'' }}" class="form-control font-mono" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Ngày hợp đồng <span class="text-danger">*</span></label>
+                        <input type="date" name="contract_date" value="{{ form_data.contract_date|default:today }}" class="form-control" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Loại hợp đồng</label>
+                        <select name="contract_type" class="form-select">
+                            {% for ct in contract_type_choices %}
+                            <option value="{{ ct.0 }}" {% if form_data.contract_type == ct.0 %}selected{% endif %}>{{ ct.1 }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Trạng thái</label>
+                        <select name="status" class="form-select">
+                            {% for s in status_choices %}
+                            <option value="{{ s.0 }}" {% if form_data.status == s.0 %}selected{% endif %}>{{ s.1 }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Mã đối tác</label>
+                        <input type="text" name="party_code" value="{{ form_data.party_code|default:'' }}" class="form-control font-mono">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Tên đối tác <span class="text-danger">*</span></label>
+                        <input type="text" name="party_name" value="{{ form_data.party_name|default:'' }}" class="form-control" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">MST đối tác</label>
+                        <input type="text" name="party_tax_code" value="{{ form_data.party_tax_code|default:'' }}" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Loại tiền</label>
+                        <input type="text" name="currency_code" value="{{ form_data.currency_code|default:'VND' }}" class="form-control">
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Địa chỉ đối tác</label>
+                        <input type="text" name="party_address" value="{{ form_data.party_address|default:'' }}" class="form-control">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Giá trị hợp đồng</label>
+                        <input type="number" name="value" value="{{ form_data.value|default:'0' }}" class="form-control text-end font-mono" step="1" min="0">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Ngày bắt đầu</label>
+                        <input type="date" name="start_date" value="{{ form_data.start_date|default:'' }}" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Ngày kết thúc</label>
+                        <input type="date" name="end_date" value="{{ form_data.end_date|default:'' }}" class="form-control">
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Diễn giải</label>
+                        <textarea name="description" rows="3" class="form-control">{{ form_data.description|default:'' }}</textarea>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> Lưu hợp đồng
+                    </button>
+                    <a href="{% url 'ui_modern:contract_list' %}" class="btn btn-outline-secondary">Hủy</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -5,6 +5,10 @@ from .views import (
     AssetCreateView,
     AssetListView,
     BalanceSheetView,
+    CashPaymentCreateView,
+    CashReceiptCreateView,
+    ContractCreateView,
+    ContractListView,
     CustomerCreateView,
     CustomerListView,
     CustomerUpdateView,
@@ -38,8 +42,6 @@ from .views import (
     VoucherListView,
     VoucherPrintView,
     VoucherUploadView,
-    CashReceiptCreateView,
-    CashPaymentCreateView,
 )
 
 app_name = "ui_modern"
@@ -241,5 +243,16 @@ urlpatterns = [
         "treasury/payment/new/",
         login_required(CashPaymentCreateView.as_view()),
         name="cash_payment_create",
+    ),
+    # Contracts
+    path(
+        "contracts/",
+        login_required(ContractListView.as_view()),
+        name="contract_list",
+    ),
+    path(
+        "contracts/new/",
+        login_required(ContractCreateView.as_view()),
+        name="contract_create",
     ),
 ]

@@ -64,6 +64,8 @@
                 <div class="nav-section">
                     <div class="nav-section-title">Cập nhật số liệu</div>
                     <a href="{% url 'ui_modern:voucher_list' %}" class="nav-item"><i class="bi bi-receipt"></i> Phiếu kế toán</a>
+                    <a href="{% url 'ui_modern:cash_receipt_create' %}" class="nav-item"><i class="bi bi-cash-coin"></i> Phiếu thu</a>
+                    <a href="{% url 'ui_modern:cash_payment_create' %}" class="nav-item"><i class="bi bi-credit-card"></i> Phiếu chi</a>
                     <a href="{% url 'ui_modern:period_closing' %}" class="nav-item"><i class="bi bi-arrow-repeat"></i> Kết chuyển cuối kỳ</a>
                 </div>
                 <div class="nav-section">
@@ -86,6 +88,9 @@
                     <a href="{% url 'ui_modern:stock_voucher_list' %}" class="nav-item">
                         <i class="bi bi-box-seam"></i> Phiếu nhập xuất
                     </a>
+                    <a href="{% url 'ui_modern:contract_list' %}" class="nav-item">
+                        <i class="bi bi-file-earmark-text"></i> Hợp đồng
+                    </a>
                 </div>
                 <div class="nav-section">
                     <div class="nav-section-title">Tài sản</div>
@@ -107,8 +112,8 @@
                 </div>
                 <div class="nav-section">
                     <div class="nav-section-title">Sổ sách</div>
-                    <a href="#" class="nav-item"><i class="bi bi-journal-book"></i> Nhật ký chung</a>
-                    <a href="#" class="nav-item"><i class="bi bi-book"></i> Sổ cái</a>
+                    <a href="{% url 'ui_modern:general_journal' %}" class="nav-item"><i class="bi bi-journal-book"></i> Nhật ký chung</a>
+                    <a href="{% url 'ui_modern:general_ledger' %}" class="nav-item"><i class="bi bi-book"></i> Sổ cái</a>
                 </div>
                 <div class="nav-section">
                     <div class="nav-section-title">Báo cáo</div>

@@ -1,0 +1,108 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item">Nghiệp vụ</li>
+                    <li class="breadcrumb-item active">Hợp đồng</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+        </div>
+        <a href="{% url 'ui_modern:contract_create' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus"></i> Thêm hợp đồng
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="get" class="row g-2 mb-3">
+                <div class="col-auto">
+                    <input type="text" class="form-control form-control-sm" name="search"
+                           placeholder="Tìm theo số HĐ hoặc đối tác..."
+                           value="{{ request.GET.search }}">
+                </div>
+                <div class="col-auto">
+                    <select name="contract_type" class="form-select form-select-sm">
+                        <option value="">— Tất cả loại —</option>
+                        {% for ct in contract_type_choices %}
+                        <option value="{{ ct.0 }}" {% if request.GET.contract_type == ct.0 %}selected{% endif %}>{{ ct.1 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-funnel"></i> Lọc
+                    </button>
+                </div>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Số HĐ</th>
+                            <th>Ngày</th>
+                            <th>Loại</th>
+                            <th>Đối tác</th>
+                            <th>MST</th>
+                            <th class="text-end">Giá trị</th>
+                            <th>Hiệu lực</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in contracts %}
+                        <tr>
+                            <td class="font-mono">{{ c.contract_no }}</td>
+                            <td>{{ c.contract_date|date:"d/m/Y" }}</td>
+                            <td><small>{{ c.get_contract_type_display }}</small></td>
+                            <td>{{ c.party_name }}</td>
+                            <td><small class="text-muted">{{ c.party_tax_code|default:"-" }}</small></td>
+                            <td class="text-end font-mono">{{ c.value|floatformat:0|intcomma }}</td>
+                            <td>
+                                {% if c.start_date and c.end_date %}
+                                <small>{{ c.start_date|date:"d/m/Y" }} → {{ c.end_date|date:"d/m/Y" }}</small>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td>
+                                {% if c.status == 'active' %}<span class="badge bg-success">Hiệu lực</span>
+                                {% elif c.status == 'draft' %}<span class="badge bg-secondary">Dự thảo</span>
+                                {% elif c.status == 'completed' %}<span class="badge bg-info">Hoàn thành</span>
+                                {% else %}<span class="badge bg-danger">Đã hủy</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                                Chưa có hợp đồng nào.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if is_paginated %}
+            <nav>
+                <ul class="pagination pagination-sm justify-content-end">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">←</a></li>
+                    {% endif %}
+                    <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">→</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
