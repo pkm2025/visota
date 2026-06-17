@@ -9,6 +9,9 @@ from .views import (
     CustomerUpdateView,
     DashboardView,
     DepreciationRunView,
+    EmployeeCreateView,
+    EmployeeListView,
+    PayrollRunView,
     ProductCreateView,
     ProductListView,
     ProductUpdateView,
@@ -141,5 +144,22 @@ urlpatterns = [
         "assets/depreciation/",
         login_required(DepreciationRunView.as_view()),
         name="depreciation_run",
+    ),
+    # HR — employees
+    path(
+        "employees/",
+        login_required(EmployeeListView.as_view()),
+        name="employee_list",
+    ),
+    path(
+        "employees/new/",
+        login_required(EmployeeCreateView.as_view()),
+        name="employee_create",
+    ),
+    # Payroll
+    path(
+        "payroll/run/",
+        login_required(PayrollRunView.as_view()),
+        name="payroll_run",
     ),
 ]

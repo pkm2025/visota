@@ -1,0 +1,109 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item active">Tính lương</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="alert alert-info mb-3">
+                <i class="bi bi-info-circle"></i>
+                Chọn kỳ (năm/tháng) để tính lương cho toàn bộ nhân viên đang hoạt động.
+                Thao tác <strong>Tính lương</strong> áp dụng chuẩn 22 ngày công/tháng và
+                tính BHXH/BHYT/BHTN + thuế TNCN theo biểu lũy tiến.
+                Thao tác <strong>Ghi sổ</strong> sẽ tạo phiếu kế toán (N642 / C334 / C3336 / C3383-3386).
+                Thao tác <strong>idempotent</strong> — có thể chạy lại nhiều lần.
+            </div>
+
+            <div class="row g-3 align-items-end">
+                <form method="post" id="payroll-form" class="row g-3 align-items-end">
+                    {% csrf_token %}
+                    <div class="col-auto">
+                        <label class="form-label">Năm</label>
+                        <input type="number" name="year" id="id_year" class="form-control"
+                               value="{{ default_year }}" min="2000" max="2100" required>
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label">Tháng</label>
+                        <input type="number" name="month" id="id_month" class="form-control"
+                               value="{{ default_month }}" min="1" max="12" required>
+                    </div>
+                    <input type="hidden" name="action" id="id_action" value="calculate">
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary"
+                                onclick="document.getElementById('id_action').value='calculate'">
+                            <i class="bi bi-calculator"></i> Tính lương
+                        </button>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-success"
+                                onclick="document.getElementById('id_action').value='post'">
+                            <i class="bi bi-bookmark-check"></i> Ghi sổ
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <strong>Kỳ lương gần đây</strong>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Kỳ</th>
+                            <th>Trạng thái</th>
+                            <th class="text-end">Gross</th>
+                            <th class="text-end">BHXH NV</th>
+                            <th class="text-end">BHXH DN</th>
+                            <th class="text-end">PIT</th>
+                            <th class="text-end">Net</th>
+                            <th>Phiếu KT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for run in recent_runs %}
+                        <tr>
+                            <td>{{ run.period }}</td>
+                            <td>
+                                {% if run.status == 'draft' %}<span class="badge bg-light text-dark">Lưu tạm</span>
+                                {% elif run.status == 'calculated' %}<span class="badge bg-info">Đã tính</span>
+                                {% elif run.status == 'posted' %}<span class="badge bg-success">Đã ghi sổ</span>
+                                {% else %}<span class="badge bg-primary">Đã trả</span>{% endif %}
+                            </td>
+                            <td class="text-end font-mono">{{ run.total_gross|floatformat:0 }}</td>
+                            <td class="text-end font-mono">{{ run.total_insurance_employee|floatformat:0 }}</td>
+                            <td class="text-end font-mono">{{ run.total_insurance_employer|floatformat:0 }}</td>
+                            <td class="text-end font-mono">{{ run.total_pit|floatformat:0 }}</td>
+                            <td class="text-end font-mono fw-semibold">{{ run.total_net|floatformat:0 }}</td>
+                            <td>
+                                {% if run.gl_voucher_id %}
+                                <span class="badge bg-secondary">{{ run.gl_voucher.voucher_no }}</span>
+                                {% else %}-{% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                                Chưa có kỳ lương nào được tính.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

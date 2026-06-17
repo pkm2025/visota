@@ -1,0 +1,141 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:employee_list' %}">Nhân viên</a></li>
+            <li class="breadcrumb-item active">{{ page_title }}</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <fieldset class="mb-4">
+                    <legend class="h6 mb-3">Thông tin cá nhân</legend>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Mã NV <span class="text-danger">*</span></label>
+                            {{ form.code }}
+                            {{ form.code.errors }}
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Họ tên <span class="text-danger">*</span></label>
+                            {{ form.full_name }}
+                            {{ form.full_name.errors }}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Ngày sinh</label>
+                            {{ form.birth_date }}
+                            {{ form.birth_date.errors }}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Giới tính</label>
+                            {{ form.gender }}
+                            {{ form.gender.errors }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Số CCCD</label>
+                            {{ form.id_card_no }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">MST cá nhân</label>
+                            {{ form.personal_tax_code }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Mã BHXH</label>
+                            {{ form.social_insurance_no }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Điện thoại</label>
+                            {{ form.phone }}
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Địa chỉ</label>
+                            {{ form.address }}
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="mb-4">
+                    <legend class="h6 mb-3">Công việc</legend>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Phòng ban <span class="text-danger">*</span></label>
+                            {{ form.department }}
+                            {{ form.department.errors }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Chức danh <span class="text-danger">*</span></label>
+                            {{ form.position }}
+                            {{ form.position.errors }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Trạng thái</label>
+                            {{ form.status }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Ngày tuyển <span class="text-danger">*</span></label>
+                            {{ form.hire_date }}
+                            {{ form.hire_date.errors }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Hết thử việc</label>
+                            {{ form.probation_end_date }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Ngày chính thức</label>
+                            {{ form.official_date }}
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="mb-4">
+                    <legend class="h6 mb-3">Lương & thanh toán</legend>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Lương cơ bản (VND)</label>
+                            {{ form.base_salary }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Phụ cấp (VND)</label>
+                            {{ form.allowance }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">TK ngân hàng</label>
+                            {{ form.bank_account_no }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Mã NH</label>
+                            {{ form.bank_id }}
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="mb-4">
+                    <legend class="h6 mb-3">Ghi chú</legend>
+                    {{ form.notes }}
+                </fieldset>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> Lưu
+                    </button>
+                    <a href="{% url 'ui_modern:employee_list' %}" class="btn btn-outline-secondary">
+                        Hủy
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

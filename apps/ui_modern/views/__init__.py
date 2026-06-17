@@ -11,6 +11,7 @@ from .customer_views import (
 )
 from .dashboard_views import DashboardView
 from .health_views import health_detailed, health_simple
+from .hr_views import EmployeeCreateView, EmployeeListView
 from .ledger_views import VoucherCreateView, VoucherListView
 from .product_views import (
     ProductCreateView,
@@ -26,6 +27,7 @@ from .sales_views import (
     SalesInvoiceCreateView,
     SalesInvoiceListView,
 )
+from .payroll_views import PayrollRunView
 from .stock_views import (
     StockVoucherCreateView,
     StockVoucherListView,
@@ -63,4 +65,7 @@ __all__ = [
     "PurchaseInvoiceCreateView",
     "StockVoucherListView",
     "StockVoucherCreateView",
+    "EmployeeListView",
+    "EmployeeCreateView",
+    "PayrollRunView",
 ]
