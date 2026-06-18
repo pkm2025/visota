@@ -26,6 +26,12 @@
     <form method="post">
         {% csrf_token %}
 
+        <datalist id="account-list">
+            {% for code, name in accounts %}
+            <option value="{{ code }}">{{ code }} - {{ name }}</option>
+            {% endfor %}
+        </datalist>
+
         {% if messages %}
         {% for message in messages %}
         <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible">
@@ -59,7 +65,7 @@
             </div>
         </div>
 
-        <div class="card mb-3">
+        <div class="card mb-3" x-data="voucherLines()">
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <strong>Bút toán</strong>
                 <span class="text-muted small">Tối thiểu 2 dòng</span>
@@ -91,16 +97,22 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                    {% if total_debit is not None %}
                     <tfoot>
                         <tr class="table-light fw-bold">
                             <td colspan="3" class="text-end">Tổng cộng:</td>
-                            <td class="text-end font-mono">{{ total_debit|floatformat:0 }}</td>
-                            <td class="text-end font-mono">{{ total_credit|floatformat:0 }}</td>
-                            <td colspan="2"></td>
+                            <td class="text-end font-mono" x-text="formatNumber(totalDebit)"></td>
+                            <td class="text-end font-mono" x-text="formatNumber(totalCredit)"></td>
+                            <td>
+                                <span x-show="balanced" class="text-success">
+                                    <i class="bi bi-check-circle"></i> Cân đối
+                                </span>
+                                <span x-show="!balanced" class="text-danger">
+                                    <i class="bi bi-exclamation-triangle"></i> Lệch
+                                </span>
+                            </td>
+                            <td></td>
                         </tr>
                     </tfoot>
-                    {% endif %}
                 </table>
             </div>
         </div>
@@ -113,4 +125,33 @@
         </div>
     </form>
 </div>
+
+<script>
+function voucherLines() {
+    return {
+        totalDebit: 0,
+        totalCredit: 0,
+        balanced: false,
+        init() {
+            const recalc = () => {
+                let d = 0, c = 0;
+                document.querySelectorAll('input[name*="debit_vnd"]').forEach(input => {
+                    d += parseFloat(input.value) || 0;
+                });
+                document.querySelectorAll('input[name*="credit_vnd"]').forEach(input => {
+                    c += parseFloat(input.value) || 0;
+                });
+                this.totalDebit = d;
+                this.totalCredit = c;
+                this.balanced = Math.abs(d - c) < 1;
+            };
+            recalc();
+            setInterval(recalc, 300);
+        },
+        formatNumber(n) {
+            return new Intl.NumberFormat('vi-VN').format(Math.round(n));
+        }
+    };
+}
+</script>
 {% endblock %}

@@ -11,7 +11,7 @@
             <div class="card stat-card">
                 <div class="card-body">
                     <div class="text-muted small">Chứng từ hôm nay</div>
-                    <div class="h3 mb-0">{{ vouchers_today|intcomma }}</div>
+                    <div class="h3 mb-0">{{ vouchers_today|floatformat:0|intcomma|default:'0' }}</div>
                 </div>
             </div>
         </div>
@@ -19,7 +19,7 @@
             <div class="card stat-card">
                 <div class="card-body">
                     <div class="text-muted small">Công nợ KH</div>
-                    <div class="h3 mb-0">{{ ar_total|floatformat:0|intcomma }}</div>
+                    <div class="h3 mb-0">{{ ar_total|floatformat:0|intcomma|default:'0' }}</div>
                 </div>
             </div>
         </div>
@@ -27,7 +27,7 @@
             <div class="card stat-card">
                 <div class="card-body">
                     <div class="text-muted small">Công nợ NCC</div>
-                    <div class="h3 mb-0">{{ ap_total|floatformat:0|intcomma }}</div>
+                    <div class="h3 mb-0">{{ ap_total|floatformat:0|intcomma|default:'0' }}</div>
                 </div>
             </div>
         </div>
@@ -35,7 +35,7 @@
             <div class="card stat-card">
                 <div class="card-body">
                     <div class="text-muted small">Tồn kho</div>
-                    <div class="h3 mb-0">{{ inventory_value|floatformat:0|intcomma }}</div>
+                    <div class="h3 mb-0">{{ inventory_value|floatformat:0|intcomma|default:'0' }}</div>
                 </div>
             </div>
         </div>

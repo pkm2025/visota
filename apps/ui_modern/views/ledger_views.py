@@ -48,6 +48,19 @@ class VoucherCreateView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         header_form = VoucherHeaderForm()
         line_formset = VoucherLineFormSet(prefix="lines")
+        from apps.core.models import Company
+        from apps.master_data.models import ChartOfAccounts
+
+        company = Company.objects.first()
+        accounts = []
+        if company:
+            accounts = list(
+                ChartOfAccounts.objects.filter(
+                    company=company, is_active=True, is_posting_account=True
+                )
+                .order_by("account_code")
+                .values_list("account_code", "account_name")[:200]
+            )
         return render(
             request,
             self.template_name,
@@ -55,6 +68,7 @@ class VoucherCreateView(LoginRequiredMixin, View):
                 "page_title": "Tạo phiếu kế toán",
                 "header_form": header_form,
                 "line_formset": line_formset,
+                "accounts": accounts,
                 "is_new": True,
             },
         )
@@ -63,10 +77,25 @@ class VoucherCreateView(LoginRequiredMixin, View):
         header_form = VoucherHeaderForm(request.POST)
         line_formset = VoucherLineFormSet(request.POST, prefix="lines")
 
+        from apps.core.models import Company
+        from apps.master_data.models import ChartOfAccounts
+
+        company = Company.objects.first()
+        accounts = []
+        if company:
+            accounts = list(
+                ChartOfAccounts.objects.filter(
+                    company=company, is_active=True, is_posting_account=True
+                )
+                .order_by("account_code")
+                .values_list("account_code", "account_name")[:200]
+            )
+
         ctx_base = {
             "page_title": "Tạo phiếu kế toán",
             "header_form": header_form,
             "line_formset": line_formset,
+            "accounts": accounts,
             "is_new": True,
         }
 

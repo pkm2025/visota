@@ -76,10 +76,10 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         ctx.update(
             {
-                "vouchers_today": vouchers_today,
-                "ar_total": ar_total,
-                "ap_total": ap_total,
-                "inventory_value": inventory_value,
+                "vouchers_today": vouchers_today or 0,
+                "ar_total": ar_total or Decimal("0"),
+                "ap_total": ap_total or Decimal("0"),
+                "inventory_value": inventory_value or Decimal("0"),
                 "stock_vouchers_today": (
                     StockVoucher.objects.filter(
                         company=company, voucher_date=today
