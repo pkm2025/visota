@@ -1,5 +1,6 @@
 {% extends 'modern/base/layout.html' %}
 {% load static humanize %}
+{% load format_utils %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'modern/css/ledger.css' %}">
@@ -42,19 +43,19 @@
             <div class="row">
                 <div class="col">
                     <strong>Tồn đầu kỳ:</strong>
-                    <span class="font-mono">{{ opening_balance|intcomma }}</span>
+                    <span class="font-mono">{{ opening_balance|vnd }}</span>
                 </div>
                 <div class="col">
                     <strong>PS Nợ:</strong>
-                    <span class="font-mono">{{ total_debit|intcomma }}</span>
+                    <span class="font-mono">{{ total_debit|vnd }}</span>
                 </div>
                 <div class="col">
                     <strong>PS Có:</strong>
-                    <span class="font-mono">{{ total_credit|intcomma }}</span>
+                    <span class="font-mono">{{ total_credit|vnd }}</span>
                 </div>
                 <div class="col">
                     <strong>Tồn cuối kỳ:</strong>
-                    <span class="font-mono">{{ closing_balance|intcomma }}</span>
+                    <span class="font-mono">{{ closing_balance|vnd }}</span>
                 </div>
             </div>
         </div>
@@ -81,8 +82,8 @@
                         {% if account_code and opening_balance %}
                         <tr class="table-light">
                             <td colspan="6" class="text-end"><strong>Tồn đầu kỳ</strong></td>
-                            <td class="text-end font-mono"><strong>{{ opening_balance|intcomma }}</strong></td>
-                            <td class="text-end font-mono"><strong>{{ opening_balance|intcomma }}</strong></td>
+                            <td class="text-end font-mono"><strong>{{ opening_balance|vnd }}</strong></td>
+                            <td class="text-end font-mono"><strong>{{ opening_balance|vnd }}</strong></td>
                         </tr>
                         {% endif %}
                         {% for row in rows %}
@@ -91,10 +92,10 @@
                             <td>{{ row.voucher_date|date:"d/m/Y" }}</td>
                             <td>{{ row.description }}</td>
                             <td class="text-end font-mono">{{ row.offset_account }}</td>
-                            <td class="text-end font-mono">{% if row.debit %}{{ row.debit|intcomma }}{% endif %}</td>
-                            <td class="text-end font-mono">{% if row.credit %}{{ row.credit|intcomma }}{% endif %}</td>
+                            <td class="text-end font-mono">{% if row.debit %}{{ row.debit|vnd }}{% endif %}</td>
+                            <td class="text-end font-mono">{% if row.credit %}{{ row.credit|vnd }}{% endif %}</td>
                             <td class="text-end font-mono"></td>
-                            <td class="text-end font-mono">{{ row.running|intcomma }}</td>
+                            <td class="text-end font-mono">{{ row.running|vnd }}</td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -108,9 +109,9 @@
                     <tfoot class="table-light">
                         <tr>
                             <th colspan="4" class="text-end">Cộng phát sinh</th>
-                            <th class="text-end font-mono">{{ total_debit|intcomma }}</th>
-                            <th class="text-end font-mono">{{ total_credit|intcomma }}</th>
-                            <th colspan="2" class="text-end font-mono">{{ closing_balance|intcomma }}</th>
+                            <th class="text-end font-mono">{{ total_debit|vnd }}</th>
+                            <th class="text-end font-mono">{{ total_credit|vnd }}</th>
+                            <th colspan="2" class="text-end font-mono">{{ closing_balance|vnd }}</th>
                         </tr>
                     </tfoot>
                     {% endif %}

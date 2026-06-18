@@ -1,4 +1,5 @@
 {% extends 'modern/base/layout.html' %}
+{% load format_utils %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -13,7 +14,7 @@
             <h1 class="h3 mb-0">{{ page_title }}</h1>
         </div>
         <div class="d-flex gap-2">
-            <a href="#" class="btn btn-outline-secondary btn-sm" onclick="alert('Export coming soon'); return false;">
+            <a href="{% url 'ui_modern:customer_export' %}" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-download"></i> Xuất Excel
             </a>
             <a href="{% url 'ui_modern:customer_create' %}" class="btn btn-primary btn-sm">
@@ -59,15 +60,21 @@
                             <td><small class="text-muted">{{ customer.tax_code|default:"-" }}</small></td>
                             <td>{{ customer.phone|default:"-" }}</td>
                             <td><small class="text-muted">{{ customer.payment_terms|default:"-" }}</small></td>
-                            <td class="text-end font-mono">{{ customer.credit_limit|floatformat:0 }}</td>
+                            <td class="text-end font-mono">{{ customer.credit_limit|vnd }}</td>
                             <td>
                                 {% if customer.is_active %}<span class="badge bg-success">Đang dùng</span>
                                 {% else %}<span class="badge bg-secondary">Ngừng</span>{% endif %}
                             </td>
-                            <td>
-                                <a href="{% url 'ui_modern:customer_update' customer.pk %}" class="btn btn-sm btn-outline-secondary py-0">
+                            <td class="text-nowrap">
+                                <a href="{% url 'ui_modern:customer_update' customer.pk %}" class="btn btn-sm btn-outline-secondary py-0" title="Sửa">
                                     <i class="bi bi-pencil"></i>
                                 </a>
+                                <form method="post" action="{% url 'ui_modern:customer_delete' customer.pk %}" class="d-inline" onsubmit="return confirm('Xóa khách hàng {{ customer.code }} - {{ customer.name }}?')">
+                                    {% csrf_token %}
+                                    <button class="btn btn-sm btn-outline-danger py-0" title="Xóa">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                         {% empty %}

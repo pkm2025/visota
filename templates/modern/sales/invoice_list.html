@@ -1,4 +1,5 @@
 {% extends 'modern/base/layout.html' %}
+{% load format_utils %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -42,9 +43,9 @@
                             <td>{{ inv.invoice_no }}</td>
                             <td>{{ inv.customer.name }}</td>
                             <td><small class="text-muted">{{ inv.get_invoice_type_display }}</small></td>
-                            <td class="text-end font-mono">{{ inv.subtotal|floatformat:0 }}</td>
-                            <td class="text-end font-mono">{{ inv.vat_amount|floatformat:0 }}</td>
-                            <td class="text-end font-mono fw-semibold">{{ inv.total_amount|floatformat:0 }}</td>
+                            <td class="text-end font-mono">{{ inv.subtotal|vnd }}</td>
+                            <td class="text-end font-mono">{{ inv.vat_amount|vnd }}</td>
+                            <td class="text-end font-mono fw-semibold">{{ inv.total_amount|vnd }}</td>
                             <td>
                                 {% if inv.payment_status == 0 %}<span class="badge bg-warning">Chưa TT</span>
                                 {% elif inv.payment_status == 1 %}<span class="badge bg-info">TT một phần</span>

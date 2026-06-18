@@ -115,6 +115,11 @@
                     </tfoot>
                 </table>
             </div>
+            <div class="p-2">
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="addVoucherLine()">
+                    <i class="bi bi-plus"></i> Thêm dòng
+                </button>
+            </div>
         </div>
 
         <div class="d-flex justify-content-end gap-2">
@@ -127,6 +132,43 @@
 </div>
 
 <script>
+function addVoucherLine() {
+    const card = document.querySelector('[x-data^="voucherLines"]');
+    const tbody = card ? card.querySelector('tbody') : document.querySelector('tbody');
+    if (!tbody) return;
+    const lastRow = tbody.querySelector('tr:last-child');
+    if (!lastRow) return;
+
+    const totalFormsInput = document.querySelector('[name$="-TOTAL_FORMS"]');
+    if (!totalFormsInput) return;
+
+    const m = totalFormsInput.name.match(/^(.+)-TOTAL_FORMS$/);
+    const prefix = m ? m[1] : 'form';
+    const newIndex = parseInt(totalFormsInput.value, 10) || 0;
+    totalFormsInput.value = newIndex + 1;
+
+    const newRow = lastRow.cloneNode(true);
+
+    const firstCell = newRow.querySelector('td');
+    if (firstCell && /^\d+$/.test(firstCell.textContent.trim())) {
+        firstCell.textContent = newIndex + 1;
+    }
+
+    const reName = new RegExp(`${prefix}-(\\d+)-`, 'g');
+    const reId = new RegExp(`id_${prefix}-(\\d+)-`, 'g');
+    newRow.querySelectorAll('input, select, textarea').forEach(input => {
+        if (input.name) input.name = input.name.replace(reName, `${prefix}-${newIndex}-`);
+        if (input.id) input.id = input.id.replace(reId, `id_${prefix}-${newIndex}-`);
+        if (input.type === 'checkbox') {
+            input.checked = false;
+        } else if (input.type !== 'button' && input.type !== 'submit') {
+            input.value = '';
+        }
+    });
+
+    tbody.appendChild(newRow);
+}
+
 function voucherLines() {
     return {
         totalDebit: 0,

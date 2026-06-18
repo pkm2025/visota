@@ -155,7 +155,7 @@ class DocxExportService:
         doc.add_paragraph()
         title = doc.add_paragraph()
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        template_name = template.name if template else contract.description or 'Hợp đồng'
+        template_name = template.name if template else contract.description or "Hợp đồng"
         title_run = title.add_run(template_name)
         title_run.bold = True
         title_run.font.size = Pt(16)

@@ -61,7 +61,7 @@ def test_trial_balance_shows_data(setup, auth_client):
     content = response.content.decode('utf-8')
     assert '111' in content
     assert '5111' in content
-    assert '1.000' in content or '1000' in content
+    assert '1.000' in content or '1000' in content or '1,000' in content
 
 
 @pytest.mark.django_db

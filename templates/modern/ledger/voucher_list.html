@@ -1,5 +1,6 @@
 {% extends 'modern/base/layout.html' %}
 {% load static %}
+{% load format_utils %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'modern/css/ledger.css' %}">
@@ -18,10 +19,10 @@
             <h1 class="h3 mb-0">{{ page_title }}</h1>
         </div>
         <div>
-            <button class="btn btn-outline-secondary btn-sm">
+            <a href="{% url 'ui_modern:voucher_export' %}" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-download"></i> Xuất Excel
-            </button>
-            <a href="#" class="btn btn-primary btn-sm">
+            </a>
+            <a href="{% url 'ui_modern:voucher_create' %}" class="btn btn-primary btn-sm">
                 <i class="bi bi-plus"></i> Thêm mới
             </a>
         </div>
@@ -70,7 +71,7 @@
                             <td><a href="{% url 'ui_modern:voucher_detail' voucher.id %}" class="text-decoration-none">{{ voucher.voucher_no }}</a></td>
                             <td><small class="text-muted">{{ voucher.get_voucher_type_display }}</small></td>
                             <td>{{ voucher.description|truncatechars:60 }}</td>
-                            <td class="text-end font-mono">{{ voucher.total_vnd|floatformat:0 }}</td>
+                            <td class="text-end font-mono">{{ voucher.total_vnd|vnd }}</td>
                             <td>
                                 {% if voucher.status == 0 %}<span class="badge bg-warning">Lưu tạm</span>
                                 {% elif voucher.status == 1 %}<span class="badge bg-info">Sổ phụ</span>

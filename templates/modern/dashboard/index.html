@@ -1,8 +1,10 @@
 {% extends 'modern/base/layout.html' %}
 {% load humanize %}
+{% load format_utils %}
 
 {% block content %}
 <div class="container-fluid py-4">
+    {% include 'shared/_breadcrumb.html' %}
     <h1>{{ page_title }}</h1>
     <p class="text-muted">Chào {{ user.full_name|default:user.username }}, đây là dashboard của bạn.</p>
 
@@ -61,7 +63,7 @@
                                 <td class="font-mono">{{ v.voucher_no }}</td>
                                 <td><small class="text-muted">{{ v.get_voucher_type_display }}</small></td>
                                 <td>{{ v.description|truncatechars:40 }}</td>
-                                <td class="text-end font-mono">{{ v.total_vnd|floatformat:0 }}</td>
+                                <td class="text-end font-mono">{{ v.total_vnd|vnd }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

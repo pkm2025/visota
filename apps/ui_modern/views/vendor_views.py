@@ -2,9 +2,13 @@
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
+from django.views import View
 from django.views.generic import CreateView, ListView, UpdateView
 
 from apps.master_data.models import Vendor
+
+from ._delete_views import MasterDataDeleteView
+from ._export_utils import autosize, new_workbook, style_header, xlsx_response
 
 _VENDOR_FIELDS = [
     "code",
@@ -39,6 +43,49 @@ class VendorListView(LoginRequiredMixin, ListView):
         ctx = super().get_context_data(**kwargs)
         ctx["page_title"] = "Nhà cung cấp"
         return ctx
+
+
+class VendorExportView(LoginRequiredMixin, View):
+    """Export all vendors to .xlsx."""
+
+    login_url = "/auth/login/"
+
+    def get(self, request, *args, **kwargs):
+        wb, ws = new_workbook("Nhà cung cấp")
+        headers = [
+            "Mã",
+            "Tên",
+            "Tên EN",
+            "MST",
+            "Địa chỉ",
+            "Điện thoại",
+            "Email",
+            "Hạn thanh toán",
+            "Nhóm",
+            "Loại",
+            "Trạng thái",
+        ]
+        ws.append(headers)
+        style_header(ws, len(headers))
+        for v in Vendor.objects.select_related("company").order_by("code"):
+            kind = "Nhà thầu" if v.is_contractor else "Hàng hóa"
+            ws.append(
+                [
+                    v.code,
+                    v.name,
+                    v.name_en or "",
+                    v.tax_code or "",
+                    v.address or "",
+                    v.phone or "",
+                    v.email or "",
+                    v.payment_terms or "",
+                    v.vendor_group_code or "",
+                    kind,
+                    "Đang dùng" if v.is_active else "Ngừng",
+                ]
+            )
+        autosize(ws)
+        return xlsx_response(wb, "vendors.xlsx")
 
 
 class VendorCreateView(LoginRequiredMixin, CreateView):
@@ -77,3 +124,8 @@ class VendorUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse_lazy("ui_modern:vendor_list")
+
+
+class VendorDeleteView(MasterDataDeleteView):
+    model = Vendor
+    redirect_name = "ui_modern:vendor_list"

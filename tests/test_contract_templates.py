@@ -57,7 +57,7 @@ def test_create_contract_template(db):
 
 def test_render_template_with_context(company, contract):
     """Template HTML renders with company + contract context."""
-    ContractTemplate.objects.create(
+    tpl = ContractTemplate.objects.create(
         code='sale_v1',
         name='HĐ mua bán',
         contract_type='sale',

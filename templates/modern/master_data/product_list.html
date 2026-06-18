@@ -1,4 +1,5 @@
 {% extends 'modern/base/layout.html' %}
+{% load format_utils %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -13,7 +14,7 @@
             <h1 class="h3 mb-0">{{ page_title }}</h1>
         </div>
         <div class="d-flex gap-2">
-            <a href="#" class="btn btn-outline-secondary btn-sm" onclick="alert('Export coming soon'); return false;">
+            <a href="{% url 'ui_modern:product_export' %}" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-download"></i> Xuất Excel
             </a>
             <a href="{% url 'ui_modern:product_create' %}" class="btn btn-primary btn-sm">
@@ -65,15 +66,21 @@
                             <td>{{ product.gl_account_inv }}</td>
                             <td>{{ product.gl_account_cogs }}</td>
                             <td>{{ product.gl_account_revenue }}</td>
-                            <td class="text-end font-mono">{{ product.default_unit_price|floatformat:0 }}</td>
+                            <td class="text-end font-mono">{{ product.default_unit_price|vnd }}</td>
                             <td>
                                 {% if product.is_active %}<span class="badge bg-success">Đang dùng</span>
                                 {% else %}<span class="badge bg-secondary">Ngừng</span>{% endif %}
                             </td>
-                            <td>
-                                <a href="{% url 'ui_modern:product_update' product.pk %}" class="btn btn-sm btn-outline-secondary py-0">
+                            <td class="text-nowrap">
+                                <a href="{% url 'ui_modern:product_update' product.pk %}" class="btn btn-sm btn-outline-secondary py-0" title="Sửa">
                                     <i class="bi bi-pencil"></i>
                                 </a>
+                                <form method="post" action="{% url 'ui_modern:product_delete' product.pk %}" class="d-inline" onsubmit="return confirm('Xóa hàng hóa {{ product.code }} - {{ product.name }}?')">
+                                    {% csrf_token %}
+                                    <button class="btn btn-sm btn-outline-danger py-0" title="Xóa">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                         {% empty %}

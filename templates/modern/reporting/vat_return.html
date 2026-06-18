@@ -1,5 +1,6 @@
 {% extends 'modern/base/layout.html' %}
 {% load static humanize %}
+{% load format_utils %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -49,34 +50,34 @@
                         <tr>
                             <td class="text-center">[01]</td>
                             <td>Doanh thu bán hàng và cung cấp dịch vụ hàng hóa, dịch vụ chịu thuế GTGT</td>
-                            <td class="text-end font-mono">{{ vat_output|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ vat_output|vnd }}</td>
                         </tr>
                         <tr class="table-light fw-bold">
                             <td class="text-center">[20]</td>
                             <td>Thuế GTGT đầu ra phát sinh trong kỳ (TK 33311 Có)</td>
-                            <td class="text-end font-mono">{{ vat_output|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ vat_output|vnd }}</td>
                         </tr>
                         <tr>
                             <td class="text-center">[23]</td>
                             <td>Thuế GTGT đầu vào phát sinh trong kỳ (TK 1331 Nợ)</td>
-                            <td class="text-end font-mono">{{ vat_input_credit|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ vat_input_credit|vnd }}</td>
                         </tr>
                         <tr class="table-light fw-bold">
                             <td class="text-center">[25]</td>
                             <td>Thuế GTGT đầu vào được khấu trừ (= [23])</td>
-                            <td class="text-end font-mono">{{ vat_input_credit|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ vat_input_credit|vnd }}</td>
                         </tr>
                         {% if is_payable %}
                         <tr class="table-warning fw-bold">
                             <td class="text-center">[40]</td>
                             <td>THUẾ GTGT CÒN PHẢI NỘP TRONG KỲ (= [20] − [25])</td>
-                            <td class="text-end font-mono">{{ vat_payable|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ vat_payable|vnd }}</td>
                         </tr>
                         {% else %}
                         <tr class="table-info fw-bold">
                             <td class="text-center">[42]</td>
                             <td>THUẾ GTGT ĐƯỢC KHẤU TRỪ/kỳ trước chuyển sang (= [25] − [20])</td>
-                            <td class="text-end font-mono">{{ vat_credit|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ vat_credit|vnd }}</td>
                         </tr>
                         {% endif %}
                     </tbody>
@@ -88,9 +89,9 @@
                 {% if vat_output == 0 and vat_input_credit == 0 %}
                 <i class="bi bi-info-circle"></i> Không có phát sinh thuế GTGT trong kỳ
                 {% elif is_payable %}
-                <span class="text-warning"><i class="bi bi-cash-coin"></i> Phải nộp: {{ vat_payable|floatformat:0|intcomma }} VND</span>
+                <span class="text-warning"><i class="bi bi-cash-coin"></i> Phải nộp: {{ vat_payable|vnd }} VND</span>
                 {% else %}
-                <span class="text-info"><i class="bi bi-arrow-counterclockwise"></i> Được khấu trừ: {{ vat_credit|floatformat:0|intcomma }} VND</span>
+                <span class="text-info"><i class="bi bi-arrow-counterclockwise"></i> Được khấu trừ: {{ vat_credit|vnd }} VND</span>
                 {% endif %}
             </small>
             <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">

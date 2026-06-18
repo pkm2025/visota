@@ -1,0 +1,12 @@
+{% load static %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+        {% if breadcrumb_parent_url %}
+        <li class="breadcrumb-item"><a href="{{ breadcrumb_parent_url }}">{{ breadcrumb_parent }}</a></li>
+        {% elif page_parent %}
+        <li class="breadcrumb-item">{{ page_parent }}</li>
+        {% endif %}
+        <li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
+    </ol>
+</nav>

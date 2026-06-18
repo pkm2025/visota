@@ -14,6 +14,8 @@ from .views import (
     ContractListView,
     ContractTemplateListView,
     CustomerCreateView,
+    CustomerDeleteView,
+    CustomerExportView,
     CustomerListView,
     CustomerUpdateView,
     D62ReportView,
@@ -39,6 +41,8 @@ from .views import (
     PITMonthlyReportView,
     PnLView,
     ProductCreateView,
+    ProductDeleteView,
+    ProductExportView,
     ProductListView,
     ProductUpdateView,
     PurchaseInvoiceCreateView,
@@ -54,10 +58,14 @@ from .views import (
     TrialBalanceView,
     VATReturnView,
     VendorCreateView,
+    VendorDeleteView,
+    VendorExportView,
     VendorListView,
     VendorUpdateView,
     VoucherCreateView,
+    VoucherDeleteView,
     VoucherDetailView,
+    VoucherExportView,
     VoucherListView,
     VoucherPrintDocxView,
     VoucherPrintView,
@@ -97,6 +105,16 @@ urlpatterns = [
         "vouchers/<int:pk>/upload/",
         login_required(VoucherUploadView.as_view()),
         name="voucher_upload",
+    ),
+    path(
+        "vouchers/export/",
+        login_required(VoucherExportView.as_view()),
+        name="voucher_export",
+    ),
+    path(
+        "vouchers/<int:pk>/delete/",
+        login_required(VoucherDeleteView.as_view()),
+        name="voucher_delete",
     ),
     path(
         "documents/<int:pk>/download/",
@@ -184,6 +202,16 @@ urlpatterns = [
         login_required(CustomerUpdateView.as_view()),
         name="customer_update",
     ),
+    path(
+        "customers/export/",
+        login_required(CustomerExportView.as_view()),
+        name="customer_export",
+    ),
+    path(
+        "customers/<int:pk>/delete/",
+        login_required(CustomerDeleteView.as_view()),
+        name="customer_delete",
+    ),
     # Master data — Vendor
     path(
         "vendors/",
@@ -200,6 +228,16 @@ urlpatterns = [
         login_required(VendorUpdateView.as_view()),
         name="vendor_update",
     ),
+    path(
+        "vendors/export/",
+        login_required(VendorExportView.as_view()),
+        name="vendor_export",
+    ),
+    path(
+        "vendors/<int:pk>/delete/",
+        login_required(VendorDeleteView.as_view()),
+        name="vendor_delete",
+    ),
     # Master data — Product
     path(
         "products/",
@@ -215,6 +253,16 @@ urlpatterns = [
         "products/<int:pk>/edit/",
         login_required(ProductUpdateView.as_view()),
         name="product_update",
+    ),
+    path(
+        "products/export/",
+        login_required(ProductExportView.as_view()),
+        name="product_export",
+    ),
+    path(
+        "products/<int:pk>/delete/",
+        login_required(ProductDeleteView.as_view()),
+        name="product_delete",
     ),
     # Sales invoices
     path(

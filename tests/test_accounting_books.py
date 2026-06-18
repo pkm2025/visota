@@ -139,4 +139,4 @@ def test_general_ledger_shows_lines_for_specific_account(setup, auth_client):
     assert "PT0001" in content
     assert "BH0001" in content
     # Số dư chạy (running balance)
-    assert "300.000" in content or "300000" in content  # 800000 - 500000
+    assert "300.000" in content or "300000" in content or "300,000" in content  # 800000 - 500000

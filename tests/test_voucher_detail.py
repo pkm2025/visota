@@ -37,7 +37,7 @@ def test_voucher_detail_loads(auth_client, voucher):
     assert 'BC0001' in content
     assert '111' in content
     assert '5111' in content
-    assert '1.000' in content or '1000' in content
+    assert '1.000' in content or '1000' in content or '1,000' in content
 
 
 @pytest.mark.django_db

@@ -1,5 +1,6 @@
 {% extends 'modern/base/layout.html' %}
 {% load static humanize %}
+{% load format_utils %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'modern/css/ledger.css' %}">
@@ -57,7 +58,7 @@
                             <td>{{ row.description }}</td>
                             <td class="text-end font-mono">{{ row.debit_account }}</td>
                             <td class="text-end font-mono">{{ row.credit_account }}</td>
-                            <td class="text-end font-mono">{{ row.amount|intcomma }}</td>
+                            <td class="text-end font-mono">{{ row.amount|vnd }}</td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -69,7 +70,7 @@
                     <tfoot class="table-light">
                         <tr>
                             <th colspan="5" class="text-end">Tổng cộng</th>
-                            <th class="text-end font-mono">{{ total_amount|intcomma }}</th>
+                            <th class="text-end font-mono">{{ total_amount|vnd }}</th>
                         </tr>
                     </tfoot>
                     {% endif %}

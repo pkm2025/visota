@@ -1,5 +1,6 @@
 {% extends 'modern/base/layout.html' %}
 {% load static humanize %}
+{% load format_utils %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'modern/css/ledger.css' %}">
@@ -58,12 +59,12 @@
                         {% for b in balances %}
                         <tr>
                             <td class="font-mono">{{ b.account_code }}</td>
-                            <td class="text-end font-mono">{{ b.opening_debit|floatformat:0|intcomma }}</td>
-                            <td class="text-end font-mono">{{ b.opening_credit|floatformat:0|intcomma }}</td>
-                            <td class="text-end font-mono">{{ b.period_debit|floatformat:0|intcomma }}</td>
-                            <td class="text-end font-mono">{{ b.period_credit|floatformat:0|intcomma }}</td>
-                            <td class="text-end font-mono">{{ b.closing_debit|floatformat:0|intcomma }}</td>
-                            <td class="text-end font-mono">{{ b.closing_credit|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ b.opening_debit|vnd }}</td>
+                            <td class="text-end font-mono">{{ b.opening_credit|vnd }}</td>
+                            <td class="text-end font-mono">{{ b.period_debit|vnd }}</td>
+                            <td class="text-end font-mono">{{ b.period_credit|vnd }}</td>
+                            <td class="text-end font-mono">{{ b.closing_debit|vnd }}</td>
+                            <td class="text-end font-mono">{{ b.closing_credit|vnd }}</td>
                         </tr>
                         {% empty %}
                         <tr><td colspan="7" class="text-center text-muted py-4">
@@ -76,12 +77,12 @@
                     <tfoot class="table-light fw-bold">
                         <tr>
                             <td>Tổng cộng</td>
-                            <td class="text-end font-mono">{{ total_opening_debit|floatformat:0|intcomma }}</td>
-                            <td class="text-end font-mono">{{ total_opening_credit|floatformat:0|intcomma }}</td>
-                            <td class="text-end font-mono">{{ total_period_debit|floatformat:0|intcomma }}</td>
-                            <td class="text-end font-mono">{{ total_period_credit|floatformat:0|intcomma }}</td>
-                            <td class="text-end font-mono">{{ total_closing_debit|floatformat:0|intcomma }}</td>
-                            <td class="text-end font-mono">{{ total_closing_credit|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ total_opening_debit|vnd }}</td>
+                            <td class="text-end font-mono">{{ total_opening_credit|vnd }}</td>
+                            <td class="text-end font-mono">{{ total_period_debit|vnd }}</td>
+                            <td class="text-end font-mono">{{ total_period_credit|vnd }}</td>
+                            <td class="text-end font-mono">{{ total_closing_debit|vnd }}</td>
+                            <td class="text-end font-mono">{{ total_closing_credit|vnd }}</td>
                         </tr>
                     </tfoot>
                     {% endif %}

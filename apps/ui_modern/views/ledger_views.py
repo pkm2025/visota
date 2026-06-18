@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.generic import DetailView, ListView
 
@@ -12,6 +12,8 @@ from apps.ledger.models import AccountingVoucher, VoucherLine
 from apps.ledger.services import VoucherPostingService
 from apps.ledger.services.voucher_posting_service import VoucherNotBalancedError
 from apps.ui_modern.forms import VoucherHeaderForm, VoucherLineFormSet
+
+from ._export_utils import autosize, new_workbook, style_header, xlsx_response
 
 
 class VoucherListView(LoginRequiredMixin, ListView):
@@ -221,3 +223,113 @@ class VoucherDetailView(LoginRequiredMixin, DetailView):
         ctx["related_vouchers"] = related_qs.exclude(id=self.object.id).distinct()[:10]
         ctx["voucher"] = self.object  # for right sidebar
         return ctx
+
+
+class VoucherExportView(LoginRequiredMixin, View):
+    """Export all vouchers (with their lines) to .xlsx."""
+
+    login_url = "/auth/login/"
+
+    def get(self, request, *args, **kwargs):
+        wb, ws = new_workbook("Phiếu kế toán")
+        headers = [
+            "Ngày",
+            "Số CT",
+            "Loại",
+            "Diễn giải",
+            "Kỳ",
+            "Năm",
+            "Tổng tiền (VND)",
+            "Trạng thái",
+            "#",
+            "TK",
+            "Đối tượng",
+            "Nợ",
+            "Có",
+            "Diễn giải dòng",
+        ]
+        ws.append(headers)
+        style_header(ws, len(headers))
+
+        status_map = dict(AccountingVoucher.Status.choices)
+        qs = (
+            AccountingVoucher.objects.select_related("company")
+            .prefetch_related("lines")
+            .order_by("-voucher_date", "-id")
+        )
+        # Honor current search filter so users can export a filtered subset.
+        search = request.GET.get("search")
+        if search:
+            qs = qs.filter(voucher_no__icontains=search) | qs.filter(description__icontains=search)
+        status = request.GET.get("status")
+        if status:
+            qs = qs.filter(status=status)
+
+        for v in qs:
+            ws.append(
+                [
+                    v.voucher_date.isoformat(),
+                    v.voucher_no,
+                    v.get_voucher_type_display(),
+                    v.description or "",
+                    v.period,
+                    v.fiscal_year,
+                    float(v.total_vnd or 0),
+                    status_map.get(v.status, v.status),
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                ]
+            )
+            for line in v.lines.all():
+                ws.append(
+                    [
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        line.line_no,
+                        line.account_code,
+                        line.object_code or "",
+                        float(line.debit_vnd or 0),
+                        float(line.credit_vnd or 0),
+                        line.description or "",
+                    ]
+                )
+        autosize(ws)
+        return xlsx_response(wb, "vouchers.xlsx")
+
+
+class VoucherDeleteView(LoginRequiredMixin, View):
+    """Delete a DRAFT voucher and reverse its ledger entries."""
+
+    login_url = "/auth/login/"
+
+    def post(self, request, pk, *args, **kwargs):
+        voucher = get_object_or_404(AccountingVoucher, pk=pk)
+        if voucher.status != AccountingVoucher.Status.DRAFT:
+            messages.error(
+                request,
+                f"Không thể xóa phiếu {voucher.voucher_no}: chỉ xóa được phiếu ở trạng thái Lưu tạm.",
+            )
+            return redirect("ui_modern:voucher_detail", pk=pk)
+        try:
+            # Reverse any posted ledger entries first (best-effort).
+            VoucherPostingService().unpost(voucher)
+        except Exception:
+            pass
+        voucher_no = voucher.voucher_no
+        voucher.delete()
+        messages.success(request, f"Đã xóa phiếu {voucher_no}")
+        return redirect("ui_modern:voucher_list")
+
+    def get(self, request, pk, *args, **kwargs):
+        # No GET confirm page — confirm via JS in template; redirect if hit directly.
+        return redirect("ui_modern:voucher_detail", pk=pk)

@@ -2,9 +2,13 @@
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
+from django.views import View
 from django.views.generic import CreateView, ListView, UpdateView
 
 from apps.master_data.models import Product
+
+from ._delete_views import MasterDataDeleteView
+from ._export_utils import autosize, new_workbook, style_header, xlsx_response
 
 _PRODUCT_FIELDS = [
     "code",
@@ -37,6 +41,54 @@ class ProductListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return Product.objects.select_related("company").order_by("code")
+
+
+class ProductExportView(LoginRequiredMixin, View):
+    """Export all products to .xlsx."""
+
+    login_url = "/auth/login/"
+
+    def get(self, request, *args, **kwargs):
+        wb, ws = new_workbook("Hàng hóa")
+        headers = [
+            "Mã",
+            "Tên",
+            "Barcode",
+            "Loại",
+            "ĐVT",
+            "PP tính giá",
+            "TK kho",
+            "TK giá vốn",
+            "TK doanh thu",
+            "VAT mặc định",
+            "Đơn giá",
+            "Tồn tối thiểu",
+            "Tồn tối đa",
+            "Trạng thái",
+        ]
+        ws.append(headers)
+        style_header(ws, len(headers))
+        for p in Product.objects.select_related("company").order_by("code"):
+            ws.append(
+                [
+                    p.code,
+                    p.name,
+                    p.barcode or "",
+                    p.get_product_type_display() if p.product_type else "",
+                    p.unit_id or "",
+                    p.get_cost_method_display() if p.cost_method else "",
+                    p.gl_account_inv or "",
+                    p.gl_account_cogs or "",
+                    p.gl_account_revenue or "",
+                    p.default_vat_rate or "",
+                    p.default_unit_price or 0,
+                    p.min_stock or 0,
+                    p.max_stock or 0,
+                    "Đang dùng" if p.is_active else "Ngừng",
+                ]
+            )
+        autosize(ws)
+        return xlsx_response(wb, "products.xlsx")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -80,3 +132,8 @@ class ProductUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse_lazy("ui_modern:product_list")
+
+
+class ProductDeleteView(MasterDataDeleteView):
+    model = Product
+    redirect_name = "ui_modern:product_list"

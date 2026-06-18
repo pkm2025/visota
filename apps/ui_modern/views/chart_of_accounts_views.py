@@ -29,7 +29,9 @@ class ChartOfAccountsListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["page_title"] = "Hệ thống tài khoản"
-        ctx["account_type_choices"] = ChartOfAccounts.objects.values_list(
-            "account_type", flat=True
-        ).distinct().order_by("account_type")
+        ctx["account_type_choices"] = (
+            ChartOfAccounts.objects.values_list("account_type", flat=True)
+            .distinct()
+            .order_by("account_type")
+        )
         return ctx

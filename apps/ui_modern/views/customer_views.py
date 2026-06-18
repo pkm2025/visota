@@ -2,9 +2,13 @@
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
+from django.views import View
 from django.views.generic import CreateView, ListView, UpdateView
 
 from apps.master_data.models import Customer
+
+from ._delete_views import MasterDataDeleteView
+from ._export_utils import autosize, new_workbook, style_header, xlsx_response
 
 _CUSTOMER_FIELDS = [
     "code",
@@ -66,6 +70,48 @@ class CustomerCreateView(LoginRequiredMixin, CreateView):
         return reverse_lazy("ui_modern:customer_list")
 
 
+class CustomerExportView(LoginRequiredMixin, View):
+    """Export all customers to .xlsx."""
+
+    login_url = "/auth/login/"
+
+    def get(self, request, *args, **kwargs):
+        wb, ws = new_workbook("Khách hàng")
+        headers = [
+            "Mã",
+            "Tên",
+            "Tên EN",
+            "MST",
+            "Địa chỉ",
+            "Điện thoại",
+            "Email",
+            "Hạn thanh toán",
+            "Hạn mức tín dụng",
+            "Nhóm",
+            "Trạng thái",
+        ]
+        ws.append(headers)
+        style_header(ws, len(headers))
+        for c in Customer.objects.select_related("company").order_by("code"):
+            ws.append(
+                [
+                    c.code,
+                    c.name,
+                    c.name_en or "",
+                    c.tax_code or "",
+                    c.address or "",
+                    c.phone or "",
+                    c.email or "",
+                    c.payment_terms or "",
+                    c.credit_limit or 0,
+                    c.customer_group_code or "",
+                    "Đang dùng" if c.is_active else "Ngừng",
+                ]
+            )
+        autosize(ws)
+        return xlsx_response(wb, "customers.xlsx")
+
+
 class CustomerUpdateView(LoginRequiredMixin, UpdateView):
     model = Customer
     template_name = "modern/master_data/customer_form.html"
@@ -80,3 +126,8 @@ class CustomerUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse_lazy("ui_modern:customer_list")
+
+
+class CustomerDeleteView(MasterDataDeleteView):
+    model = Customer
+    redirect_name = "ui_modern:customer_list"

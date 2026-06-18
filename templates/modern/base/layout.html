@@ -37,7 +37,17 @@
             </a>
         </div>
         <div class="topbar-center">
-            <input type="search" placeholder="Tìm kiếm..." class="form-control form-control-sm global-search">
+            <form action="{% url 'ui_modern:voucher_list' %}" method="get" class="global-search-form" style="width:100%; max-width:400px;">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-transparent border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="search" name="search" placeholder="Tìm chứng từ..."
+                           value="{{ request.GET.search }}"
+                           class="form-control border-start-0 global-search"
+                           aria-label="Tìm kiếm">
+                </div>
+            </form>
         </div>
         <div class="topbar-right">
             <button class="sidebar-toggle" @click="toggleRight()" title="Ẩn/hiện ngữ cảnh" aria-label="Toggle context panel">
