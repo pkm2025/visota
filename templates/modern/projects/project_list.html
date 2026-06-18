@@ -1,0 +1,124 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item">Nghiệp vụ</li>
+                    <li class="breadcrumb-item active">Dự án</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+        </div>
+        <a href="{% url 'ui_modern:project_create' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus"></i> Thêm dự án
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="get" class="row g-2 mb-3">
+                <div class="col-auto">
+                    <input type="text" class="form-control form-control-sm" name="search"
+                           placeholder="Tìm theo mã / tên / khách hàng..."
+                           value="{{ request.GET.search }}">
+                </div>
+                <div class="col-auto">
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="">— Tất cả trạng thái —</option>
+                        {% for s in status_choices %}
+                        <option value="{{ s.0 }}" {% if request.GET.status == s.0 %}selected{% endif %}>{{ s.1 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-funnel"></i> Lọc
+                    </button>
+                </div>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã</th>
+                            <th>Tên dự án</th>
+                            <th>Khách hàng</th>
+                            <th>Quản lý</th>
+                            <th style="min-width:160px;">Tiến độ</th>
+                            <th class="text-end">Ngân sách</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in projects %}
+                        <tr style="cursor:pointer;" onclick="window.location='{% url 'ui_modern:project_detail' pk=p.pk %}';">
+                            <td class="font-mono">{{ p.code }}</td>
+                            <td>{{ p.name }}</td>
+                            <td>
+                                {% if p.customer_name %}{{ p.customer_name }}
+                                {% elif p.contract %}{{ p.contract.party_name }}
+                                {% else %}-{% endif %}
+                            </td>
+                            <td><small>{{ p.manager|default:"-" }}</small></td>
+                            <td>
+                                <div class="progress" style="height: 18px;">
+                                    <div class="progress-bar
+                                        {% if p.progress_percent < 30 %}bg-danger
+                                        {% elif p.progress_percent < 70 %}bg-warning
+                                        {% else %}bg-success{% endif %}"
+                                         role="progressbar"
+                                         style="width: {{ p.progress_percent|floatformat:0 }}%;">
+                                        {{ p.progress_percent|floatformat:0 }}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-end font-mono">{{ p.budget_revenue|floatformat:0|intcomma }}</td>
+                            <td>
+                                {% if p.status == 'active' %}<span class="badge bg-primary">Đang thực hiện</span>
+                                {% elif p.status == 'planned' %}<span class="badge bg-secondary">Lập KH</span>
+                                {% elif p.status == 'completed' %}<span class="badge bg-success">Hoàn thành</span>
+                                {% elif p.status == 'on_hold' %}<span class="badge bg-warning text-dark">Tạm dừng</span>
+                                {% else %}<span class="badge bg-danger">Đã hủy</span>{% endif %}
+                                {% if p.is_overdue %}<span class="badge bg-danger ms-1" title="Quá hạn">!</span>{% endif %}
+                            </td>
+                            <td><small>{{ p.start_date|date:"d/m/Y" }}{% if p.end_date %}<br>→ {{ p.end_date|date:"d/m/Y" }}{% endif %}</small></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5">
+                                <i class="bi bi-kanban text-muted" style="font-size:48px;"></i>
+                                <p class="text-muted mt-2 mb-1">Chưa có dự án nào</p>
+                                <a href="{% url 'ui_modern:project_create' %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-plus"></i> Thêm dự án
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if is_paginated %}
+            <nav>
+                <ul class="pagination pagination-sm justify-content-end">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">←</a></li>
+                    {% endif %}
+                    <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">→</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

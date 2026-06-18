@@ -125,6 +125,17 @@
                         </a>
                     </div>
                 </div>
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_PRJ') !== 'false' }">
+                    <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_PRJ', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                        <span>Dự án</span>
+                        <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
+                    </div>
+                    <div x-show="open" x-collapse>
+                        <a href="{% url 'ui_modern:project_list' %}" class="nav-item">
+                            <i class="bi bi-kanban"></i> <span>Quản lý dự án</span>
+                        </a>
+                    </div>
+                </div>
                 <div class="nav-section" x-data="{ open: localStorage.getItem('nav_TS') !== 'false' }">
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_TS', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                         <span>Tài sản</span>

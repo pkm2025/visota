@@ -1,0 +1,113 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:project_list' %}">Dự án</a></li>
+            <li class="breadcrumb-item active">{{ page_title }}</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-4">{{ page_title }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                {% if form.errors %}
+                <div class="alert alert-danger py-2">
+                    {% for field, errors in form.errors.items %}<strong>{{ field }}:</strong> {{ errors|join:", " }}{% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Mã dự án <span class="text-danger">*</span></label>
+                        <input type="text" name="code" value="{{ form.code.value|default:'' }}" class="form-control font-mono" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Tên dự án <span class="text-danger">*</span></label>
+                        <input type="text" name="name" value="{{ form.name.value|default:'' }}" class="form-control" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Trạng thái</label>
+                        <select name="status" class="form-select">
+                            {% for s in status_choices %}
+                            <option value="{{ s.0 }}" {% if form.status.value == s.0 %}selected{% endif %}>{{ s.1 }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Khách hàng (tên)</label>
+                        <input type="text" name="customer_name" value="{{ form.customer_name.value|default:'' }}" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Mã khách hàng</label>
+                        <input type="text" name="customer_code" value="{{ form.customer_code.value|default:'' }}" class="form-control font-mono">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Mức ưu tiên</label>
+                        <select name="priority" class="form-select">
+                            {% for pr in priority_choices %}
+                            <option value="{{ pr.0 }}" {% if form.priority.value == pr.0 %}selected{% endif %}>{{ pr.1 }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Hợp đồng liên kết</label>
+                        <select name="contract" class="form-select">
+                            <option value="">— Không —</option>
+                            {% for c in contracts %}
+                            <option value="{{ c.pk }}" {% if form.contract.value|stringformat:"s" == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.contract_no }} — {{ c.party_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Quản lý dự án</label>
+                        <select name="manager" class="form-select">
+                            <option value="">— Chọn —</option>
+                            {% for e in employees %}
+                            <option value="{{ e.pk }}" {% if form.manager.value|stringformat:"s" == e.pk|stringformat:"s" %}selected{% endif %}>{{ e.code }} — {{ e.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Ngày bắt đầu <span class="text-danger">*</span></label>
+                        <input type="date" name="start_date" value="{{ form.start_date.value|default:'' }}" class="form-control" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Ngày kết thúc</label>
+                        <input type="date" name="end_date" value="{{ form.end_date.value|default:'' }}" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Ngân sách doanh thu</label>
+                        <input type="number" name="budget_revenue" value="{{ form.budget_revenue.value|default:'0' }}" class="form-control text-end font-mono" step="1" min="0">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Ngân sách chi phí</label>
+                        <input type="number" name="budget_cost" value="{{ form.budget_cost.value|default:'0' }}" class="form-control text-end font-mono" step="1" min="0">
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Diễn giải</label>
+                        <textarea name="description" rows="3" class="form-control">{{ form.description.value|default:'' }}</textarea>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> Lưu dự án
+                    </button>
+                    <a href="{% url 'ui_modern:project_list' %}" class="btn btn-outline-secondary">Hủy</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

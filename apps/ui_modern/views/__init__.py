@@ -58,6 +58,14 @@ from .product_views import (
     ProductListView,
     ProductUpdateView,
 )
+from .project_views import (
+    ProjectAddPhaseView,
+    ProjectAddResourceView,
+    ProjectCreateView,
+    ProjectDetailView,
+    ProjectListView,
+    ProjectTogglePhaseView,
+)
 from .purchase_views import (
     PurchaseInvoiceCreateView,
     PurchaseInvoiceListView,
@@ -167,4 +175,11 @@ __all__ = [
     "DependentListView",
     "LeaveRequestView",
     "InsuranceDashboardView",
+    # Project Management
+    "ProjectListView",
+    "ProjectCreateView",
+    "ProjectDetailView",
+    "ProjectAddPhaseView",
+    "ProjectTogglePhaseView",
+    "ProjectAddResourceView",
 ]

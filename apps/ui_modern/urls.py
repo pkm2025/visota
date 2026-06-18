@@ -45,6 +45,12 @@ from .views import (
     ProductExportView,
     ProductListView,
     ProductUpdateView,
+    ProjectAddPhaseView,
+    ProjectAddResourceView,
+    ProjectCreateView,
+    ProjectDetailView,
+    ProjectListView,
+    ProjectTogglePhaseView,
     PurchaseInvoiceCreateView,
     PurchaseInvoiceListView,
     RecurringListView,
@@ -430,5 +436,36 @@ urlpatterns = [
         "recurring/run/",
         login_required(RecurringRunView.as_view()),
         name="recurring_run",
+    ),
+    # Project Management
+    path(
+        "projects/",
+        login_required(ProjectListView.as_view()),
+        name="project_list",
+    ),
+    path(
+        "projects/new/",
+        login_required(ProjectCreateView.as_view()),
+        name="project_create",
+    ),
+    path(
+        "projects/<int:pk>/",
+        login_required(ProjectDetailView.as_view()),
+        name="project_detail",
+    ),
+    path(
+        "projects/<int:pk>/phases/add/",
+        login_required(ProjectAddPhaseView.as_view()),
+        name="project_phase_add",
+    ),
+    path(
+        "projects/<int:pk>/phases/<int:phase_pk>/toggle/",
+        login_required(ProjectTogglePhaseView.as_view()),
+        name="project_phase_toggle",
+    ),
+    path(
+        "projects/<int:pk>/resources/add/",
+        login_required(ProjectAddResourceView.as_view()),
+        name="project_resource_add",
     ),
 ]
