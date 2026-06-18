@@ -7,6 +7,7 @@ from .views import (
     BalanceSheetView,
     CashPaymentCreateView,
     CashReceiptCreateView,
+    ChartOfAccountsListView,
     ContractCreateView,
     ContractExportDocxView,
     ContractGenerateView,
@@ -280,6 +281,12 @@ urlpatterns = [
         "labor-contracts/",
         login_required(LaborContractListView.as_view()),
         name="labor_contract_list",
+    ),
+    # Chart of accounts (TT133)
+    path(
+        "chart-of-accounts/",
+        login_required(ChartOfAccountsListView.as_view()),
+        name="chart_of_accounts_list",
     ),
     path(
         "labor-contracts/new/",

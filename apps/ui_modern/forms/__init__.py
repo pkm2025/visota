@@ -1,4 +1,5 @@
 from .auth_forms import LoginForm
+from .hr_forms import LaborContractForm, LeaveRequestForm
 from .voucher_form import (
     VoucherHeaderForm,
     VoucherLineForm,
@@ -7,6 +8,8 @@ from .voucher_form import (
 
 __all__ = [
     "LoginForm",
+    "LaborContractForm",
+    "LeaveRequestForm",
     "VoucherHeaderForm",
     "VoucherLineForm",
     "VoucherLineFormSet",

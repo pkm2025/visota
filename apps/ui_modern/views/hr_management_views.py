@@ -15,6 +15,7 @@ from apps.hr.models import (
     LaborContract,
     LeaveRecord,
 )
+from apps.ui_modern.forms import LaborContractForm, LeaveRequestForm
 
 
 class LaborContractListView(LoginRequiredMixin, ListView):
@@ -41,25 +42,7 @@ class LaborContractCreateView(LoginRequiredMixin, CreateView):
 
     model = LaborContract
     template_name = "modern/hr/labor_contract_form.html"
-    fields = [
-        "employee",
-        "contract_no",
-        "contract_type",
-        "start_date",
-        "end_date",
-        "probation_end_date",
-        "salary_base",
-        "salary_gross",
-        "allowance_amount",
-        "insurance_salary_base",
-        "join_insurance",
-        "position_title",
-        "department",
-        "work_location",
-        "signing_date",
-        "status",
-        "notes",
-    ]
+    form_class = LaborContractForm
     login_url = "/auth/login/"
     success_url = reverse_lazy("ui_modern:labor_contract_list")
 
@@ -98,14 +81,7 @@ class LeaveRequestView(LoginRequiredMixin, CreateView):
 
     model = LeaveRecord
     template_name = "modern/hr/leave_request_form.html"
-    fields = [
-        "employee",
-        "leave_type",
-        "start_date",
-        "end_date",
-        "days",
-        "reason",
-    ]
+    form_class = LeaveRequestForm
     login_url = "/auth/login/"
     success_url = reverse_lazy("ui_modern:employee_list")
 

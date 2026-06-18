@@ -17,6 +17,7 @@ from .customer_views import (
     CustomerUpdateView,
 )
 from .dashboard_views import DashboardView
+from .chart_of_accounts_views import ChartOfAccountsListView
 from .document_views import (
     ContractExportDocxView,
     DocumentDeleteView,
@@ -81,6 +82,7 @@ from .vendor_views import (
 
 __all__ = [
     "DashboardView",
+    "ChartOfAccountsListView",
     "PMKetoanLoginView",
     "PMKetoanLogoutView",
     "PeriodClosingView",
