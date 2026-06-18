@@ -69,91 +69,126 @@
                 <a href="{% url 'ui_modern:dashboard' %}" class="nav-item">
                     <i class="bi bi-house"></i> <span>Trang chủ</span>
                 </a>
-                <div class="nav-section">
-                    <div class="nav-section-title">Cập nhật số liệu</div>
-                    <a href="{% url 'ui_modern:voucher_list' %}" class="nav-item"><i class="bi bi-receipt"></i> <span>Phiếu kế toán</span></a>
-                    <a href="{% url 'ui_modern:cash_receipt_create' %}" class="nav-item"><i class="bi bi-cash-coin"></i> <span>Phiếu thu</span></a>
-                    <a href="{% url 'ui_modern:cash_payment_create' %}" class="nav-item"><i class="bi bi-credit-card"></i> <span>Phiếu chi</span></a>
-                    <a href="{% url 'ui_modern:period_closing' %}" class="nav-item"><i class="bi bi-arrow-repeat"></i> <span>Kết chuyển cuối kỳ</span></a>
-                    <a href="{% url 'ui_modern:input_invoice_list' %}" class="nav-item"><i class="bi bi-file-earmark-richtext"></i> <span>Hóa đơn đầu vào</span></a>
-                    <a href="{% url 'ui_modern:recurring_list' %}" class="nav-item"><i class="bi bi-clock-history"></i> <span>Bút toán định kỳ</span></a>
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_CNDL') !== 'false' }">
+                    <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_CNDL', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                        <span>Cập nhật số liệu</span>
+                        <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
+                    </div>
+                    <div x-show="open" x-collapse>
+                        <a href="{% url 'ui_modern:voucher_list' %}" class="nav-item"><i class="bi bi-receipt"></i> <span>Phiếu kế toán</span></a>
+                        <a href="{% url 'ui_modern:cash_receipt_create' %}" class="nav-item"><i class="bi bi-cash-coin"></i> <span>Phiếu thu</span></a>
+                        <a href="{% url 'ui_modern:cash_payment_create' %}" class="nav-item"><i class="bi bi-credit-card"></i> <span>Phiếu chi</span></a>
+                        <a href="{% url 'ui_modern:period_closing' %}" class="nav-item"><i class="bi bi-arrow-repeat"></i> <span>Kết chuyển cuối kỳ</span></a>
+                        <a href="{% url 'ui_modern:input_invoice_list' %}" class="nav-item"><i class="bi bi-file-earmark-richtext"></i> <span>Hóa đơn đầu vào</span></a>
+                        <a href="{% url 'ui_modern:recurring_list' %}" class="nav-item"><i class="bi bi-clock-history"></i> <span>Bút toán định kỳ</span></a>
+                    </div>
                 </div>
-                <div class="nav-section">
-                    <div class="nav-section-title">Nghiệp vụ</div>
-                    <a href="{% url 'ui_modern:customer_list' %}" class="nav-item">
-                        <i class="bi bi-people"></i> <span>Khách hàng</span>
-                    </a>
-                    <a href="{% url 'ui_modern:vendor_list' %}" class="nav-item">
-                        <i class="bi bi-truck"></i> <span>Nhà cung cấp</span>
-                    </a>
-                    <a href="{% url 'ui_modern:product_list' %}" class="nav-item">
-                        <i class="bi bi-box"></i> <span>Hàng hóa</span>
-                    </a>
-                    <a href="{% url 'ui_modern:sales_invoice_list' %}" class="nav-item">
-                        <i class="bi bi-receipt-cutoff"></i> <span>Hóa đơn bán</span>
-                    </a>
-                    <a href="{% url 'ui_modern:purchase_invoice_list' %}" class="nav-item">
-                        <i class="bi bi-bag"></i> <span>Phiếu nhập mua</span>
-                    </a>
-                    <a href="{% url 'ui_modern:stock_voucher_list' %}" class="nav-item">
-                        <i class="bi bi-box-seam"></i> <span>Phiếu nhập xuất</span>
-                    </a>
-                    <a href="{% url 'ui_modern:contract_list' %}" class="nav-item">
-                        <i class="bi bi-file-earmark-text"></i> <span>Hợp đồng</span>
-                    </a>
-                    <a href="{% url 'ui_modern:contract_template_list' %}" class="nav-item">
-                        <i class="bi bi-file-earmark-plus"></i> <span>Mẫu hợp đồng</span>
-                    </a>
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_NV') !== 'false' }">
+                    <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_NV', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                        <span>Nghiệp vụ</span>
+                        <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
+                    </div>
+                    <div x-show="open" x-collapse>
+                        <a href="{% url 'ui_modern:customer_list' %}" class="nav-item">
+                            <i class="bi bi-people"></i> <span>Khách hàng</span>
+                        </a>
+                        <a href="{% url 'ui_modern:vendor_list' %}" class="nav-item">
+                            <i class="bi bi-truck"></i> <span>Nhà cung cấp</span>
+                        </a>
+                        <a href="{% url 'ui_modern:product_list' %}" class="nav-item">
+                            <i class="bi bi-box"></i> <span>Hàng hóa</span>
+                        </a>
+                        <a href="{% url 'ui_modern:sales_invoice_list' %}" class="nav-item">
+                            <i class="bi bi-receipt-cutoff"></i> <span>Hóa đơn bán</span>
+                        </a>
+                        <a href="{% url 'ui_modern:purchase_invoice_list' %}" class="nav-item">
+                            <i class="bi bi-bag"></i> <span>Phiếu nhập mua</span>
+                        </a>
+                        <a href="{% url 'ui_modern:stock_voucher_list' %}" class="nav-item">
+                            <i class="bi bi-box-seam"></i> <span>Phiếu nhập xuất</span>
+                        </a>
+                        <a href="{% url 'ui_modern:contract_list' %}" class="nav-item">
+                            <i class="bi bi-file-earmark-text"></i> <span>Hợp đồng</span>
+                        </a>
+                        <a href="{% url 'ui_modern:contract_template_list' %}" class="nav-item">
+                            <i class="bi bi-file-earmark-plus"></i> <span>Mẫu hợp đồng</span>
+                        </a>
+                    </div>
                 </div>
-                <div class="nav-section">
-                    <div class="nav-section-title">Tài sản</div>
-                    <a href="{% url 'ui_modern:asset_list' %}" class="nav-item">
-                        <i class="bi bi-bounding-box"></i> <span>Tài sản cố định / CCDC</span>
-                    </a>
-                    <a href="{% url 'ui_modern:depreciation_run' %}" class="nav-item">
-                        <i class="bi bi-calculator"></i> <span>Tính khấu hao kỳ</span>
-                    </a>
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_TS') !== 'false' }">
+                    <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_TS', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                        <span>Tài sản</span>
+                        <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
+                    </div>
+                    <div x-show="open" x-collapse>
+                        <a href="{% url 'ui_modern:asset_list' %}" class="nav-item">
+                            <i class="bi bi-bounding-box"></i> <span>Tài sản cố định / CCDC</span>
+                        </a>
+                        <a href="{% url 'ui_modern:depreciation_run' %}" class="nav-item">
+                            <i class="bi bi-calculator"></i> <span>Tính khấu hao kỳ</span>
+                        </a>
+                    </div>
                 </div>
-                <div class="nav-section">
-                    <div class="nav-section-title">Nhân sự</div>
-                    <a href="{% url 'ui_modern:employee_list' %}" class="nav-item">
-                        <i class="bi bi-person-badge"></i> <span>Nhân viên</span>
-                    </a>
-                    <a href="{% url 'ui_modern:labor_contract_list' %}" class="nav-item">
-                        <i class="bi bi-file-earmark-text"></i> <span>Hợp đồng lao động</span>
-                    </a>
-                    <a href="{% url 'ui_modern:dependent_list' %}" class="nav-item">
-                        <i class="bi bi-people"></i> <span>Người phụ thuộc</span>
-                    </a>
-                    <a href="{% url 'ui_modern:leave_request' %}" class="nav-item">
-                        <i class="bi bi-calendar-minus"></i> <span>Nghỉ phép</span>
-                    </a>
-                    <a href="{% url 'ui_modern:insurance_dashboard' %}" class="nav-item">
-                        <i class="bi bi-shield-check"></i> <span>Bảo hiểm xã hội</span>
-                    </a>
-                    <a href="{% url 'ui_modern:payroll_run' %}" class="nav-item">
-                        <i class="bi bi-cash-stack"></i> <span>Tính lương</span>
-                    </a>
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_NS') !== 'false' }">
+                    <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_NS', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                        <span>Nhân sự</span>
+                        <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
+                    </div>
+                    <div x-show="open" x-collapse>
+                        <a href="{% url 'ui_modern:employee_list' %}" class="nav-item">
+                            <i class="bi bi-person-badge"></i> <span>Nhân viên</span>
+                        </a>
+                        <a href="{% url 'ui_modern:labor_contract_list' %}" class="nav-item">
+                            <i class="bi bi-file-earmark-text"></i> <span>Hợp đồng lao động</span>
+                        </a>
+                        <a href="{% url 'ui_modern:dependent_list' %}" class="nav-item">
+                            <i class="bi bi-people"></i> <span>Người phụ thuộc</span>
+                        </a>
+                        <a href="{% url 'ui_modern:leave_request' %}" class="nav-item">
+                            <i class="bi bi-calendar-minus"></i> <span>Nghỉ phép</span>
+                        </a>
+                        <a href="{% url 'ui_modern:insurance_dashboard' %}" class="nav-item">
+                            <i class="bi bi-shield-check"></i> <span>Bảo hiểm xã hội</span>
+                        </a>
+                        <a href="{% url 'ui_modern:payroll_run' %}" class="nav-item">
+                            <i class="bi bi-cash-stack"></i> <span>Tính lương</span>
+                        </a>
+                    </div>
                 </div>
-                <div class="nav-section">
-                    <div class="nav-section-title">Sổ sách</div>
-                    <a href="{% url 'ui_modern:general_journal' %}" class="nav-item"><i class="bi bi-journal-book"></i> <span>Nhật ký chung</span></a>
-                    <a href="{% url 'ui_modern:general_ledger' %}" class="nav-item"><i class="bi bi-book"></i> <span>Sổ cái</span></a>
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_SS') !== 'false' }">
+                    <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_SS', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                        <span>Sổ sách</span>
+                        <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
+                    </div>
+                    <div x-show="open" x-collapse>
+                        <a href="{% url 'ui_modern:general_journal' %}" class="nav-item"><i class="bi bi-journal-book"></i> <span>Nhật ký chung</span></a>
+                        <a href="{% url 'ui_modern:general_ledger' %}" class="nav-item"><i class="bi bi-book"></i> <span>Sổ cái</span></a>
+                    </div>
                 </div>
-                <div class="nav-section">
-                    <div class="nav-section-title">Báo cáo</div>
-                    <a href="{% url 'ui_modern:trial_balance' %}" class="nav-item"><i class="bi bi-bar-chart"></i> <span>BCĐ tài khoản</span></a>
-                    <a href="{% url 'ui_modern:balance_sheet' %}" class="nav-item"><i class="bi bi-file-earmark-bar-graph"></i> <span>BCTH tài chính (B01)</span></a>
-                    <a href="{% url 'ui_modern:pnl' %}" class="nav-item"><i class="bi bi-graph-up"></i> <span>KQ HĐKD (B02)</span></a>
-                    <a href="{% url 'ui_modern:vat_return' %}" class="nav-item"><i class="bi bi-receipt"></i> <span>Tờ khai GTGT (01)</span></a>
-                    <a href="{% url 'ui_modern:report_d62' %}" class="nav-item"><i class="bi bi-file-earmark-spreadsheet"></i> <span>Báo cáo D62 (BHXH)</span></a>
-                    <a href="{% url 'ui_modern:report_labor_usage' %}" class="nav-item"><i class="bi bi-people"></i> <span>BC sử dụng lao động</span></a>
-                    <a href="{% url 'ui_modern:report_salary_fund' %}" class="nav-item"><i class="bi bi-cash-coin"></i> <span>BC quỹ lương</span></a>
-                    <a href="{% url 'ui_modern:report_pit_monthly' %}" class="nav-item"><i class="bi bi-piggy-bank"></i> <span>BC thuế TNCN</span></a>
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_BC') !== 'false' }">
+                    <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_BC', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                        <span>Báo cáo</span>
+                        <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
+                    </div>
+                    <div x-show="open" x-collapse>
+                        <a href="{% url 'ui_modern:trial_balance' %}" class="nav-item"><i class="bi bi-bar-chart"></i> <span>BCĐ tài khoản</span></a>
+                        <a href="{% url 'ui_modern:balance_sheet' %}" class="nav-item"><i class="bi bi-file-earmark-bar-graph"></i> <span>BCTH tài chính (B01)</span></a>
+                        <a href="{% url 'ui_modern:pnl' %}" class="nav-item"><i class="bi bi-graph-up"></i> <span>KQ HĐKD (B02)</span></a>
+                        <a href="{% url 'ui_modern:vat_return' %}" class="nav-item"><i class="bi bi-receipt"></i> <span>Tờ khai GTGT (01)</span></a>
+                        <a href="{% url 'ui_modern:report_d62' %}" class="nav-item"><i class="bi bi-file-earmark-spreadsheet"></i> <span>Báo cáo D62 (BHXH)</span></a>
+                        <a href="{% url 'ui_modern:report_labor_usage' %}" class="nav-item"><i class="bi bi-people"></i> <span>BC sử dụng lao động</span></a>
+                        <a href="{% url 'ui_modern:report_salary_fund' %}" class="nav-item"><i class="bi bi-cash-coin"></i> <span>BC quỹ lương</span></a>
+                        <a href="{% url 'ui_modern:report_pit_monthly' %}" class="nav-item"><i class="bi bi-piggy-bank"></i> <span>BC thuế TNCN</span></a>
+                    </div>
                 </div>
-                <div class="nav-section">
-                    <div class="nav-section-title">Danh mục</div>
-                    <a href="{% url 'ui_modern:chart_of_accounts_list' %}" class="nav-item"><i class="bi bi-list-ul"></i> <span>Hệ thống TK</span></a>
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_DM') !== 'false' }">
+                    <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_DM', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                        <span>Danh mục</span>
+                        <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
+                    </div>
+                    <div x-show="open" x-collapse>
+                        <a href="{% url 'ui_modern:chart_of_accounts_list' %}" class="nav-item"><i class="bi bi-list-ul"></i> <span>Hệ thống TK</span></a>
+                    </div>
                 </div>
             </nav>
         </aside>
@@ -172,17 +207,6 @@
             </div>
             <!-- Main content -->
             <main class="main-content" id="tab-content">
-                {% if messages %}
-                <div class="messages">
-                    {% for message in messages %}
-                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-
                 {% block content %}{% endblock %}
             </main>
         </div>
@@ -200,6 +224,45 @@
     </button>
 
     {% include 'shared/_layout_switcher.html' %}
+
+    <!-- Loading overlay (shown on form submit) -->
+    <div id="loadingOverlay" class="loading-overlay" style="display:none;">
+        <div class="spinner-border text-primary" style="width:3rem;height:3rem;"></div>
+        <p class="text-muted">Đang xử lý...</p>
+    </div>
+    <script>
+    document.addEventListener('submit', function(e) {
+        if (e.target.tagName === 'FORM') {
+            var overlay = document.getElementById('loadingOverlay');
+            if (overlay) overlay.style.display = 'flex';
+        }
+    });
+    </script>
+
+    <!-- Toast container (replaces Django flash messages) -->
+    <div x-data="{ toasts: [], addToast(msg, type) { const id = Date.now() + Math.random(); this.toasts.push({msg, type: type || 'success', id}); setTimeout(() => { this.toasts = this.toasts.filter(t => t.id !== id); }, 4000); } }"
+         x-init="window.addToast = this.addToast.bind(this)"
+         class="position-fixed" style="top:70px; right:20px; z-index:9998;">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div :class="'alert alert-' + (toast.type || 'success') + ' shadow alert-dismissible'"
+                 style="min-width:300px; animation: slideIn 0.3s ease;">
+                <span x-text="toast.msg"></span>
+                <button type="button" class="btn-close" @click="toasts = toasts.filter(t => t.id !== toast.id)"></button>
+            </div>
+        </template>
+    </div>
+
+    {% if messages %}
+    <script>
+    window.addEventListener('load', function() {
+        {% for message in messages %}
+        if (window.addToast) {
+            window.addToast('{{ message|escapejs }}', '{{ message.tags|default:"info" }}');
+        }
+        {% endfor %}
+    });
+    </script>
+    {% endif %}
 
     <script src="{% static 'vendor/js/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'vendor/js/htmx.min.js' %}"></script>

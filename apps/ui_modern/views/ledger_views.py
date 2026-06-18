@@ -23,7 +23,22 @@ class VoucherListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        qs = AccountingVoucher.objects.select_related("company").order_by("-voucher_date", "-id")
+        qs = AccountingVoucher.objects.select_related("company")
+        ordering = self.request.GET.get("ordering", "-voucher_date")
+        valid_fields = [
+            "voucher_date",
+            "-voucher_date",
+            "voucher_no",
+            "-voucher_no",
+            "total_vnd",
+            "-total_vnd",
+            "status",
+            "-status",
+        ]
+        if ordering in valid_fields:
+            qs = qs.order_by(ordering, "-id")
+        else:
+            qs = qs.order_by("-voucher_date", "-id")
         status = self.request.GET.get("status")
         if status:
             qs = qs.filter(status=status)

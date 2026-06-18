@@ -72,9 +72,12 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">
-                                <i class="bi bi-inbox display-6 d-block mb-2"></i>
-                                Chưa có khách hàng nào. Bấm "Thêm khách hàng" để tạo.
+                            <td colspan="8" class="text-center py-5">
+                                <i class="bi bi-inbox text-muted" style="font-size:48px;"></i>
+                                <p class="text-muted mt-2 mb-1">Chưa có khách hàng nào</p>
+                                <a href="{% url 'ui_modern:customer_create' %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-plus"></i> Thêm khách hàng
+                                </a>
                             </td>
                         </tr>
                         {% endfor %}
