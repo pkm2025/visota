@@ -161,7 +161,7 @@
         <!-- Content + Tab bar -->
         <div class="content-wrapper" style="flex:1; display:flex; flex-direction:column; min-width:0;">
             <!-- Tab bar -->
-            <div class="tab-bar tabs-container" x-data="initTabs()" x-init="init()" x-cloak>
+            <div class="tab-bar tabs-container" x-data="initTabs()" x-init="init()" x-cloak x-show="tabs.length > 1">
                 <template x-for="tab in tabs" :key="tab.id">
                     <div class="tab-item" :class="{ 'active': activeTabId === tab.id }"
                          @click="switchTab(tab.id)">

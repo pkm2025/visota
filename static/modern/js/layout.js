@@ -2,7 +2,7 @@
 function initSidebar() {
     return {
         sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true',
-        rightCollapsed: localStorage.getItem('rightCollapsed') === 'true',
+        rightCollapsed: localStorage.getItem('rightCollapsed') !== 'false', // default: collapsed
 
         toggleSidebar() {
             this.sidebarCollapsed = !this.sidebarCollapsed;

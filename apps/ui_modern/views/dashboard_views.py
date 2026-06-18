@@ -44,20 +44,14 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             )
             # AR = TK 131 (closing debit - closing credit), customers owe us
             ar_qs = balance_qs.filter(account_code__startswith="131")
-            ar_total = (
-                ar_qs.aggregate(
-                    d=Sum("closing_debit") - Sum("closing_credit")
-                )["d"]
-                or Decimal("0")
-            )
+            ar_total = ar_qs.aggregate(d=Sum("closing_debit") - Sum("closing_credit"))[
+                "d"
+            ] or Decimal("0")
             # AP = TK 331 (closing credit - closing debit), we owe vendors
             ap_qs = balance_qs.filter(account_code__startswith="331")
-            ap_total = (
-                ap_qs.aggregate(
-                    c=Sum("closing_credit") - Sum("closing_debit")
-                )["c"]
-                or Decimal("0")
-            )
+            ap_total = ap_qs.aggregate(c=Sum("closing_credit") - Sum("closing_debit"))[
+                "c"
+            ] or Decimal("0")
 
         # KPI 4: Inventory value (sum of all stock receipts value as a rough proxy)
         # Approximate via 152/153 account balances; fall back to 0.
@@ -69,10 +63,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 period=today.month,
                 account_code__startswith="15",
             )
-            inventory_value = (
-                inv_qs.aggregate(v=Sum("closing_debit") - Sum("closing_credit"))["v"]
-                or Decimal("0")
-            )
+            inventory_value = inv_qs.aggregate(v=Sum("closing_debit") - Sum("closing_credit"))[
+                "v"
+            ] or Decimal("0")
 
         ctx.update(
             {
@@ -81,12 +74,20 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 "ap_total": f"{int(ap_total or 0):,}",
                 "inventory_value": f"{int(inventory_value or 0):,}",
                 "stock_vouchers_today": (
-                    StockVoucher.objects.filter(
-                        company=company, voucher_date=today
-                    ).count()
+                    StockVoucher.objects.filter(company=company, voucher_date=today).count()
                     if company
                     else 0
                 ),
+                "recent_vouchers": AccountingVoucher.objects.select_related("company").order_by(
+                    "-voucher_date", "-id"
+                )[:10],
+                "total_vouchers": AccountingVoucher.objects.count(),
+                "posted_count": AccountingVoucher.objects.filter(
+                    status__gte=AccountingVoucher.Status.LEDGER
+                ).count(),
+                "draft_count": AccountingVoucher.objects.filter(
+                    status=AccountingVoucher.Status.DRAFT
+                ).count(),
             }
         )
         return ctx
