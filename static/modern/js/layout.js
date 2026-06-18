@@ -29,13 +29,15 @@ function initSidebar() {
     };
 }
 
-// Multi-tab system
+// Tab system — uses normal browser navigation, not HTMX swap
+// This prevents the sidebar from being duplicated inside the content area
 function initTabs() {
     return {
         tabs: [],
         activeTabId: null,
 
         init() {
+            // Restore tabs from sessionStorage
             const saved = sessionStorage.getItem('openTabs');
             if (saved) {
                 try {
@@ -47,12 +49,28 @@ function initTabs() {
                     this.activeTabId = null;
                 }
             }
+            // Always ensure dashboard tab exists
             if (!this.tabs || this.tabs.length === 0) {
-                this.openTab('dashboard', 'Trang chủ', '/modern/');
+                this.tabs = [{ id: 'dashboard', title: 'Trang chủ', url: '/modern/' }];
+                this.activeTabId = 'dashboard';
+                this.saveState();
             }
+            // Mark current page as active tab based on URL
+            this.syncActiveFromUrl();
+        },
+
+        syncActiveFromUrl() {
+            const path = window.location.pathname;
+            // Find matching tab
+            const match = this.tabs.find(t => path.startsWith(t.url.replace(/\/$/, '')));
+            if (match) {
+                this.activeTabId = match.id;
+            }
+            this.saveState();
         },
 
         openTab(id, title, url) {
+            // Check if tab already exists
             const existing = this.tabs.find(t => t.id === id);
             if (existing) {
                 this.activeTabId = id;
@@ -61,9 +79,8 @@ function initTabs() {
                 this.activeTabId = id;
             }
             this.saveState();
-            if (typeof htmx !== 'undefined') {
-                htmx.ajax('GET', url, { target: '#tab-content', swap: 'innerHTML' });
-            }
+            // Navigate normally — no HTMX content swap
+            window.location.href = url;
         },
 
         closeTab(id) {
@@ -71,15 +88,11 @@ function initTabs() {
             if (idx === -1) return;
             this.tabs.splice(idx, 1);
             if (this.activeTabId === id) {
+                // Switch to previous tab or first
                 if (this.tabs.length > 0) {
                     const prevIdx = Math.max(0, idx - 1);
                     this.activeTabId = this.tabs[prevIdx].id;
-                    if (typeof htmx !== 'undefined') {
-                        htmx.ajax('GET', this.tabs[prevIdx].url, { target: '#tab-content', swap: 'innerHTML' });
-                    }
-                } else {
-                    this.openTab('dashboard', 'Trang chủ', '/modern/');
-                    return;
+                    window.location.href = this.tabs[prevIdx].url;
                 }
             }
             this.saveState();
@@ -88,22 +101,27 @@ function initTabs() {
         switchTab(id) {
             this.activeTabId = id;
             const tab = this.tabs.find(t => t.id === id);
-            if (tab && typeof htmx !== 'undefined') {
-                htmx.ajax('GET', tab.url, { target: '#tab-content', swap: 'innerHTML' });
+            if (tab) {
+                // Navigate normally — no HTMX content swap
+                window.location.href = tab.url;
             }
             this.saveState();
         },
 
         saveState() {
-            sessionStorage.setItem('openTabs', JSON.stringify({
-                tabs: this.tabs,
-                activeTabId: this.activeTabId,
-            }));
+            try {
+                sessionStorage.setItem('openTabs', JSON.stringify({
+                    tabs: this.tabs,
+                    activeTabId: this.activeTabId,
+                }));
+            } catch (e) {
+                // sessionStorage might be full or unavailable
+            }
         }
     };
 }
 
-// Auto-open links marked with data-tab in tabs
+// Auto-open links marked with data-tab in new tabs
 document.addEventListener('click', function (e) {
     const link = e.target.closest('a[data-tab]');
     if (!link) return;
@@ -112,8 +130,12 @@ document.addEventListener('click', function (e) {
     const title = link.dataset.tabTitle || link.textContent.trim();
     const id = link.dataset.tab || 'tab_' + Date.now();
 
-    const tabsComp = document.querySelector('[x-data*="initTabs"]');
-    if (tabsComp && tabsComp._x_dataStack) {
-        tabsComp._x_dataStack[0].openTab(id, title, url);
+    // Find Alpine tabs component
+    const el = document.querySelector('[x-data*="initTabs"]');
+    if (el && el._x_dataStack) {
+        el._x_dataStack[0].openTab(id, title, url);
+    } else {
+        // Fallback: just navigate
+        window.location.href = url;
     }
 });
