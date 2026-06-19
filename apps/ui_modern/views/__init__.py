@@ -6,6 +6,11 @@ from .asset_views import (
     AssetTransferView,
     DepreciationRunView,
 )
+from .attachment_views import (
+    AttachmentDeleteView,
+    AttachmentDownloadView,
+    AttachmentUploadView,
+)
 from .auth_views import PMKetoanLoginView, PMKetoanLogoutView
 from .chart_of_accounts_views import ChartOfAccountsListView
 from .closing_views import PeriodClosingView
@@ -127,6 +132,9 @@ __all__ = [
     "PMKetoanLoginView",
     "PMKetoanLogoutView",
     "PeriodClosingView",
+    "AttachmentUploadView",
+    "AttachmentDeleteView",
+    "AttachmentDownloadView",
     "DocumentDeleteView",
     "DocumentDownloadView",
     "VoucherPrintView",

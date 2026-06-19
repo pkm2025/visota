@@ -8,6 +8,9 @@ from .views import (
     AssetListView,
     AssetTransactionListView,
     AssetTransferView,
+    AttachmentDeleteView,
+    AttachmentDownloadView,
+    AttachmentUploadView,
     BalanceSheetView,
     CampaignCreateView,
     CampaignListView,
@@ -101,6 +104,22 @@ app_name = "ui_modern"
 
 urlpatterns = [
     path("", login_required(DashboardView.as_view()), name="dashboard"),
+    # Universal attachments
+    path(
+        "attachments/upload/",
+        login_required(AttachmentUploadView.as_view()),
+        name="attachment_upload",
+    ),
+    path(
+        "attachments/<int:pk>/delete/",
+        login_required(AttachmentDeleteView.as_view()),
+        name="attachment_delete",
+    ),
+    path(
+        "attachments/<int:pk>/download/",
+        login_required(AttachmentDownloadView.as_view()),
+        name="attachment_download",
+    ),
     path(
         "vouchers/",
         login_required(VoucherListView.as_view()),

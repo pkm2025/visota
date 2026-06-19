@@ -213,6 +213,8 @@ class VoucherDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        from apps.documents.services.attachment_service import AttachmentService
+
         ctx["page_title"] = f"Phiếu {self.object.voucher_no}"
         # Related vouchers: same company/fiscal_year/period, exclude self
         related_qs = AccountingVoucher.objects.filter(
@@ -222,6 +224,9 @@ class VoucherDetailView(LoginRequiredMixin, DetailView):
         )
         ctx["related_vouchers"] = related_qs.exclude(id=self.object.id).distinct()[:10]
         ctx["voucher"] = self.object  # for right sidebar
+        ctx["attachments"] = AttachmentService.get_for_object(self.object)
+        ctx["object_type"] = "ledger.accountingvoucher"
+        ctx["object_id"] = self.object.pk
         return ctx
 
 

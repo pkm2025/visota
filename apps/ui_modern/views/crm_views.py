@@ -232,9 +232,14 @@ class OpportunityDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        from apps.documents.services.attachment_service import AttachmentService
+
         ctx["page_title"] = str(self.object)
         ctx["page_parent"] = "CRM"
         ctx["activities"] = self.object.activities.all().order_by("-created_at")[:20]
+        ctx["attachments"] = AttachmentService.get_for_object(self.object)
+        ctx["object_type"] = "crm.opportunity"
+        ctx["object_id"] = self.object.pk
         return ctx
 
 

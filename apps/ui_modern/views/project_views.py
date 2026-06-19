@@ -105,6 +105,8 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         project = self.object
+        from apps.documents.services.attachment_service import AttachmentService
+
         ctx["page_title"] = f"{project.code} - {project.name}"
         ctx["page_parent"] = "Dự án"
         ctx["cost_summary"] = ProjectService.get_cost_summary(project)
@@ -115,6 +117,9 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         ctx["transactions"] = project.transactions.all()[:20]
         ctx["employees"] = Employee.objects.filter(status="active")
         ctx["products"] = Product.objects.filter(is_active=True)
+        ctx["attachments"] = AttachmentService.get_for_object(project)
+        ctx["object_type"] = "projects.project"
+        ctx["object_id"] = project.pk
         return ctx
 
 

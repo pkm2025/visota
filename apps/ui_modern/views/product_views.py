@@ -159,6 +159,8 @@ class ProductDetailView(LoginRequiredMixin, DetailView):
         )
         total_qty = stock.aggregate(t=Sum("quantity"))["t"] or 0
         total_value = stock.aggregate(v=Sum("amount"))["v"] or 0
+        from apps.documents.services.attachment_service import AttachmentService
+
         ctx.update(
             {
                 "page_title": f"{product.code} - {product.name}",
@@ -167,6 +169,9 @@ class ProductDetailView(LoginRequiredMixin, DetailView):
                 "total_value": total_value,
                 "prices": product.prices.all().order_by("min_quantity"),
                 "variants": product.variants.all().order_by("code"),
+                "attachments": AttachmentService.get_for_object(product),
+                "object_type": "master_data.product",
+                "object_id": product.pk,
             }
         )
         return ctx
