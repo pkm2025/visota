@@ -66,6 +66,19 @@ from .project_views import (
     ProjectListView,
     ProjectTogglePhaseView,
 )
+from .crm_views import (
+    AccountCreateView,
+    CampaignCreateView,
+    CampaignListView,
+    LeadCreateView,
+    LeadListView,
+    OpportunityConvertView,
+    OpportunityCreateView,
+    OpportunityDetailView,
+    OpportunityListView,
+    TicketCreateView,
+    TicketListView,
+)
 from .purchase_views import (
     PurchaseInvoiceCreateView,
     PurchaseInvoiceListView,
@@ -182,4 +195,16 @@ __all__ = [
     "ProjectAddPhaseView",
     "ProjectTogglePhaseView",
     "ProjectAddResourceView",
+    # CRM
+    "LeadListView",
+    "LeadCreateView",
+    "AccountCreateView",
+    "OpportunityListView",
+    "OpportunityCreateView",
+    "OpportunityDetailView",
+    "OpportunityConvertView",
+    "TicketListView",
+    "TicketCreateView",
+    "CampaignListView",
+    "CampaignCreateView",
 ]

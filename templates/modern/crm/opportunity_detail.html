@@ -1,0 +1,127 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:crm_opportunity_list' %}">Cơ hội bán hàng</a></li>
+            <li class="breadcrumb-item active">{{ opportunity.code }}</li>
+        </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <h1 class="h3 mb-0">{{ opportunity.code }} - {{ opportunity.name }}</h1>
+            <p class="text-muted mb-0">Account: <strong>{{ opportunity.account.name }}</strong>
+                {% if opportunity.contact %} · Contact: {{ opportunity.contact.full_name }}{% endif %}
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if opportunity.stage != 'won' and opportunity.stage != 'lost' %}
+            <form method="post" action="{% url 'ui_modern:crm_opportunity_convert' pk=opportunity.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Chuyển sang Thắng và tự tạo Customer + Contract + Project + Invoice draft?')">
+                    <i class="bi bi-trophy"></i> Chuyển sang Thắng
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header"><strong>Thông tin cơ hội</strong></div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Giai đoạn</dt>
+                        <dd class="col-sm-9">
+                            {% if opportunity.stage == 'won' %}<span class="badge bg-success">Thắng 100%</span>
+                            {% elif opportunity.stage == 'lost' %}<span class="badge bg-danger">Thua 0%</span>
+                            {% else %}<span class="badge bg-primary">{{ opportunity.get_stage_display }}</span>{% endif %}
+                        </dd>
+                        <dt class="col-sm-3">Xác suất</dt><dd class="col-sm-9">{{ opportunity.probability }}%</dd>
+                        <dt class="col-sm-3">Giá trị ước tính</dt><dd class="col-sm-9 font-mono">{{ opportunity.estimated_value|floatformat:0|intcomma }} {{ opportunity.currency_code }}</dd>
+                        <dt class="col-sm-3">Giá trị trọng số</dt><dd class="col-sm-9 font-mono text-muted">{{ opportunity.weighted_value|floatformat:0|intcomma }}</dd>
+                        <dt class="col-sm-3">Ngày đóng dự kiến</dt><dd class="col-sm-9">{{ opportunity.expected_close_date|default:"-" }}</dd>
+                        <dt class="col-sm-3">Ngày đóng thực tế</dt><dd class="col-sm-9">{{ opportunity.actual_close_date|default:"-" }}</dd>
+                        {% if opportunity.description %}<dt class="col-sm-3">Diễn giải</dt><dd class="col-sm-9">{{ opportunity.description|linebreaksbr }}</dd>{% endif %}
+                        {% if opportunity.loss_reason %}<dt class="col-sm-3">Lý do thua</dt><dd class="col-sm-9 text-danger">{{ opportunity.loss_reason|linebreaksbr }}</dd>{% endif %}
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header"><strong>Dòng hàng hóa / dịch vụ</strong></div>
+                <div class="card-body">
+                    {% if opportunity.lines.all %}
+                    <table class="table table-sm">
+                        <thead class="table-light">
+                            <tr><th>#</th><th>Product</th><th class="text-end">SL</th><th class="text-end">Đơn giá</th><th class="text-end">VAT</th><th class="text-end">T. tiền</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for line in opportunity.lines.all %}
+                            <tr>
+                                <td>{{ line.line_no }}</td>
+                                <td>{{ line.product|default:line.description|default:"-" }}</td>
+                                <td class="text-end font-mono">{{ line.quantity }}</td>
+                                <td class="text-end font-mono">{{ line.unit_price|floatformat:0|intcomma }}</td>
+                                <td class="text-end font-mono">{{ line.vat_rate }}</td>
+                                <td class="text-end font-mono">{{ line.amount|floatformat:0|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted mb-0">Chưa có dòng hàng hóa.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><strong>Hoạt động gần đây</strong></div>
+                <div class="card-body">
+                    {% if activities %}
+                    <ul class="list-group list-group-flush">
+                        {% for a in activities %}
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span><span class="badge bg-secondary">{{ a.get_activity_type_display }}</span> {{ a.subject }}
+                            <small class="text-muted d-block">{{ a.description|default:"" }}</small></span>
+                            <small class="text-muted">{{ a.created_at|date:"d/m/Y H:i" }}</small>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted mb-0">Chưa có hoạt động.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header"><strong>Liên kết tự tạo</strong></div>
+                <div class="card-body">
+                    {% if opportunity.created_contract_id or opportunity.created_project_id or opportunity.created_invoice_id %}
+                    <ul class="list-unstyled mb-0">
+                        {% if opportunity.created_contract_id %}<li><i class="bi bi-check text-success"></i> Contract #{{ opportunity.created_contract_id }}</li>{% endif %}
+                        {% if opportunity.created_project_id %}<li><i class="bi bi-check text-success"></i> Project #{{ opportunity.created_project_id }}</li>{% endif %}
+                        {% if opportunity.created_invoice_id %}<li><i class="bi bi-check text-success"></i> Invoice draft #{{ opportunity.created_invoice_id }}</li>{% endif %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted mb-0">Chưa có liên kết. Bấm "Chuyển sang Thắng" để tự tạo Customer + Contract + Project + Invoice.</p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><strong>Phụ trách</strong></div>
+                <div class="card-body">
+                    <p class="mb-0">{{ opportunity.assigned_to|default:"—" }}</p>
+                    <small class="text-muted d-block mt-1">Tạo: {{ opportunity.created_at|date:"d/m/Y" }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

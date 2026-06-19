@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'apps.input_docs',
     'apps.recurring',
     'apps.projects',
+    'apps.crm',
 
     # Local — UI layout packs
     'apps.ui_modern',

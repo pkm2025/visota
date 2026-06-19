@@ -1,0 +1,67 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item">CRM</li>
+                    <li class="breadcrumb-item active">Chiến dịch</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+        </div>
+        <a href="{% url 'ui_modern:crm_campaign_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus"></i> Thêm chiến dịch</a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="get" class="row g-2 mb-3">
+                <div class="col-auto"><input type="text" class="form-control form-control-sm" name="search" placeholder="Mã / tên..." value="{{ request.GET.search }}"></div>
+                <div class="col-auto">
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="">— Trạng thái —</option>
+                        {% for s in status_choices %}<option value="{{ s.0 }}" {% if request.GET.status == s.0 %}selected{% endif %}>{{ s.1 }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto"><button type="submit" class="btn btn-outline-primary btn-sm"><i class="bi bi-funnel"></i> Lọc</button></div>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr><th>Mã</th><th>Tên</th><th>Loại</th><th class="text-end">Ngân sách</th><th class="text-end">Chi phí thực</th><th>Giai đoạn</th><th>Trạng thái</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for c in campaigns %}
+                        <tr>
+                            <td class="font-mono">{{ c.code }}</td>
+                            <td>{{ c.name }}</td>
+                            <td><small>{{ c.get_campaign_type_display }}</small></td>
+                            <td class="text-end font-mono">{{ c.budget|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ c.actual_cost|floatformat:0|intcomma }}</td>
+                            <td><small>{{ c.start_date|default:"-" }} → {{ c.end_date|default:"" }}</small></td>
+                            <td>
+                                {% if c.status == 'active' %}<span class="badge bg-success">Đang chạy</span>
+                                {% elif c.status == 'paused' %}<span class="badge bg-warning text-dark">Tạm dừng</span>
+                                {% elif c.status == 'completed' %}<span class="badge bg-secondary">Hoàn thành</span>
+                                {% else %}<span class="badge bg-light text-dark">Lưu nháp</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-center py-5">
+                            <i class="bi bi-megaphone text-muted" style="font-size:48px;"></i>
+                            <p class="text-muted mt-2 mb-1">Chưa có chiến dịch nào</p>
+                            <a href="{% url 'ui_modern:crm_campaign_create' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-plus"></i> Thêm mới</a>
+                        </td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

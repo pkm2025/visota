@@ -136,6 +136,26 @@
                         </a>
                     </div>
                 </div>
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_CRM') !== 'false' }">
+                    <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_CRM', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                        <span>CRM</span>
+                        <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
+                    </div>
+                    <div x-show="open" x-collapse>
+                        <a href="{% url 'ui_modern:crm_lead_list' %}" class="nav-item">
+                            <i class="bi bi-person-plus"></i> <span>Khách tiềm năng</span>
+                        </a>
+                        <a href="{% url 'ui_modern:crm_opportunity_list' %}" class="nav-item">
+                            <i class="bi bi-briefcase"></i> <span>Cơ hội bán hàng</span>
+                        </a>
+                        <a href="{% url 'ui_modern:crm_ticket_list' %}" class="nav-item">
+                            <i class="bi bi-life-preserver"></i> <span>Chăm sóc KH</span>
+                        </a>
+                        <a href="{% url 'ui_modern:crm_campaign_list' %}" class="nav-item">
+                            <i class="bi bi-megaphone"></i> <span>Chiến dịch</span>
+                        </a>
+                    </div>
+                </div>
                 <div class="nav-section" x-data="{ open: localStorage.getItem('nav_TS') !== 'false' }">
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_TS', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                         <span>Tài sản</span>
