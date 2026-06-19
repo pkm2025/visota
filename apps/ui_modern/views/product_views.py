@@ -1,10 +1,12 @@
 """Product master data views."""
 
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Sum
 from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import CreateView, ListView, UpdateView
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
+from apps.inventory.models import StockLedger
 from apps.master_data.models import Product
 
 from ._delete_views import MasterDataDeleteView
@@ -137,3 +139,34 @@ class ProductUpdateView(LoginRequiredMixin, UpdateView):
 class ProductDeleteView(MasterDataDeleteView):
     model = Product
     redirect_name = "ui_modern:product_list"
+
+
+class ProductDetailView(LoginRequiredMixin, DetailView):
+    """Product detail — tabs: Info | Stock | Prices | Variants."""
+
+    model = Product
+    template_name = "modern/products/product_detail.html"
+    context_object_name = "product"
+    login_url = "/auth/login/"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        product = self.object
+        stock = (
+            StockLedger.objects.filter(product=product)
+            .select_related("warehouse")
+            .order_by("warehouse__code")
+        )
+        total_qty = stock.aggregate(t=Sum("quantity"))["t"] or 0
+        total_value = stock.aggregate(v=Sum("amount"))["v"] or 0
+        ctx.update(
+            {
+                "page_title": f"{product.code} - {product.name}",
+                "stock_lines": stock,
+                "total_qty": total_qty,
+                "total_value": total_value,
+                "prices": product.prices.all().order_by("min_quantity"),
+                "variants": product.variants.all().order_by("code"),
+            }
+        )
+        return ctx

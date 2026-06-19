@@ -141,3 +141,100 @@ class StockLedger(models.Model):
             self.avg_cost = (self.amount / self.quantity).quantize(Decimal("0.0001"))
         else:
             self.avg_cost = 0
+
+
+class StockAdjustment(CompanyOwnedModel):
+    """Stock count/adjustment — physical count vs system (kiểm kê)."""
+
+    company = models.ForeignKey(
+        "core.Company",
+        on_delete=models.CASCADE,
+        related_name="stock_adjustments",
+        db_index=True,
+    )
+    adjustment_no = models.CharField(max_length=50)
+    adjustment_date = models.DateField()
+    warehouse = models.ForeignKey(
+        "master_data.Warehouse",
+        on_delete=models.PROTECT,
+        related_name="adjustments",
+    )
+    reason = models.TextField(blank=True, default="")
+    status = models.CharField(max_length=20, default="draft")  # draft/posted
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        "identity.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+
+    objects = models.Manager()
+
+    class Meta:
+        db_table = "stock_adjustment"
+        unique_together = [("company", "adjustment_no")]
+        ordering = ["-adjustment_date"]
+
+    def __str__(self):
+        return f"{self.adjustment_no} ({self.adjustment_date})"
+
+
+class StockAdjustmentLine(models.Model):
+    adjustment = models.ForeignKey(
+        StockAdjustment,
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    product = models.ForeignKey(
+        "master_data.Product",
+        on_delete=models.PROTECT,
+        related_name="stock_adjustment_lines",
+    )
+    system_quantity = models.DecimalField(max_digits=18, decimal_places=4)
+    counted_quantity = models.DecimalField(max_digits=18, decimal_places=4)
+    difference = models.DecimalField(max_digits=18, decimal_places=4, default=0)
+    unit_cost = models.DecimalField(max_digits=20, decimal_places=4, default=0)
+
+    class Meta:
+        db_table = "stock_adjustment_line"
+
+    def __str__(self):
+        return f"{self.adjustment.adjustment_no} - {self.product_id}"
+
+    def save(self, *args, **kwargs):
+        if self.difference == 0 and self.system_quantity is not None:
+            self.difference = (self.counted_quantity or 0) - (self.system_quantity or 0)
+        super().save(*args, **kwargs)
+
+
+class StockAlert(models.Model):
+    """Low stock / overstock alert."""
+
+    class AlertType(models.TextChoices):
+        LOW_STOCK = "low_stock", "Tồn thấp"
+        OVERSTOCK = "overstock", "Tồn cao"
+        EXPIRING = "expiring", "Gần hết hạn"
+
+    product = models.ForeignKey(
+        "master_data.Product",
+        on_delete=models.CASCADE,
+        related_name="stock_alerts",
+    )
+    warehouse = models.ForeignKey(
+        "master_data.Warehouse",
+        on_delete=models.CASCADE,
+    )
+    alert_type = models.CharField(max_length=20, choices=AlertType.choices)
+    current_quantity = models.DecimalField(max_digits=18, decimal_places=4)
+    threshold = models.DecimalField(max_digits=18, decimal_places=4)
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved = models.BooleanField(default=False)
+
+    objects = models.Manager()
+
+    class Meta:
+        db_table = "stock_alert"
+
+    def __str__(self):
+        return f"{self.product.code} {self.alert_type} ({self.current_quantity})"

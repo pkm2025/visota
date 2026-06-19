@@ -1,0 +1,48 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="mb-3">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'ui_modern:asset_list' %}">Tài sản</a></li>
+                <li class="breadcrumb-item active">Giao dịch</li>
+            </ol>
+        </nav>
+        <h1 class="h3 mb-0">{{ page_title }}</h1>
+    </div>
+
+    <div class="card"><div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle">
+                <thead class="table-light">
+                    <tr><th>Ngày</th><th>Số giao dịch</th><th>Loại</th><th>Tài sản</th><th>Từ BP</th><th>Đến BP</th><th>Giá trị TL</th><th>Phiếu GL</th></tr>
+                </thead>
+                <tbody>
+                    {% for t in transactions %}
+                    <tr>
+                        <td>{{ t.transaction_date|date:"d/m/Y" }}</td>
+                        <td>{{ t.transaction_no }}</td>
+                        <td>
+                            {% if t.transaction_type == 'disposal' %}<span class="badge bg-danger">Thanh lý</span>
+                            {% elif t.transaction_type == 'transfer' %}<span class="badge bg-info">Điều chuyển</span>
+                            {% elif t.transaction_type == 'increase' %}<span class="badge bg-success">Tăng</span>
+                            {% elif t.transaction_type == 'decrease' %}<span class="badge bg-warning">Giảm</span>
+                            {% else %}{{ t.transaction_type }}{% endif %}
+                        </td>
+                        <td>{{ t.asset.asset_code }}</td>
+                        <td>{{ t.from_department|default:"-" }}</td>
+                        <td>{{ t.to_department|default:"-" }}</td>
+                        <td>{% if t.disposal_value %}{{ t.disposal_value|intcomma }}{% else %}-{% endif %}</td>
+                        <td>{% if t.gl_voucher_id %}{{ t.gl_voucher.voucher_no }}{% else %}-{% endif %}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8" class="text-center text-muted py-4">Chưa có giao dịch nào.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div></div>
+</div>
+{% endblock %}

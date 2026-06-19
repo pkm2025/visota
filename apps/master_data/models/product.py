@@ -73,6 +73,55 @@ class Product(CompanyOwnedModel):
         return f"{self.code} - {self.name}"
 
 
+class ProductPrice(models.Model):
+    """Price tier — different prices per customer group or quantity."""
+
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="prices",
+    )
+    name = models.CharField(max_length=100)  # 'Giá sỉ', 'Giá lẻ', 'Giá VIP'
+    min_quantity = models.DecimalField(max_digits=18, decimal_places=4, default=0)
+    unit_price = models.DecimalField(max_digits=20, decimal_places=4)
+    currency_code = models.CharField(max_length=3, default="VND")
+    effective_from = models.DateField()
+    effective_to = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "product_price"
+        ordering = ["min_quantity"]
+
+    def __str__(self):
+        return f"{self.product.code} {self.name} @ {self.unit_price}"
+
+
+class ProductVariant(models.Model):
+    """Product variant — size, color, etc."""
+
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="variants",
+    )
+    code = models.CharField(max_length=50)
+    name = models.CharField(max_length=255)
+    attribute_name = models.CharField(max_length=100)  # 'Color', 'Size'
+    attribute_value = models.CharField(max_length=100)  # 'Red', 'XL'
+    barcode = models.CharField(max_length=50, blank=True, default="")
+    unit_price_adjustment = models.DecimalField(max_digits=20, decimal_places=4, default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "product_variant"
+        unique_together = [("product", "code")]
+
+    def __str__(self):
+        return f"{self.product.code} - {self.code} ({self.attribute_value})"
+
+
 class Warehouse(CompanyOwnedModel):
     """Warehouse / kho."""
 

@@ -1,6 +1,6 @@
 from .account import AccountType, ChartOfAccounts
 from .party import Customer, Vendor
-from .product import Product, Warehouse
+from .product import Product, ProductPrice, ProductVariant, Warehouse
 
 __all__ = [
     "AccountType",
@@ -8,5 +8,7 @@ __all__ = [
     "Customer",
     "Vendor",
     "Product",
+    "ProductPrice",
+    "ProductVariant",
     "Warehouse",
 ]

@@ -1,0 +1,105 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:stock_voucher_list' %}">Kho</a></li>
+                    <li class="breadcrumb-item active">Tổng quan</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+        </div>
+        <div>
+            <a href="{% url 'ui_modern:stock_adjustment_create' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-clipboard-check"></i> Kiểm kê
+            </a>
+            <a href="{% url 'ui_modern:stock_card_report' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-card-list"></i> Thẻ kho
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Tổng lượng tồn</div><div class="h4 mb-0">{{ grand_qty|intcomma }}</div></div></div></div>
+        <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Tổng giá trị tồn</div><div class="h4 mb-0">{{ grand_value|intcomma }} VND</div></div></div></div>
+        <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Số kho</div><div class="h4 mb-0">{{ summary|length }}</div></div></div></div>
+        <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">SP tồn thấp</div><div class="h4 mb-0 text-danger">{{ low_stock|length }}</div></div></div></div>
+    </div>
+
+    <div class="card mb-3"><div class="card-body">
+        <h5 class="card-title mb-3">Theo kho</h5>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle">
+                <thead class="table-light">
+                    <tr><th>Kho</th><th>SL tồn</th><th>Giá trị</th><th>Số SP</th><th>SL thấp</th></tr>
+                </thead>
+                <tbody>
+                    {% for s in summary %}
+                    <tr>
+                        <td>{{ s.warehouse.code }} - {{ s.warehouse.name }}</td>
+                        <td>{{ s.total_quantity|intcomma }}</td>
+                        <td>{{ s.total_value|intcomma }}</td>
+                        <td>{{ s.product_count }}</td>
+                        <td>{% if s.low_stock_count > 0 %}<span class="badge bg-warning">{{ s.low_stock_count }}</span>{% else %}0{% endif %}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">Chưa có dữ liệu.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div></div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card"><div class="card-body">
+                <h5 class="card-title mb-3 text-danger">Hàng tồn thấp</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead class="table-light"><tr><th>Mã</th><th>Tên</th><th>Hiện tại</th><th>Tối thiểu</th></tr></thead>
+                        <tbody>
+                            {% for a in low_stock %}
+                            <tr>
+                                <td>{{ a.product.code }}</td>
+                                <td>{{ a.product.name|truncatechars:30 }}</td>
+                                <td><span class="text-danger">{{ a.current }}</span></td>
+                                <td>{{ a.min }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center text-muted py-3">Không có.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div></div>
+        </div>
+        <div class="col-md-6">
+            <div class="card"><div class="card-body">
+                <h5 class="card-title mb-3">Định giá tồn</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead class="table-light"><tr><th>Mã</th><th>Kho</th><th>SL</th><th>Giá TB</th><th>Giá trị</th></tr></thead>
+                        <tbody>
+                            {% for v in valuation %}
+                            <tr>
+                                <td>{{ v.product_code }}</td>
+                                <td>{{ v.warehouse }}</td>
+                                <td>{{ v.quantity }}</td>
+                                <td>{{ v.avg_cost|intcomma }}</td>
+                                <td>{{ v.total_value|intcomma }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted py-3">Không có.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

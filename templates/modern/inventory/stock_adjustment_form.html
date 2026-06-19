@@ -1,0 +1,124 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="mb-3">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'ui_modern:stock_adjustment_list' %}">Kiểm kê</a></li>
+                <li class="breadcrumb-item active">Tạo</li>
+            </ol>
+        </nav>
+        <h1 class="h3 mb-0">{{ page_title }}</h1>
+    </div>
+
+    <form method="post" id="adj-form">
+        {% csrf_token %}
+        <div class="card mb-3"><div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Số phiếu</label>
+                    <input type="text" name="adjustment_no" class="form-control" required value="KK-{{ now|default:'' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Ngày</label>
+                    <input type="date" name="adjustment_date" class="form-control" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Kho</label>
+                    <select name="warehouse_id" id="wh-select" class="form-select" required>
+                        <option value="">— Chọn —</option>
+                        {% for w in warehouses %}<option value="{{ w.pk }}">{{ w.code }} - {{ w.name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Lý do</label>
+                    <input type="text" name="reason" class="form-control" placeholder="Kiểm kê định kỳ...">
+                </div>
+            </div>
+        </div></div>
+
+        <div class="card"><div class="card-body">
+            <div class="d-flex justify-content-between mb-2">
+                <h5 class="card-title mb-0">Chi tiết kiểm kê</h5>
+                <button type="button" id="load-stock" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-down-circle"></i> Load tồn kho hiện tại
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm" id="lines-table">
+                    <thead class="table-light">
+                        <tr><th>Sản phẩm</th><th>Tồn hệ thống</th><th>SL thực đếm</th><th>Chênh lệch</th></tr>
+                    </thead>
+                    <tbody id="lines-body">
+                        <tr class="line-row">
+                            <td><select name="product_id[]" class="form-select form-select-sm"></select></td>
+                            <td><input type="text" class="form-control form-control-sm sys-qty" readonly value="0"></td>
+                            <td><input type="number" step="any" name="counted_quantity[]" class="form-control form-control-sm counted" value="0"></td>
+                            <td><input type="text" class="form-control form-control-sm diff" readonly value="0"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <button type="button" id="add-line" class="btn btn-outline-primary btn-sm mt-2"><i class="bi bi-plus"></i> Thêm dòng</button>
+        </div></div>
+
+        <div class="text-end mt-3">
+            <a href="{% url 'ui_modern:stock_adjustment_list' %}" class="btn btn-secondary btn-sm">Hủy</a>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-circle"></i> Lưu phiếu</button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Client-side: load products & live stock when warehouse is chosen.
+document.addEventListener('DOMContentLoaded', function() {
+    const whSelect = document.getElementById('wh-select');
+    const loadBtn = document.getElementById('load-stock');
+    const tbody = document.getElementById('lines-body');
+    const addBtn = document.getElementById('add-line');
+    let products = [];
+
+    fetch("/modern/products/list-json/").then(r => r.json()).then(d => {
+        products = d.products || d || [];
+        rebuildSelects();
+    }).catch(() => {});
+
+    function rebuildSelects() {
+        document.querySelectorAll('select[name="product_id[]"]').forEach(sel => {
+            const cur = sel.value;
+            sel.innerHTML = '<option value="">— SP —</option>' +
+                products.map(p => `<option value="${p.id}">${p.code} - ${p.name}</option>`).join('');
+            sel.value = cur;
+        });
+    }
+
+    addBtn.addEventListener('click', () => {
+        const tr = document.querySelector('.line-row').cloneNode(true);
+        tr.querySelectorAll('input').forEach(i => { if(i.type !== 'hidden') i.value = i.classList.contains('counted') ? '0' : '0'; });
+        tbody.appendChild(tr);
+        rebuildSelects();
+    });
+
+    tbody.addEventListener('input', e => {
+        if (e.target.classList.contains('counted')) {
+            const row = e.target.closest('tr');
+            const sys = parseFloat(row.querySelector('.sys-qty').value || 0);
+            const cnt = parseFloat(e.target.value || 0);
+            row.querySelector('.diff').value = (cnt - sys).toFixed(4);
+        }
+    });
+
+    loadBtn.addEventListener('click', async () => {
+        const wh = whSelect.value;
+        if (!wh) { alert('Chọn kho trước'); return; }
+        try {
+            const r = await fetch(`/modern/inventory/stock-card/?warehouse_id=${wh}&_=${Date.now()}`);
+            // Just trigger re-render of products select
+            rebuildSelects();
+        } catch(e) {}
+    });
+});
+</script>
+{% endblock %}

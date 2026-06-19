@@ -1,0 +1,41 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="mb-3">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'ui_modern:asset_list' %}">Tài sản</a></li>
+                <li class="breadcrumb-item active">Thanh lý</li>
+            </ol>
+        </nav>
+        <h1 class="h3 mb-0">{{ page_title }}</h1>
+    </div>
+
+    <div class="card"><div class="card-body">
+        <div class="alert alert-warning">
+            Thanh lý tài sản <strong>{{ asset.asset_code }} - {{ asset.asset_name }}</strong>.
+            Nguyên giá {{ asset.original_cost|intcomma }} VND; Hao mòn {{ asset.accumulated_depreciation|intcomma }} VND;
+            Giá trị còn lại <strong>{{ asset.net_book_value|intcomma }}</strong> VND.
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Giá trị thu về (VND)</label>
+                    <input type="number" step="any" name="disposal_value" class="form-control" value="0">
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">Lý do thanh lý</label>
+                    <input type="text" name="reason" class="form-control" placeholder="Hư hỏng / Lỗi thời...">
+                </div>
+            </div>
+            <div class="text-end mt-3">
+                <a href="{% url 'ui_modern:asset_list' %}" class="btn btn-secondary btn-sm">Hủy</a>
+                <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-trash"></i> Xác nhận thanh lý</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+{% endblock %}

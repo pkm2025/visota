@@ -133,3 +133,73 @@ class FixedAsset(CompanyOwnedModel):
             monthly = Decimal("0")
 
         return monthly
+
+
+class AssetTransaction(models.Model):
+    """Asset lifecycle transaction — increase/decrease/transfer/dispose."""
+
+    class TransactionType(models.TextChoices):
+        INCREASE = "increase", "Tăng tài sản"
+        DECREASE = "decrease", "Giảm tài sản"
+        TRANSFER = "transfer", "Điều chuyển"
+        REVALUATION = "revaluation", "Đánh giá lại"
+        DISPOSAL = "disposal", "Thanh lý"
+
+    company = models.ForeignKey(
+        "core.Company",
+        on_delete=models.CASCADE,
+        related_name="asset_transactions",
+    )
+    transaction_no = models.CharField(max_length=50)
+    transaction_date = models.DateField()
+    transaction_type = models.CharField(max_length=20, choices=TransactionType.choices)
+
+    asset = models.ForeignKey(
+        FixedAsset,
+        on_delete=models.PROTECT,
+        related_name="transactions",
+    )
+
+    # For increase
+    new_asset = models.BooleanField(default=False)
+
+    # For transfer
+    from_department = models.ForeignKey(
+        "assets.AssetUsingDepartment",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="outgoing_transfers",
+    )
+    to_department = models.ForeignKey(
+        "assets.AssetUsingDepartment",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="incoming_transfers",
+    )
+
+    # For disposal
+    disposal_value = models.DecimalField(max_digits=20, decimal_places=4, default=0)
+    disposal_reason = models.TextField(blank=True, default="")
+
+    # GL link
+    gl_voucher = models.ForeignKey(
+        "ledger.AccountingVoucher",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+
+    description = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    objects = models.Manager()
+
+    class Meta:
+        db_table = "asset_transaction"
+        unique_together = [("company", "transaction_no")]
+        ordering = ["-transaction_date"]
+
+    def __str__(self):
+        return f"{self.transaction_no} ({self.transaction_type})"

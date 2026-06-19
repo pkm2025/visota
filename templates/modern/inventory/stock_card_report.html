@@ -1,0 +1,64 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="mb-3">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'ui_modern:stock_dashboard' %}">Tổng quan kho</a></li>
+                <li class="breadcrumb-item active">Thẻ kho</li>
+            </ol>
+        </nav>
+        <h1 class="h3 mb-0">{{ page_title }}</h1>
+    </div>
+
+    <form method="get" class="card mb-3"><div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">Sản phẩm</label>
+                <select name="product_id" class="form-select" required>
+                    <option value="">— Chọn sản phẩm —</option>
+                    {% for p in products %}<option value="{{ p.pk }}" {% if selected_product == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.code }} - {{ p.name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Kho (tùy chọn)</label>
+                <select name="warehouse_id" class="form-select">
+                    <option value="">— Tất cả —</option>
+                    {% for w in warehouses %}<option value="{{ w.pk }}" {% if selected_warehouse == w.pk|stringformat:"s" %}selected{% endif %}>{{ w.code }} - {{ w.name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 text-end">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-eye"></i> Xem thẻ kho</button>
+            </div>
+        </div>
+    </div></form>
+
+    {% if rows %}
+    <div class="card"><div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead class="table-light">
+                    <tr><th>Ngày</th><th>Số phiếu</th><th>Loại</th><th>Nhập</th><th>Xuất</th><th>Tồn</th></tr>
+                </thead>
+                <tbody>
+                    {% for r in rows %}
+                    <tr>
+                        <td>{{ r.date|date:"d/m/Y" }}</td>
+                        <td>{{ r.voucher_no }}</td>
+                        <td>{{ r.voucher_type }}</td>
+                        <td class="text-success">{% if r.in_qty %}{{ r.in_qty }}{% endif %}</td>
+                        <td class="text-danger">{% if r.out_qty %}{{ r.out_qty }}{% endif %}</td>
+                        <td><strong>{{ r.balance }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div></div>
+    {% elif selected_product %}
+    <div class="alert alert-info">Không có giao dịch kho cho sản phẩm đã chọn.</div>
+    {% endif %}
+</div>
+{% endblock %}

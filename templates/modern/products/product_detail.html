@@ -1,0 +1,140 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:product_list' %}">Hàng hóa</a></li>
+                    <li class="breadcrumb-item active">{{ product.code }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ product.code }} - {{ product.name }}</h1>
+        </div>
+        <div>
+            <a href="{% url 'ui_modern:product_update' product.pk %}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-pencil"></i> Sửa
+            </a>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-info" type="button">Thông tin</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-stock" type="button">Tồn kho</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-prices" type="button">Bảng giá</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-variants" type="button">Phiên bản</button></li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Info -->
+        <div class="tab-pane fade show active" id="tab-info">
+            <div class="card"><div class="card-body">
+                <table class="table table-sm table-borderless" style="max-width:700px">
+                    <tr><th class="text-muted" style="width:200px">Mã</th><td>{{ product.code }}</td></tr>
+                    <tr><th class="text-muted">Tên</th><td>{{ product.name }}</td></tr>
+                    <tr><th class="text-muted">Tên EN</th><td>{{ product.name_en|default:"-" }}</td></tr>
+                    <tr><th class="text-muted">Barcode</th><td>{{ product.barcode|default:"-" }}</td></tr>
+                    <tr><th class="text-muted">Loại</th><td>{{ product.get_product_type_display }}</td></tr>
+                    <tr><th class="text-muted">ĐVT</th><td>{{ product.unit_id }}</td></tr>
+                    <tr><th class="text-muted">PP tính giá</th><td>{{ product.get_cost_method_display }}</td></tr>
+                    <tr><th class="text-muted">Đơn giá mặc định</th><td>{{ product.default_unit_price|intcomma }}</td></tr>
+                    <tr><th class="text-muted">TK kho</th><td>{{ product.gl_account_inv }}</td></tr>
+                    <tr><th class="text-muted">TK giá vốn</th><td>{{ product.gl_account_cogs }}</td></tr>
+                    <tr><th class="text-muted">TK doanh thu</th><td>{{ product.gl_account_revenue }}</td></tr>
+                    <tr><th class="text-muted">Tồn tối thiểu</th><td>{{ product.min_stock }}</td></tr>
+                    <tr><th class="text-muted">Tồn tối đa</th><td>{{ product.max_stock }}</td></tr>
+                    <tr><th class="text-muted">Trạng thái</th><td>{% if product.is_active %}<span class="badge bg-success">Đang dùng</span>{% else %}<span class="badge bg-secondary">Ngừng</span>{% endif %}</td></tr>
+                </table>
+            </div></div>
+        </div>
+
+        <!-- Stock -->
+        <div class="tab-pane fade" id="tab-stock">
+            <div class="card"><div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-3"><div class="stat-box"><div class="text-muted small">Tổng số lượng</div><div class="h4 mb-0">{{ total_qty|intcomma }}</div></div></div>
+                    <div class="col-md-3"><div class="stat-box"><div class="text-muted small">Tổng giá trị</div><div class="h4 mb-0">{{ total_value|intcomma }}</div></div></div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr><th>Kho</th><th>Số lượng</th><th>Giá trị</th><th>Giá TB</th><th>Cập nhật</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for s in stock_lines %}
+                            <tr>
+                                <td>{{ s.warehouse.code }} - {{ s.warehouse.name }}</td>
+                                <td>{{ s.quantity|intcomma }}</td>
+                                <td>{{ s.amount|intcomma }}</td>
+                                <td>{{ s.avg_cost|intcomma }}</td>
+                                <td>{{ s.updated_at|date:"d/m/Y H:i" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted py-4">Chưa có dữ liệu tồn kho.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div></div>
+        </div>
+
+        <!-- Prices -->
+        <div class="tab-pane fade" id="tab-prices">
+            <div class="card"><div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr><th>Tên mức giá</th><th>SL tối thiểu</th><th>Đơn giá</th><th>NT</th><th>Hiệu lực</th><th>Trạng thái</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for p in prices %}
+                            <tr>
+                                <td>{{ p.name }}</td>
+                                <td>{{ p.min_quantity }}</td>
+                                <td>{{ p.unit_price|intcomma }}</td>
+                                <td>{{ p.currency_code }}</td>
+                                <td>{{ p.effective_from|date:"d/m/Y" }}{% if p.effective_to %} → {{ p.effective_to|date:"d/m/Y" }}{% endif %}</td>
+                                <td>{% if p.is_active %}<span class="badge bg-success">Hiệu lực</span>{% else %}<span class="badge bg-secondary">Tắt</span>{% endif %}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="6" class="text-center text-muted py-4">Chưa có mức giá nào.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div></div>
+        </div>
+
+        <!-- Variants -->
+        <div class="tab-pane fade" id="tab-variants">
+            <div class="card"><div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr><th>Mã</th><th>Tên</th><th>Thuộc tính</th><th>Giá trị</th><th>Barcode</th><th>Điều chỉnh giá</th><th>Trạng thái</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for v in variants %}
+                            <tr>
+                                <td>{{ v.code }}</td>
+                                <td>{{ v.name }}</td>
+                                <td>{{ v.attribute_name }}</td>
+                                <td>{{ v.attribute_value }}</td>
+                                <td>{{ v.barcode|default:"-" }}</td>
+                                <td>{{ v.unit_price_adjustment|intcomma }}</td>
+                                <td>{% if v.is_active %}<span class="badge bg-success">Đang dùng</span>{% else %}<span class="badge bg-secondary">Ngừng</span>{% endif %}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="7" class="text-center text-muted py-4">Chưa có phiên bản nào.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -58,15 +58,19 @@
                     <tbody>
                         {% for product in products %}
                         <tr>
-                            <td><a href="{% url 'ui_modern:product_update' product.pk %}" class="text-decoration-none">{{ product.code }}</a></td>
-                            <td>{{ product.name|truncatechars:50 }}</td>
+                            <td><a href="{% url 'ui_modern:product_detail' product.pk %}" class="text-decoration-none fw-semibold">{{ product.code }}</a></td>
+                            <td><a href="{% url 'ui_modern:product_detail' product.pk %}" class="text-decoration-none">{{ product.name|truncatechars:50 }}</a></td>
                             <td><small class="text-muted">{{ product.get_product_type_display }}</small></td>
                             <td>{{ product.unit_id }}</td>
                             <td><small class="text-muted">{{ product.get_cost_method_display }}</small></td>
                             <td>{{ product.gl_account_inv }}</td>
                             <td>{{ product.gl_account_cogs }}</td>
                             <td>{{ product.gl_account_revenue }}</td>
-                            <td class="text-end font-mono">{{ product.default_unit_price|vnd }}</td>
+                            <td class="text-end font-mono">{{ product.default_unit_price|vnd }}
+                                {% with n_prices=product.prices.count %}
+                                    {% if n_prices %}<div class="badge bg-info ms-1" title="{{ n_prices }} mức giá">{{ n_prices }}</div>{% endif %}
+                                {% endwith %}
+                            </td>
                             <td>
                                 {% if product.is_active %}<span class="badge bg-success">Đang dùng</span>
                                 {% else %}<span class="badge bg-secondary">Ngừng</span>{% endif %}

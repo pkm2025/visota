@@ -1,19 +1,21 @@
-"""Asset UI views — list, create, depreciation run."""
+"""Asset UI views — list, create, depreciation run, dispose, transfer."""
 
 from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import redirect, render
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.generic import ListView
 
 from apps.assets.models import (
     AssetCategory,
+    AssetTransaction,
     AssetUsingDepartment,
     FixedAsset,
 )
-from apps.assets.services import DepreciationService
+from apps.assets.services import AssetLifecycleService, DepreciationService
 
 
 class AssetListView(LoginRequiredMixin, ListView):
@@ -213,3 +215,104 @@ class DepreciationRunView(LoginRequiredMixin, View):
             f"tổng {result.get('total_depreciation', 0)} VND",
         )
         return redirect("ui_modern:asset_list")
+
+
+class AssetDisposeView(LoginRequiredMixin, View):
+    """POST handler: dispose/liquidate an asset. Optionally HTMX-rendered modal form."""
+
+    template_name = "modern/assets/asset_dispose.html"
+    login_url = "/auth/login/"
+
+    def get(self, request, pk, *args, **kwargs):
+        asset = get_object_or_404(FixedAsset, pk=pk)
+        return render(
+            request,
+            self.template_name,
+            {"page_title": "Thanh lý tài sản", "asset": asset},
+        )
+
+    def post(self, request, pk, *args, **kwargs):
+        asset = get_object_or_404(FixedAsset, pk=pk)
+        try:
+            disposal_value = Decimal(str(request.POST.get("disposal_value") or "0"))
+        except Exception:
+            disposal_value = Decimal("0")
+        reason = request.POST.get("reason", "")
+
+        try:
+            txn = AssetLifecycleService().dispose(
+                asset, disposal_value=disposal_value, reason=reason
+            )
+        except Exception as exc:  # noqa: BLE001
+            messages.error(request, f"Lỗi khi thanh lý: {exc}")
+            return redirect("ui_modern:asset_list")
+
+        messages.success(request, f"Đã thanh lý {asset.asset_code}. Phiếu {txn.transaction_no}.")
+        if request.headers.get("HX-Request"):
+            return HttpResponse(
+                f"<div class='alert alert-success'>Đã thanh lý {asset.asset_code}</div>"
+            )
+        return redirect("ui_modern:asset_list")
+
+
+class AssetTransferView(LoginRequiredMixin, View):
+    """GET shows form; POST transfers asset to new department."""
+
+    template_name = "modern/assets/asset_transfer.html"
+    login_url = "/auth/login/"
+
+    def get(self, request, pk, *args, **kwargs):
+        asset = get_object_or_404(FixedAsset, pk=pk)
+        departments = AssetUsingDepartment.objects.filter(is_active=True).order_by("code")
+        return render(
+            request,
+            self.template_name,
+            {
+                "page_title": "Điều chuyển tài sản",
+                "asset": asset,
+                "departments": departments,
+            },
+        )
+
+    def post(self, request, pk, *args, **kwargs):
+        asset = get_object_or_404(FixedAsset, pk=pk)
+        dept_id = request.POST.get("to_department")
+        new_expense = request.POST.get("new_expense_account") or None
+        if not dept_id:
+            messages.error(request, "Chọn bộ phận nhận.")
+            return redirect("ui_modern:asset_transfer", pk=pk)
+        try:
+            to_dept = AssetUsingDepartment.objects.get(pk=dept_id)
+        except AssetUsingDepartment.DoesNotExist:
+            messages.error(request, "Bộ phận không hợp lệ.")
+            return redirect("ui_modern:asset_transfer", pk=pk)
+
+        try:
+            AssetLifecycleService().transfer(
+                asset, to_department=to_dept, new_expense_account=new_expense
+            )
+        except Exception as exc:  # noqa: BLE001
+            messages.error(request, f"Lỗi khi điều chuyển: {exc}")
+            return redirect("ui_modern:asset_list")
+
+        messages.success(request, f"Đã điều chuyển {asset.asset_code} → {to_dept.name}.")
+        return redirect("ui_modern:asset_list")
+
+
+class AssetTransactionListView(LoginRequiredMixin, ListView):
+    """History of asset transactions."""
+
+    template_name = "modern/assets/asset_transaction_list.html"
+    context_object_name = "transactions"
+    paginate_by = 25
+    login_url = "/auth/login/"
+
+    def get_queryset(self):
+        return AssetTransaction.objects.select_related(
+            "asset", "from_department", "to_department"
+        ).order_by("-transaction_date", "-id")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = "Lịch sử giao dịch tài sản"
+        return ctx

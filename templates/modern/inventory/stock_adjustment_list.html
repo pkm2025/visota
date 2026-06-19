@@ -1,0 +1,54 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:stock_dashboard' %}">Tổng quan kho</a></li>
+                    <li class="breadcrumb-item active">Kiểm kê</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+        </div>
+        <div>
+            <a href="{% url 'ui_modern:stock_adjustment_create' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus"></i> Tạo phiếu
+            </a>
+        </div>
+    </div>
+
+    <div class="card"><div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle">
+                <thead class="table-light">
+                    <tr><th>Ngày</th><th>Số phiếu</th><th>Kho</th><th>Lý do</th><th>Trạng thái</th><th>Số dòng</th></tr>
+                </thead>
+                <tbody>
+                    {% for a in adjustments %}
+                    <tr>
+                        <td>{{ a.adjustment_date|date:"d/m/Y" }}</td>
+                        <td>{{ a.adjustment_no }}</td>
+                        <td>{{ a.warehouse.code }}</td>
+                        <td>{{ a.reason|truncatechars:60|default:"-" }}</td>
+                        <td>{% if a.status == 'posted' %}<span class="badge bg-success">Đã ghi</span>{% else %}<span class="badge bg-secondary">Lưu tạm</span>{% endif %}</td>
+                        <td>{{ a.lines.count }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">Chưa có phiếu kiểm kê nào.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if is_paginated %}
+        <nav><ul class="pagination pagination-sm justify-content-end">
+            {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">←</a></li>{% endif %}
+            <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+            {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">→</a></li>{% endif %}
+        </ul></nav>
+        {% endif %}
+    </div></div>
+</div>
+{% endblock %}

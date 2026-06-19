@@ -1,6 +1,9 @@
 from .asset_views import (
     AssetCreateView,
+    AssetDisposeView,
     AssetListView,
+    AssetTransactionListView,
+    AssetTransferView,
     DepreciationRunView,
 )
 from .auth_views import PMKetoanLoginView, PMKetoanLogoutView
@@ -12,6 +15,19 @@ from .contract_template_views import (
     ContractTemplatePreviewView,
 )
 from .contract_views import ContractCreateView, ContractListView
+from .crm_views import (
+    AccountCreateView,
+    CampaignCreateView,
+    CampaignListView,
+    LeadCreateView,
+    LeadListView,
+    OpportunityConvertView,
+    OpportunityCreateView,
+    OpportunityDetailView,
+    OpportunityListView,
+    TicketCreateView,
+    TicketListView,
+)
 from .customer_views import (
     CustomerCreateView,
     CustomerDeleteView,
@@ -54,6 +70,7 @@ from .payroll_views import PayrollRunView
 from .product_views import (
     ProductCreateView,
     ProductDeleteView,
+    ProductDetailView,
     ProductExportView,
     ProductListView,
     ProductUpdateView,
@@ -65,19 +82,6 @@ from .project_views import (
     ProjectDetailView,
     ProjectListView,
     ProjectTogglePhaseView,
-)
-from .crm_views import (
-    AccountCreateView,
-    CampaignCreateView,
-    CampaignListView,
-    LeadCreateView,
-    LeadListView,
-    OpportunityConvertView,
-    OpportunityCreateView,
-    OpportunityDetailView,
-    OpportunityListView,
-    TicketCreateView,
-    TicketListView,
 )
 from .purchase_views import (
     PurchaseInvoiceCreateView,
@@ -101,6 +105,10 @@ from .sales_views import (
     SalesInvoiceListView,
 )
 from .stock_views import (
+    StockAdjustmentCreateView,
+    StockAdjustmentListView,
+    StockCardView,
+    StockDashboardView,
     StockVoucherCreateView,
     StockVoucherListView,
 )
@@ -128,6 +136,9 @@ __all__ = [
     "VoucherUploadView",
     "AssetListView",
     "AssetCreateView",
+    "AssetDisposeView",
+    "AssetTransferView",
+    "AssetTransactionListView",
     "DepreciationRunView",
     "health_simple",
     "health_detailed",
@@ -155,6 +166,7 @@ __all__ = [
     "ProductListView",
     "ProductCreateView",
     "ProductUpdateView",
+    "ProductDetailView",
     "ProductExportView",
     "ProductDeleteView",
     "SalesInvoiceListView",
@@ -163,6 +175,10 @@ __all__ = [
     "PurchaseInvoiceCreateView",
     "StockVoucherListView",
     "StockVoucherCreateView",
+    "StockDashboardView",
+    "StockAdjustmentListView",
+    "StockAdjustmentCreateView",
+    "StockCardView",
     "EmployeeListView",
     "EmployeeCreateView",
     "PayrollRunView",

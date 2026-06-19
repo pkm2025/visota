@@ -56,6 +56,7 @@
                             <th class="text-end">Hao mòn LK</th>
                             <th class="text-end">GT còn lại</th>
                             <th>Trạng thái</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -77,10 +78,20 @@
                                 {% elif asset.status == 'disposed' %}<span class="badge bg-secondary">Thanh lý</span>
                                 {% else %}<span class="badge bg-light text-dark">Lưu tạm</span>{% endif %}
                             </td>
+                            <td class="text-nowrap">
+                                {% if asset.status == 'active' or asset.status == 'fully_depreciated' %}
+                                <a href="{% url 'ui_modern:asset_transfer' asset.pk %}" class="btn btn-sm btn-outline-info py-0" title="Điều chuyển">
+                                    <i class="bi bi-arrow-left-right"></i>
+                                </a>
+                                <a href="{% url 'ui_modern:asset_dispose' asset.pk %}" class="btn btn-sm btn-outline-danger py-0" title="Thanh lý">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">
+                            <td colspan="9" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox display-6 d-block mb-2"></i>
                                 Chưa có tài sản nào. Bấm "Thêm tài sản" để tạo.
                             </td>
