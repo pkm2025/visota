@@ -75,3 +75,5 @@ Thumbs.db
 # Editor temp
 *.tmp
 *~
+docs/superpowers/
+docs/0[1-9]-*
