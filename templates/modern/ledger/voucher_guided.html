@@ -1,0 +1,221 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:voucher_list' %}">Phiếu kế toán</a></li>
+            <li class="breadcrumb-item active">Tạo phiếu nhanh</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3"><i class="bi bi-wand-magic"></i> Tạo phiếu kế toán nhanh</h1>
+    <p class="text-muted">Không cần biết hạch toán — chọn nghiệp vụ, hệ thống tự sinh bút toán.</p>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <!-- Step 1: Choose action -->
+            <div class="card shadow-sm mb-3" id="action-card">
+                <div class="card-header"><strong>Bạn muốn làm gì?</strong></div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <button type="button" class="btn btn-outline-primary w-100 p-3 text-start"
+                                    onclick="selectAction('collect');">
+                                <i class="bi bi-cash-coin text-success" style="font-size:24px"></i>
+                                <div class="fw-semibold mt-1">Thu tiền từ khách hàng</div>
+                                <small class="text-muted">Khách trả nợ / thanh toán HĐ</small>
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button type="button" class="btn btn-outline-primary w-100 p-3 text-start"
+                                    onclick="selectAction('pay_vendor');">
+                                <i class="bi bi-credit-card text-danger" style="font-size:24px"></i>
+                                <div class="fw-semibold mt-1">Trả tiền nhà cung cấp</div>
+                                <small class="text-muted">Thanh toán cho NCC</small>
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button type="button" class="btn btn-outline-primary w-100 p-3 text-start"
+                                    onclick="selectAction('pay_expense');">
+                                <i class="bi bi-receipt text-warning" style="font-size:24px"></i>
+                                <div class="fw-semibold mt-1">Chi phí khác</div>
+                                <small class="text-muted">Điện, nước, văn phòng, marketing...</small>
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="{% url 'ui_modern:voucher_create' %}" class="btn btn-outline-secondary w-100 p-3 text-start">
+                                <i class="bi bi-gear text-muted" style="font-size:24px"></i>
+                                <div class="fw-semibold mt-1">Nhập bút toán thủ công</div>
+                                <small class="text-muted">Cho kế toán viên (advanced)</small>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Dynamic form -->
+            <div class="card shadow-sm" id="form-card" style="display:none;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong id="form-title">Nhập thông tin</strong>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetForm();">← Chọn lại</button>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="guided-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action_type" id="action_type" value="">
+
+                        <!-- Amount -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Số tiền <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="number" name="amount" id="amount" class="form-control form-control-lg font-mono"
+                                       required min="1000" step="1000" placeholder="1000000"
+                                       oninput="formatGuidedAmount(); updateGuidedPreview();">
+                                <span class="input-group-text">VNĐ</span>
+                            </div>
+                            <small class="text-muted" id="amount-guided-display"></small>
+                        </div>
+
+                        <!-- Dynamic fields -->
+                        <div id="dynamic-fields"></div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Diễn giải</label>
+                            <input type="text" name="description" class="form-control" placeholder="Mô tả ngắn gọn...">
+                        </div>
+
+                        <!-- Payment method -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Phương thức</label>
+                            <select name="payment_method" class="form-select" onchange="updateGuidedPreview();">
+                                <option value="111">Tiền mặt (TK 111)</option>
+                                <option value="1121">Ngân hàng VCB (TK 1121)</option>
+                                <option value="1122">Ngân hàng khác (TK 1122)</option>
+                            </select>
+                        </div>
+
+                        <!-- Preview -->
+                        <div class="alert alert-light border" id="guided-preview" style="display:none;">
+                            <strong>Bút toán:</strong>
+                            <div id="guided-preview-lines" class="font-mono small mt-2"></div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <i class="bi bi-check-lg"></i> Tạo phiếu
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const ACTIONS = {
+    collect: {
+        title: 'Thu tiền từ khách hàng',
+        fields: `
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Khách hàng</label>
+                <input type="text" name="counterparty" class="form-control" placeholder="Tên hoặc mã khách hàng">
+            </div>
+        `,
+        lines: (amt, pm, cp) => {
+            const lines = [`N ${pm}     ${fmt(amt)}đ  (Tiền thu)`];
+            lines.push(`C 131        ${fmt(amt)}đ  (KH ${cp || 'thanh toán'})`);
+            return lines;
+        },
+        vtype: 'cash_receipt',
+    },
+    pay_vendor: {
+        title: 'Trả tiền nhà cung cấp',
+        fields: `
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Nhà cung cấp</label>
+                <input type="text" name="counterparty" class="form-control" placeholder="Tên hoặc mã NCC">
+            </div>
+        `,
+        lines: (amt, pm, cp) => {
+            const lines = [`N 331        ${fmt(amt)}đ  (NCC ${cp || 'thanh toán'})`];
+            lines.push(`C ${pm}     ${fmt(amt)}đ  (Tiền chi)`);
+            return lines;
+        },
+        vtype: 'cash_payment',
+    },
+    pay_expense: {
+        title: 'Chi phí khác',
+        fields: `
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Loại chi phí</label>
+                <select name="expense_type" class="form-select" onchange="updateGuidedPreview();">
+                    <option value="641">Chi phí bán hàng (TK 641)</option>
+                    <option value="642" selected>Chi phí quản lý DN (TK 642)</option>
+                    <option value="635">Chi phí tài chính (TK 635)</option>
+                    <option value="622">Chi phí nhân công (TK 622)</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Có hóa đơn VAT?</label>
+                <div class="form-check">
+                    <input type="checkbox" name="has_vat" class="form-check-input" id="guided-vat" onchange="updateGuidedPreview();">
+                    <label class="form-check-label" for="guided-vat">Có VAT 10%</label>
+                </div>
+            </div>
+        `,
+        lines: (amt, pm, cp) => {
+            const et = document.querySelector('[name=expense_type]')?.value || '642';
+            const vat = document.getElementById('guided-vat')?.checked;
+            if (vat) {
+                const net = Math.round(amt / 1.1);
+                const v = amt - net;
+                return [`N ${et}     ${fmt(net)}đ  (chi phí)`, `N 1331       ${fmt(v)}đ  (VAT)`, `C ${pm}     ${fmt(amt)}đ  (tiền chi)`];
+            }
+            return [`N ${et}     ${fmt(amt)}đ  (chi phí)`, `C ${pm}     ${fmt(amt)}đ  (tiền chi)`];
+        },
+        vtype: 'cash_payment',
+    },
+};
+
+function fmt(v) { return parseInt(v).toLocaleString('vi-VN'); }
+
+function selectAction(action) {
+    const config = ACTIONS[action];
+    document.getElementById('action-card').style.display = 'none';
+    document.getElementById('form-card').style.display = 'block';
+    document.getElementById('form-title').textContent = config.title;
+    document.getElementById('dynamic-fields').innerHTML = config.fields;
+    document.getElementById('action_type').value = action;
+    window.scrollTo(0, 0);
+}
+
+function resetForm() {
+    document.getElementById('form-card').style.display = 'none';
+    document.getElementById('action-card').style.display = 'block';
+    document.getElementById('guided-form').reset();
+    document.getElementById('action_type').value = '';
+    document.getElementById('guided-preview').style.display = 'none';
+}
+
+function formatGuidedAmount() {
+    const v = document.getElementById('amount').value;
+    document.getElementById('amount-guided-display').textContent =
+        v && v >= 1000 ? '= ' + parseInt(v).toLocaleString('vi-VN') + ' đồng' : '';
+}
+
+function updateGuidedPreview() {
+    const amt = parseFloat(document.getElementById('amount').value) || 0;
+    if (amt < 1000) { document.getElementById('guided-preview').style.display = 'none'; return; }
+    const pm = document.querySelector('[name=payment_method]')?.value || '111';
+    const cp = document.querySelector('[name=counterparty]')?.value || '';
+    const action = document.getElementById('action_type').value;
+    const config = ACTIONS[action];
+    if (!config) return;
+    const lines = config.lines(amt, pm, cp);
+    document.getElementById('guided-preview-lines').innerHTML = lines.join('<br>');
+    document.getElementById('guided-preview').style.display = 'block';
+}
+</script>
+{% endblock %}

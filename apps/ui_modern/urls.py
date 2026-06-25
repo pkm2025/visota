@@ -138,6 +138,7 @@ from .views import (
     VendorListView,
     VendorUpdateView,
     VoucherCreateView,
+    VoucherGuidedView,
     VoucherDeleteView,
     VoucherDetailView,
     VoucherExportView,
@@ -392,6 +393,11 @@ urlpatterns = [
         "vouchers/new/",
         login_required(VoucherCreateView.as_view()),
         name="voucher_create",
+    ),
+    path(
+        "vouchers/guided/",
+        login_required(VoucherGuidedView.as_view()),
+        name="voucher_guided",
     ),
     path(
         "vouchers/<int:pk>/",

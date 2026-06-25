@@ -127,6 +127,7 @@ from .ledger_views import (
     VoucherDeleteView,
     VoucherDetailView,
     VoucherExportView,
+    VoucherGuidedView,
     VoucherListView,
 )
 from .payroll_views import PayrollRunView
@@ -251,6 +252,7 @@ __all__ = [
     "health_detailed",
     "VoucherListView",
     "VoucherCreateView",
+    "VoucherGuidedView",
     "VoucherDetailView",
     "VoucherDeleteView",
     "VoucherExportView",

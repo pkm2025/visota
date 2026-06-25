@@ -1,5 +1,6 @@
-"""Ledger views — voucher list, form, detail."""
+"""Ledger views — voucher list, form, detail, guided mode."""
 
+from datetime import date
 from decimal import Decimal
 
 from django.contrib import messages
@@ -8,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.generic import DetailView, ListView
 
+from apps.core.models import Company
 from apps.ledger.models import AccountingVoucher, VoucherLine
 from apps.ledger.services import VoucherPostingService
 from apps.ledger.services.voucher_posting_service import VoucherNotBalancedError
@@ -338,3 +340,98 @@ class VoucherDeleteView(LoginRequiredMixin, View):
     def get(self, request, pk, *args, **kwargs):
         # No GET confirm page — confirm via JS in template; redirect if hit directly.
         return redirect("ui_modern:voucher_detail", pk=pk)
+
+
+class VoucherGuidedView(LoginRequiredMixin, View):
+    """Guided voucher creation — pick action → auto-generate lines."""
+
+    template_name = "modern/ledger/voucher_guided.html"
+    login_url = "/auth/login/"
+
+    def get(self, request, *args, **kwargs):
+        ctx = {"page_title": "Tạo phiếu nhanh"}
+        return render(request, self.template_name, ctx)
+
+    def post(self, request, *args, **kwargs):
+        company = getattr(request, "current_company", None) or Company.objects.first()
+        if not company:
+            messages.error(request, "Chưa có công ty.")
+            return redirect("ui_modern:voucher_list")
+
+        action = request.POST.get("action_type", "")
+        amount_str = request.POST.get("amount", "0").strip()
+        try:
+            amount = Decimal(amount_str)
+        except Exception:
+            messages.error(request, "Số tiền không hợp lệ.")
+            return redirect("ui_modern:voucher_guided")
+
+        if amount < 1000:
+            messages.error(request, "Số tiền tối thiểu 1.000đ.")
+            return redirect("ui_modern:voucher_guided")
+
+        pm = request.POST.get("payment_method", "111")
+        cp = request.POST.get("counterparty", "").strip()
+        desc = request.POST.get("description", "").strip()
+        today = date.today()
+
+        # Build voucher based on action
+        vtype = AccountingVoucher.VoucherType.JOURNAL
+        lines_to_create = []
+
+        if action == "collect":
+            vtype = AccountingVoucher.VoucherType.CASH_RECEIPT
+            lines_to_create = [
+                (pm, amount, Decimal("0"), f"Thu tiền{' — ' + cp if cp else ''}"),
+                ("131", Decimal("0"), amount, f"Khách hàng{': ' + cp if cp else ''} thanh toán"),
+            ]
+        elif action == "pay_vendor":
+            vtype = AccountingVoucher.VoucherType.CASH_PAYMENT
+            lines_to_create = [
+                ("331", amount, Decimal("0"), f"Thanh toán NCC{': ' + cp if cp else ''}"),
+                (pm, Decimal("0"), amount, f"Chi tiền{' — ' + cp if cp else ''}"),
+            ]
+        elif action == "pay_expense":
+            vtype = AccountingVoucher.VoucherType.CASH_PAYMENT
+            exp_acc = request.POST.get("expense_type", "642")
+            has_vat = request.POST.get("has_vat") == "on"
+            if has_vat:
+                net = (amount / Decimal("1.1")).quantize(Decimal("0.0001"))
+                vat = amount - net
+                lines_to_create = [
+                    (exp_acc, net, Decimal("0"), desc or "Chi phí"),
+                    ("1331", vat, Decimal("0"), f"VAT 10% — {desc}" if desc else "VAT 10%"),
+                    (pm, Decimal("0"), amount, desc or "Chi tiền"),
+                ]
+            else:
+                lines_to_create = [
+                    (exp_acc, amount, Decimal("0"), desc or "Chi phí"),
+                    (pm, Decimal("0"), amount, desc or "Chi tiền"),
+                ]
+        else:
+            messages.error(request, "Vui lòng chọn loại nghiệp vụ.")
+            return redirect("ui_modern:voucher_guided")
+
+        voucher = AccountingVoucher.objects.create(
+            company=company, fiscal_year=today.year, period=today.month,
+            voucher_no=f"GUIDE-{today.strftime('%y%m%d')}-{AccountingVoucher.objects.filter(company=company, voucher_no__startswith='GUIDE').count() + 1:04d}",
+            voucher_type=vtype, voucher_date=today,
+            description=desc or f"[Tạo nhanh] {action}",
+            currency_code="VND", exchange_rate=Decimal("1"),
+            total_vnd=amount, status=AccountingVoucher.Status.DRAFT,
+            created_by=request.user,
+        )
+
+        for idx, (acc, dr, cr, line_desc) in enumerate(lines_to_create, 1):
+            VoucherLine.objects.create(
+                voucher=voucher, line_no=idx, account_code=acc,
+                object_code=cp if action in ("collect", "pay_vendor") else "",
+                debit_vnd=dr, credit_vnd=cr, description=line_desc,
+            )
+
+        try:
+            VoucherPostingService().post(voucher)
+            messages.success(request, f"Đã tạo và ghi sổ phiếu {voucher.voucher_no}.")
+        except Exception as e:
+            messages.warning(request, f"Phiếu đã tạo: {voucher.voucher_no}. Ghi sổ: {e}")
+        return redirect("ui_modern:voucher_detail", pk=voucher.pk)
