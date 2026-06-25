@@ -1,8 +1,23 @@
-"""Public views — landing + blog + contact + newsletter."""
+"""Public views — landing + blog + contact + newsletter + signup."""
+
+from datetime import date
+from decimal import Decimal
 
 from django.contrib import messages
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse, HttpResponseRedirect
+from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.decorators import method_decorator
+from django.views import View
+from django.views.generic import DetailView, ListView
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
+
+from apps.core.models import Company
+from apps.identity.models import User, Role, UserCompanyRole
+
+from .models import BlogArticle, BlogCategory, ContactRequest, NewsletterSubscriber
 from django.views import View
 from django.views.generic import DetailView, ListView
 
@@ -171,9 +186,131 @@ class NewsletterSubscribeView(View):
         return HttpResponseRedirect("/?newsletter=success")
 
 
+# ============ SIGNUP / ONBOARDING WIZARD ============
+
+INDUSTRY_CONFIG = {
+    "trading": {"name": "Thương mại", "regime": "tt133", "vat_default": "10"},
+    "service": {"name": "Dịch vụ", "regime": "tt133", "vat_default": "10"},
+    "manufacturing": {"name": "Sản xuất", "regime": "tt133", "vat_default": "10"},
+    "construction": {"name": "Xây dựng", "regime": "tt133", "vat_default": "10"},
+    "it": {"name": "Công nghệ thông tin", "regime": "tt133", "vat_default": "10"},
+    "other": {"name": "Khác", "regime": "tt133", "vat_default": "10"},
+}
+
+
+class SignupView(View):
+    """Multi-step onboarding wizard for new companies."""
+
+    @method_decorator(ensure_csrf_cookie)
+    def get(self, request):
+        if request.user.is_authenticated:
+            return redirect("/modern/")
+        return render(request, "public/signup.html", {
+            "industries": INDUSTRY_CONFIG,
+        })
+
+    def post(self, request):
+        # Step data from wizard
+        email = request.POST.get("email", "").strip().lower()
+        password = request.POST.get("password", "").strip()
+        full_name = request.POST.get("full_name", "").strip()
+        company_name = request.POST.get("company_name", "").strip()
+        tax_code = request.POST.get("tax_code", "").strip()
+        address = request.POST.get("address", "").strip()
+        phone = request.POST.get("phone", "").strip()
+        industry = request.POST.get("industry", "other")
+
+        # Validation
+        errors = []
+        if not email or "@" not in email:
+            errors.append("Email không hợp lệ")
+        if len(password) < 8:
+            errors.append("Mật khẩu tối thiểu 8 ký tự")
+        if not company_name:
+            errors.append("Vui lòng nhập tên công ty")
+        if User.objects.filter(email=email).exists():
+            errors.append("Email đã được sử dụng")
+
+        if errors:
+            for e in errors:
+                messages.error(request, e)
+            return render(request, "public/signup.html", {
+                "industries": INDUSTRY_CONFIG,
+                "form_data": request.POST,
+            })
+
+        # Create user
+        username = email.split("@")[0]
+        base_username = username
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base_username}{counter}"
+            counter += 1
+
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            full_name=full_name or username,
+            phone=phone,
+            is_active=True,
+        )
+
+        # Create company
+        config = INDUSTRY_CONFIG.get(industry, INDUSTRY_CONFIG["other"])
+        company_code = f"CO{User.objects.count():06d}"
+        company = Company.objects.create(
+            code=company_code,
+            name=company_name,
+            tax_code=tax_code,
+            address=address,
+            phone=phone,
+            email=email,
+            legal_representative=full_name,
+            accounting_regime=config["regime"],
+            is_active=True,
+        )
+
+        # Seed permissions + assign admin role
+        try:
+            from django.core.management import call_command
+            call_command("seed_permissions", verbosity=0)
+        except Exception:
+            pass
+
+        admin_role = Role.objects.filter(code="admin", company=company).first()
+        if not admin_role:
+            admin_role = Role.objects.create(
+                company=company, code="admin",
+                name="Quản trị", description="Toàn quyền",
+            )
+            from apps.identity.models import Permission
+            admin_role.permissions.set(Permission.objects.all())
+
+        UserCompanyRole.objects.create(
+            user=user, company=company, role=admin_role,
+            is_default=True,
+        )
+
+        # Set session
+        request.session["current_company_id"] = company.id
+
+        # Auto-seed chart of accounts
+        try:
+            from django.core.management import call_command
+            call_command("load_tt133", verbosity=0)
+        except Exception:
+            pass
+
+        # Login
+        login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+
+        messages.success(request, f"Chào mừng {full_name or username}! Tài khoản đã tạo thành công.")
+        return redirect("/modern/?welcome=1")
+
+
 # ============ ADMIN: Contact list ============
 
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView as AdminListView
 
 
