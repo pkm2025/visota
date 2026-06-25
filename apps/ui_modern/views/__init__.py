@@ -98,7 +98,7 @@ from .customer_views import (
     CustomerListView,
     CustomerUpdateView,
 )
-from .dashboard_views import DashboardView
+from .dashboard_views import DashboardView, QuickExpenseView
 from .document_views import (
     ContractExportDocxView,
     DocumentDeleteView,
@@ -186,6 +186,7 @@ from .vendor_views import (
 
 __all__ = [
     "DashboardView",
+    "QuickExpenseView",
     "ChartOfAccountsListView",
     "PMKetoanLoginView",
     "PMKetoanLogoutView",

@@ -1,0 +1,118 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item active">Ghi chi nhanh</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3"><i class="bi bi-lightning text-warning"></i> Ghi chi nhanh</h1>
+    <p class="text-muted">Không cần biết hạch toán — chỉ cần nhập số tiền + chọn loại chi.</p>
+
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form method="post" id="quick-expense-form">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Số tiền <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-lg">
+                                <input type="number" name="amount" id="amount" class="form-control font-mono" required
+                                       placeholder="500000" min="1000" step="1000"
+                                       oninput="formatAmount(); updatePreview();">
+                                <span class="input-group-text">VNĐ</span>
+                            </div>
+                            <small class="text-muted" id="amount-display"></small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Loại chi phí <span class="text-danger">*</span></label>
+                            <select name="expense_account" class="form-select form-select-lg" onchange="updatePreview();">
+                                {% for code, label in expense_categories %}
+                                <option value="{{ code }}">{{ label }} (TK {{ code }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Thanh toán bằng</label>
+                            <select name="payment_account" class="form-select" onchange="updatePreview();">
+                                <option value="111">Tiền mặt (TK 111)</option>
+                                <option value="1121">Ngân hàng VCB (TK 1121)</option>
+                                <option value="1122">Ngân hàng khác (TK 1122)</option>
+                                <option value="331">Nợ nhà cung cấp (TK 331)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Diễn giải</label>
+                            <input type="text" name="description" class="form-control"
+                                   placeholder="VD: Ăn trưa với khách hàng, mua văn phòng phẩm...">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Hóa đơn VAT?</label>
+                            <div class="form-check">
+                                <input type="checkbox" name="has_vat" class="form-check-input" id="has_vat" onchange="updatePreview();">
+                                <label class="form-check-label" for="has_vat">Có hóa đơn VAT (10%) — tự hạch toán thuế</label>
+                            </div>
+                        </div>
+
+                        <!-- Live preview -->
+                        <div class="alert alert-light border" id="preview" style="display:none;">
+                            <strong>Bút toán sẽ tạo:</strong>
+                            <div id="preview-lines" class="font-mono small mt-2"></div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <i class="bi bi-check-lg"></i> Ghi chi
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function formatAmount() {
+    const v = document.getElementById('amount').value;
+    if (v && v >= 1000) {
+        document.getElementById('amount-display').textContent = '= ' + parseInt(v).toLocaleString('vi-VN') + ' đồng';
+    } else {
+        document.getElementById('amount-display').textContent = '';
+    }
+}
+
+function updatePreview() {
+    const amount = parseFloat(document.getElementById('amount').value) || 0;
+    if (amount < 1000) { document.getElementById('preview').style.display = 'none'; return; }
+
+    const expAcc = document.querySelector('[name=expense_account]').value;
+    const payAcc = document.querySelector('[name=payment_account]').value;
+    const hasVat = document.querySelector('[name=has_vat]').checked;
+
+    let lines = [];
+    let remaining = amount;
+
+    if (hasVat) {
+        const vat = Math.round(amount / 1.1 * 0.1);
+        const net = amount - vat;
+        lines.push(`N ${expAcc}    ${net.toLocaleString()}đ  (chi phí)`);
+        lines.push(`N 1331         ${vat.toLocaleString()}đ  (VAT khấu trừ)`);
+        lines.push(`C ${payAcc}    ${amount.toLocaleString()}đ  (tiền ra)`);
+    } else {
+        lines.push(`N ${expAcc}    ${amount.toLocaleString()}đ`);
+        lines.push(`C ${payAcc}    ${amount.toLocaleString()}đ`);
+    }
+
+    document.getElementById('preview-lines').innerHTML = lines.join('<br>');
+    document.getElementById('preview').style.display = 'block';
+}
+</script>
+{% endblock %}

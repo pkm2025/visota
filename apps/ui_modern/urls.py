@@ -75,6 +75,7 @@ from .views import (
     CustomerUpdateView,
     D62ReportView,
     DashboardView,
+    QuickExpenseView,
     DependentListView,
     DepreciationRunView,
     DocumentDeleteView,
@@ -150,6 +151,11 @@ app_name = "ui_modern"
 
 urlpatterns = [
     path("", login_required(DashboardView.as_view()), name="dashboard"),
+    path(
+        "quick-expense/",
+        login_required(QuickExpenseView.as_view()),
+        name="dashboard_quick_expense",
+    ),
     # Universal attachments
     path(
         "attachments/upload/",
