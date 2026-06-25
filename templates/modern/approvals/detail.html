@@ -1,0 +1,155 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:approval_queue' %}">Phê duyệt</a></li>
+            <li class="breadcrumb-item active">Yêu cầu #{{ request.id }}</li>
+        </ol>
+    </nav>
+
+    <h1 class="h3 mb-3">Yêu cầu phê duyệt #{{ request.id }}</h1>
+
+    <div class="row">
+        <div class="col-md-7">
+            <div class="card mb-3">
+                <div class="card-header"><strong>Thông tin yêu cầu</strong></div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Đối tượng</dt>
+                        <dd class="col-sm-9 font-mono">{{ request.object_label }}</dd>
+                        <dt class="col-sm-3">Loại phiếu</dt>
+                        <dd class="col-sm-9">{{ request.voucher_type|default:"—" }}</dd>
+                        <dt class="col-sm-3">Giá trị</dt>
+                        <dd class="col-sm-9 font-mono">{{ request.amount|floatformat:0|intcomma }} VND</dd>
+                        <dt class="col-sm-3">Người yêu cầu</dt>
+                        <dd class="col-sm-9">{{ request.requested_by.username|default:"System" }}</dd>
+                        <dt class="col-sm-3">Ngày tạo</dt>
+                        <dd class="col-sm-9">{{ request.created_at|date:"d/m/Y H:i" }}</dd>
+                        <dt class="col-sm-3">Trạng thái</dt>
+                        <dd class="col-sm-9">
+                            {% if request.status == 'pending' %}<span class="badge bg-warning">Chờ duyệt</span>
+                            {% elif request.status == 'approved' %}<span class="badge bg-success">Đã duyệt</span>
+                            {% elif request.status == 'rejected' %}<span class="badge bg-danger">Từ chối</span>
+                            {% else %}<span class="badge bg-secondary">Đã hủy</span>{% endif %}
+                        </dd>
+                        {% if request.rejection_reason %}
+                        <dt class="col-sm-3">Lý do từ chối</dt>
+                        <dd class="col-sm-9 text-danger">{{ request.rejection_reason }}</dd>
+                        {% endif %}
+                        <dt class="col-sm-3">Đối tượng</dt>
+                        <dd class="col-sm-9">
+                            {% if request.content_type.model == 'contract' %}
+                            <a href="{% url 'ui_modern:contract_detail' request.object_id %}" class="font-mono">
+                                <i class="bi bi-file-earmark-text"></i> {{ request.object_label }}
+                            </a>
+                            {% elif request.content_type.model == 'accountingvoucher' %}
+                            <a href="{% url 'ui_modern:voucher_detail' request.object_id %}" class="font-mono">
+                                <i class="bi bi-receipt"></i> {{ request.object_label }}
+                            </a>
+                            {% elif request.content_type.model == 'salesinvoice' %}
+                            <a href="{% url 'ui_modern:sales_invoice_list' %}?search={{ request.object_label|cut:' ' }}" class="font-mono">
+                                <i class="bi bi-receipt-cutoff"></i> {{ request.object_label }}
+                            </a>
+                            {% elif request.content_type.model == 'purchaseinvoice' %}
+                            <a href="{% url 'ui_modern:purchase_invoice_list' %}" class="font-mono">
+                                <i class="bi bi-bag"></i> {{ request.object_label }}
+                            </a>
+                            {% else %}
+                            <span class="font-mono">{{ request.object_label }}</span>
+                            {% endif %}
+                            <small class="text-muted d-block">{{ request.content_type.app_label }}.{{ request.content_type.model }} #{{ request.object_id }}</small>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><strong>Chuỗi phê duyệt</strong></div>
+                <div class="card-body">
+                    <ol class="list-group list-group-numbered">
+                        {% for step in request.steps.all %}
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">
+                                    {% if step.status == 'pending' %}<i class="bi bi-clock text-warning"></i>
+                                    {% elif step.status == 'approved' %}<i class="bi bi-check-circle text-success"></i>
+                                    {% else %}<i class="bi bi-x-circle text-danger"></i>{% endif %}
+                                    Vai trò: <code>{{ step.role_required }}</code>
+                                </div>
+                                {% if step.approved_by %}
+                                <small class="text-muted">
+                                    {% if step.status == 'approved' %}Đã duyệt bởi{% else %}Đã từ chối bởi{% endif %}
+                                    {{ step.approved_by.username }} lúc {{ step.acted_at|date:"d/m/Y H:i" }}
+                                </small>
+                                {% endif %}
+                                {% if step.note %}<div class="small mt-1">{{ step.note }}</div>{% endif %}
+                            </div>
+                            <span class="badge bg-{{ step.status|cut:'pending'|cut:'approved'|cut:'rejected' }} bg-secondary">
+                                {{ step.get_status_display }}
+                            </span>
+                        </li>
+                        {% endfor %}
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            {% if can_act %}
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <strong><i class="bi bi-clipboard-check"></i> Hành động của bạn</strong>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted">
+                        Bạn có vai trò <code>{{ next_step.role_required }}</code> — được phép phê duyệt bước {{ next_step.sequence }}.
+                    </p>
+
+                    <form method="post" action="{% url 'ui_modern:approval_approve' request.id %}" class="mb-3">
+                        {% csrf_token %}
+                        <div class="mb-2">
+                            <label class="form-label small">Ghi chú (tùy chọn)</label>
+                            <input type="text" name="note" class="form-control form-control-sm"
+                                   placeholder="VD: Đã kiểm tra, sufficient budget">
+                        </div>
+                        <button class="btn btn-success w-100">
+                            <i class="bi bi-check-lg"></i> Phê duyệt
+                        </button>
+                    </form>
+
+                    <form method="post" action="{% url 'ui_modern:approval_reject' request.id %}"
+                          onsubmit="return confirm('Từ chối yêu cầu này?')">
+                        {% csrf_token %}
+                        <div class="mb-2">
+                            <label class="form-label small text-danger">Lý do từ chối *</label>
+                            <textarea name="reason" class="form-control form-control-sm" rows="2"
+                                      placeholder="Bắt buộc nhập lý do" required></textarea>
+                        </div>
+                        <button class="btn btn-outline-danger w-100">
+                            <i class="bi bi-x-lg"></i> Từ chối
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <div class="card">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-info-circle text-muted" style="font-size: 48px;"></i>
+                    <p class="text-muted mt-2 mb-0">
+                        {% if request.status == 'pending' %}
+                            Bạn không có quyền phê duyệt bước này (cần vai trò <code>{{ next_step.role_required }}</code>).
+                        {% else %}
+                            Yêu cầu đã được xử lý xong.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

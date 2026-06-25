@@ -59,11 +59,35 @@ class Company(models.Model):
 
     is_active = models.BooleanField(default=True)
 
+    # Business registration
+    business_license_no = models.CharField(max_length=50, blank=True, default="")
+    business_license_date = models.DateField(null=True, blank=True)
+    business_license_place = models.CharField(max_length=255, blank=True, default="")
+
+    # Extended contact
+    fax = models.CharField(max_length=20, blank=True, default="")
+    website = models.URLField(blank=True, default="")
+    representative_position = models.CharField(max_length=100, blank=True, default="")
+    representative_phone = models.CharField(max_length=20, blank=True, default="")
+    representative_email = models.EmailField(blank=True, default="")
+    representative_id_no = models.CharField(max_length=20, blank=True, default="")
+    chief_accountant_license = models.CharField(max_length=50, blank=True, default="")
+    chief_accountant_phone = models.CharField(max_length=20, blank=True, default="")
+
+    # Bank accounts (JSON: [{"bank": "VCB", "account": "...", "holder": "..."}])
+    bank_accounts = models.JSONField(default=list, blank=True)
+
+    # Social media
+    facebook = models.URLField(blank=True, default="")
+    linkedin = models.URLField(blank=True, default="")
+    zalo = models.CharField(max_length=50, blank=True, default="")
+
     # Branding
     brand_name = models.CharField(max_length=255, blank=True)
     brand_logo = models.ImageField(upload_to="brands/logos/", null=True, blank=True)
     brand_logo_dark = models.ImageField(upload_to="brands/logos/", null=True, blank=True)
     brand_favicon = models.ImageField(upload_to="brands/favicons/", null=True, blank=True)
+    company_stamp = models.ImageField(upload_to="brands/stamps/", null=True, blank=True)
     brand_primary_color = models.CharField(
         max_length=7, default="#2563eb", validators=[HEX_COLOR_VALIDATOR]
     )

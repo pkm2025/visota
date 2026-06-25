@@ -1,0 +1,117 @@
+{% extends 'modern/base/layout.html' %}
+{% load perm_tags %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    {% include 'shared/_breadcrumb.html' with items='Trang chủ,Tài khoản,Quyền của tôi' %}
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header"><strong>Tài khoản</strong></div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>{{ user.full_name|default:user.username }}</strong></p>
+                    <p class="text-muted small mb-2">@{{ user.username }}</p>
+                    <p class="small mb-1">Email: {{ user.email|default:"-" }}</p>
+                    <p class="small mb-1">Công ty: <strong>{{ company.name|default:"-" }}</strong></p>
+                    <p class="small mb-1">
+                        Trạng thái:
+                        {% if is_superuser %}
+                            <span class="badge bg-danger">Superuser</span>
+                        {% else %}
+                            <span class="badge bg-success">User thường</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><strong>Vai trò đã gán</strong></div>
+                <div class="card-body">
+                    {% if assignments %}
+                    <ul class="list-group list-group-flush">
+                        {% for a in assignments %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div>
+                                <strong>{{ a.role.name }}</strong>
+                                <small class="text-muted d-block">{{ a.role.code }}</small>
+                            </div>
+                            {% if a.is_default %}<span class="badge bg-primary">Mặc định</span>{% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted small mb-0">
+                        <i class="bi bi-exclamation-triangle text-warning"></i>
+                        Chưa được gán vai trò nào. Liên hệ quản trị viên.
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            {% if is_superuser %}
+            <div class="alert alert-warning">
+                <i class="bi bi-shield-fill-exclamation"></i>
+                Tài khoản <strong>superuser</strong> có toàn quyền truy cập mọi module,
+                bypass mọi kiểm tra phân quyền.
+            </div>
+            {% endif %}
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>Module được phép truy cập</strong>
+                    <span class="badge bg-success">{{ permissions|length }} module</span>
+                </div>
+                <div class="card-body">
+                    {% if permissions %}
+                    <div class="row">
+                        {% regroup permissions by module as module_list %}
+                        {% for group in module_list %}
+                        <div class="col-md-6 mb-2">
+                            <div class="border rounded p-2 h-100">
+                                <div class="small text-muted text-uppercase">{{ group.grouper }}</div>
+                                {% for p in group.list %}
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                    <span class="small">{{ p.name }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-3 mb-0">
+                        <i class="bi bi-lock display-6 d-block mb-2"></i>
+                        Bạn chưa có quyền truy cập module nào.
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if denied_permissions %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    <strong>Module chưa được cấp</strong>
+                    <span class="badge bg-secondary">{{ denied_permissions|length }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% regroup denied_permissions by module as denied_list %}
+                        {% for group in denied_list %}
+                        <div class="col-md-6 mb-1">
+                            <i class="bi bi-x-circle text-muted me-1"></i>
+                            <small class="text-muted">{{ group.grouper }} — {{ group.list.0.name }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

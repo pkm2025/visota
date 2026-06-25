@@ -41,6 +41,16 @@ INSTALLED_APPS = [
     'apps.recurring',
     'apps.projects',
     'apps.crm',
+    'apps.notifications',
+    'apps.approvals',
+    'apps.einvoice',
+    'apps.banking',
+    'apps.guarantees',
+    'apps.loans',
+    'apps.bidding',
+    'apps.budget',
+    'apps.fx',
+    'apps.public',
 
     # Local — UI layout packs
     'apps.ui_modern',
@@ -57,6 +67,7 @@ MIDDLEWARE = [
     'axes.middleware.AxesMiddleware',
     'apps.core.middleware.TenantMiddleware',
     'apps.core.middleware.BrandingMiddleware',
+    'apps.identity.middleware.ModulePermissionMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -74,6 +85,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'apps.core.context_processors.branding',
                 'apps.identity.context_processors.user_permissions',
+                'apps.notifications.context_processors.notifications',
             ],
         },
     },

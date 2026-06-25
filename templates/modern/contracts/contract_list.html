@@ -14,6 +14,9 @@
             </nav>
             <h1 class="h3 mb-0">{{ page_title }}</h1>
         </div>
+        <a href="{% url 'ui_modern:contract_template_list' %}" class="btn btn-outline-info btn-sm">
+            <i class="bi bi-file-earmark-text"></i> Mẫu văn bản
+        </a>
         <a href="{% url 'ui_modern:contract_create' %}" class="btn btn-primary btn-sm">
             <i class="bi bi-plus"></i> Thêm hợp đồng
         </a>
@@ -58,7 +61,7 @@
                     </thead>
                     <tbody>
                         {% for c in contracts %}
-                        <tr>
+                        <tr style="cursor:pointer" onclick="window.location.href='{% url 'ui_modern:contract_detail' c.id %}'">
                             <td class="font-mono">{{ c.contract_no }}</td>
                             <td>{{ c.contract_date|date:"d/m/Y" }}</td>
                             <td><small>{{ c.get_contract_type_display }}</small></td>

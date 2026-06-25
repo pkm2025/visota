@@ -1,0 +1,48 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    {% include 'shared/_breadcrumb.html' %}
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+    <div class="card">
+        <div class="card-body">
+            {% if guarantees %}
+            <table class="table table-sm table-hover">
+                <thead class="table-light">
+                    <tr><th>Số BL</th><th>Loại</th><th>Ngày phát hành</th><th>Ngày hết hạn</th><th>Beneficiary</th><th class="text-end">Giá trị</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    {% for g in guarantees %}
+                    <tr>
+                        <td class="font-mono">{{ g.guarantee_no }}</td>
+                        <td><small>{{ g.get_guarantee_type_display }}</small></td>
+                        <td>{{ g.issue_date|date:"d/m/Y" }}</td>
+                        <td>
+                            {{ g.expiry_date|date:"d/m/Y" }}
+                            {% if g.days_to_expiry is not None and g.days_to_expiry < 30 and g.status == 'active' %}
+                            <span class="badge bg-warning ms-1">{{ g.days_to_expiry }}d</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ g.beneficiary_name|truncatechars:30 }}</td>
+                        <td class="text-end font-mono">{{ g.amount|floatformat:0|intcomma }}</td>
+                        <td>
+                            {% if g.status == 'active' %}<span class="badge bg-success">Hiệu lực</span>
+                            {% elif g.status == 'released' %}<span class="badge bg-secondary">Đã giải chấp</span>
+                            {% elif g.status == 'expired' %}<span class="badge bg-danger">Quá hạn</span>
+                            {% else %}<span class="badge bg-light">{{ g.get_status_display }}</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted text-center py-4 mb-0">
+                <i class="bi bi-shield-check display-6 d-block mb-2"></i>
+                Chưa có bảo lãnh ngân hàng nào.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -3,6 +3,47 @@ from django.urls import path
 
 from .views import (
     AccountCreateView,
+    AdminRoleEditView,
+    AdminRoleListView,
+    AdminUserAssignView,
+    AdminUserListView,
+    MyPermissionsView,
+    ApprovalApproveView,
+    ApprovalDetailView,
+    ApprovalQueueView,
+    ApprovalRejectView,
+    ApprovalRuleListView,
+    EInvoiceCancelView,
+    EInvoiceDetailView,
+    EInvoiceIssueFromSalesView,
+    EInvoiceJsonDownloadView,
+    EInvoiceListView,
+    EInvoicePublishView,
+    EInvoiceReportView,
+    EInvoiceXmlDownloadView,
+    # Banking + guarantees + loans (P1)
+    BankAccountListView,
+    BankReconciliationRunView,
+    BankReconciliationView,
+    CompanyProfileView,
+    ContactListAdminView,
+    BankStatementImportDetailView,
+    BankStatementImportListView,
+    BankStatementUploadView,
+    BankGuaranteeListView,
+    BankLoanListView,
+    BidConvertToContractView,
+    BidOpportunityDetailView,
+    BidOpportunityListView,
+    BudgetDetailView,
+    BudgetGenerateView,
+    BudgetListView,
+    BudgetRefreshActualsView,
+    CashFlowGenerateView,
+    CashFlowView,
+    ExchangeRateListView,
+    FxRevaluationListView,
+    FxRevaluationRunView,
     AssetCreateView,
     AssetDisposeView,
     AssetListView,
@@ -18,10 +59,15 @@ from .views import (
     CashReceiptCreateView,
     ChartOfAccountsListView,
     ContractCreateView,
+    ContractDetailView,
     ContractExportDocxView,
     ContractGenerateView,
     ContractListView,
     ContractTemplateListView,
+    ContractTemplateCreateView,
+    ContractTemplateEditView,
+    ContractTemplateDeleteView,
+    ContractTemplatePreviewRawView,
     CustomerCreateView,
     CustomerDeleteView,
     CustomerExportView,
@@ -119,6 +165,217 @@ urlpatterns = [
         "attachments/<int:pk>/download/",
         login_required(AttachmentDownloadView.as_view()),
         name="attachment_download",
+    ),
+    # Admin: roles + permissions + user assignment
+    path(
+        "me/permissions/",
+        login_required(MyPermissionsView.as_view()),
+        name="my_permissions",
+    ),
+    path(
+        "admin/roles/",
+        login_required(AdminRoleListView.as_view()),
+        name="admin_role_list",
+    ),
+    path(
+        "admin/roles/<int:pk>/edit/",
+        login_required(AdminRoleEditView.as_view()),
+        name="admin_role_edit",
+    ),
+    path(
+        "admin/users/",
+        login_required(AdminUserListView.as_view()),
+        name="admin_user_list",
+    ),
+    path(
+        "admin/users/<int:user_id>/assign/",
+        login_required(AdminUserAssignView.as_view()),
+        name="admin_user_assign",
+    ),
+    # Company profile
+    path(
+        "admin/company-profile/",
+        login_required(CompanyProfileView.as_view()),
+        name="company_profile",
+    ),
+    # Contact requests (from landing/blog)
+    path(
+        "admin/contacts/",
+        login_required(ContactListAdminView.as_view()),
+        name="admin_contact_list",
+    ),
+    # Approvals workflow
+    path(
+        "approvals/",
+        login_required(ApprovalQueueView.as_view()),
+        name="approval_queue",
+    ),
+    path(
+        "approvals/rules/",
+        login_required(ApprovalRuleListView.as_view()),
+        name="approval_rules",
+    ),
+    path(
+        "approvals/<int:pk>/",
+        login_required(ApprovalDetailView.as_view()),
+        name="approval_detail",
+    ),
+    path(
+        "approvals/<int:pk>/approve/",
+        login_required(ApprovalApproveView.as_view()),
+        name="approval_approve",
+    ),
+    path(
+        "approvals/<int:pk>/reject/",
+        login_required(ApprovalRejectView.as_view()),
+        name="approval_reject",
+    ),
+    # E-invoice (Hóa đơn điện tử)
+    path(
+        "einvoices/",
+        login_required(EInvoiceListView.as_view()),
+        name="einvoice_list",
+    ),
+    path(
+        "einvoices/<int:pk>/",
+        login_required(EInvoiceDetailView.as_view()),
+        name="einvoice_detail",
+    ),
+    path(
+        "einvoices/issue-from-sales/<int:sales_invoice_id>/",
+        login_required(EInvoiceIssueFromSalesView.as_view()),
+        name="einvoice_issue_from_sales",
+    ),
+    path(
+        "einvoices/<int:pk>/publish/",
+        login_required(EInvoicePublishView.as_view()),
+        name="einvoice_publish",
+    ),
+    path(
+        "einvoices/<int:pk>/cancel/",
+        login_required(EInvoiceCancelView.as_view()),
+        name="einvoice_cancel",
+    ),
+    path(
+        "einvoices/<int:pk>/download/xml/",
+        login_required(EInvoiceXmlDownloadView.as_view()),
+        name="einvoice_download_xml",
+    ),
+    path(
+        "einvoices/<int:pk>/download/json/",
+        login_required(EInvoiceJsonDownloadView.as_view()),
+        name="einvoice_download_json",
+    ),
+    path(
+        "einvoices/reports/generate/",
+        login_required(EInvoiceReportView.as_view()),
+        name="einvoice_report_generate",
+    ),
+    # Banking (reconciliation) — declared directly for ui_modern:banking_* names
+    path(
+        "banking/accounts/",
+        login_required(BankAccountListView.as_view()),
+        name="banking_account_list",
+    ),
+    path(
+        "banking/imports/",
+        login_required(BankStatementImportListView.as_view()),
+        name="banking_import_list",
+    ),
+    path(
+        "banking/imports/upload/",
+        login_required(BankStatementUploadView.as_view()),
+        name="banking_import_upload",
+    ),
+    path(
+        "banking/imports/<int:pk>/",
+        login_required(BankStatementImportDetailView.as_view()),
+        name="banking_import_detail",
+    ),
+    path(
+        "banking/reconcile/",
+        login_required(BankReconciliationView.as_view()),
+        name="banking_reconcile",
+    ),
+    path(
+        "banking/reconcile/run/",
+        login_required(BankReconciliationRunView.as_view()),
+        name="banking_reconcile_run",
+    ),
+    # Guarantees
+    path(
+        "guarantees/",
+        login_required(BankGuaranteeListView.as_view()),
+        name="guarantee_list",
+    ),
+    # Loans
+    path(
+        "loans/",
+        login_required(BankLoanListView.as_view()),
+        name="loan_list",
+    ),
+    # Bidding (P2.1)
+    path(
+        "bidding/",
+        login_required(BidOpportunityListView.as_view()),
+        name="bid_list",
+    ),
+    path(
+        "bidding/<int:pk>/",
+        login_required(BidOpportunityDetailView.as_view()),
+        name="bid_detail",
+    ),
+    path(
+        "bidding/<int:pk>/convert-to-contract/",
+        login_required(BidConvertToContractView.as_view()),
+        name="bid_convert_to_contract",
+    ),
+    # Budget + Cash flow (P2.2)
+    path(
+        "budget/",
+        login_required(BudgetListView.as_view()),
+        name="budget_list",
+    ),
+    path(
+        "budget/<int:pk>/",
+        login_required(BudgetDetailView.as_view()),
+        name="budget_detail",
+    ),
+    path(
+        "budget/generate/",
+        login_required(BudgetGenerateView.as_view()),
+        name="budget_generate",
+    ),
+    path(
+        "budget/<int:pk>/refresh/",
+        login_required(BudgetRefreshActualsView.as_view()),
+        name="budget_refresh",
+    ),
+    path(
+        "cash-flow/",
+        login_required(CashFlowView.as_view()),
+        name="cash_flow",
+    ),
+    path(
+        "cash-flow/generate/",
+        login_required(CashFlowGenerateView.as_view()),
+        name="cash_flow_generate",
+    ),
+    # FX (P2.3)
+    path(
+        "fx/rates/",
+        login_required(ExchangeRateListView.as_view()),
+        name="fx_rate_list",
+    ),
+    path(
+        "fx/revaluation/",
+        login_required(FxRevaluationListView.as_view()),
+        name="fx_revaluation_list",
+    ),
+    path(
+        "fx/revaluation/run/",
+        login_required(FxRevaluationRunView.as_view()),
+        name="fx_revaluation_run",
     ),
     path(
         "vouchers/",
@@ -478,11 +735,41 @@ urlpatterns = [
         login_required(ContractCreateView.as_view()),
         name="contract_create",
     ),
-    # Contract templates
+    path(
+        "contracts/<int:pk>/",
+        login_required(ContractDetailView.as_view()),
+        name="contract_detail",
+    ),
+    # Contract templates — full CRUD
     path(
         "contract-templates/",
         login_required(ContractTemplateListView.as_view()),
         name="contract_template_list",
+    ),
+    path(
+        "contract-templates/new/",
+        login_required(ContractTemplateCreateView.as_view()),
+        name="contract_template_create",
+    ),
+    path(
+        "contract-templates/duplicate/<int:pk>/",
+        login_required(ContractTemplateCreateView.as_view()),
+        name="contract_template_duplicate",
+    ),
+    path(
+        "contract-templates/<int:pk>/edit/",
+        login_required(ContractTemplateEditView.as_view()),
+        name="contract_template_edit",
+    ),
+    path(
+        "contract-templates/<int:pk>/delete/",
+        login_required(ContractTemplateDeleteView.as_view()),
+        name="contract_template_delete",
+    ),
+    path(
+        "contract-templates/preview-raw/",
+        login_required(ContractTemplatePreviewRawView.as_view()),
+        name="contract_template_preview_raw",
     ),
     path(
         "contract-templates/generate/<str:template_code>/<int:contract_id>/",

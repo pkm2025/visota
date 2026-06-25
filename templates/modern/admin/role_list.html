@@ -1,0 +1,70 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item">Hệ thống</li>
+            <li class="breadcrumb-item active">Vai trò &amp; phân quyền</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã</th>
+                            <th>Tên vai trò</th>
+                            <th>Mô tả</th>
+                            <th class="text-center">Số quyền</th>
+                            <th class="text-center">Users</th>
+                            <th>Loại</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for role in roles %}
+                        <tr>
+                            <td class="font-mono">{{ role.code }}</td>
+                            <td>{{ role.name }}</td>
+                            <td class="text-muted small">{{ role.description|truncatechars:80 }}</td>
+                            <td class="text-center font-mono">{{ role.permissions.count }}</td>
+                            <td class="text-center font-mono">{{ role.user_company_roles.count }}</td>
+                            <td>
+                                {% if role.is_system %}
+                                <span class="badge bg-info">Hệ thống</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Tùy chỉnh</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <a href="{% url 'ui_modern:admin_role_edit' role.pk %}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-pencil"></i> Phân quyền
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                                Chưa có vai trò nào.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3 small text-muted">
+        <i class="bi bi-info-circle"></i>
+        Chạy lệnh <code>python manage.py seed_permissions</code> để làm mới danh sách module.
+    </div>
+</div>
+{% endblock %}

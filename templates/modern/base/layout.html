@@ -1,12 +1,20 @@
 {% load static %}
+{% load perm_tags %}
 <!DOCTYPE html>
 <html lang="vi" data-layout="{{ current_layout }}">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <meta name="theme-color" content="{{ brand.primary_color|default:'#2563eb' }}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="PMKetoan">
+    <meta name="description" content="PMKetoan ERP — Hệ thống kế toán VN tuân thủ TT133/2016, TT200/2014">
     <title>{% block title %}{{ brand.name }}{% endblock %}</title>
 
     <link rel="icon" href="{{ brand.favicon }}">
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <link rel="apple-touch-icon" href="{% static 'icons/apple-touch-icon.png' %}">
 
     <link rel="stylesheet" href="{% static 'vendor/css/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'vendor/css/bootstrap-icons.min.css' %}">
@@ -50,10 +58,84 @@
             </form>
         </div>
         <div class="topbar-right">
+            <!-- Company switcher (only for authenticated users with company) -->
+            {% if user.is_authenticated and request.current_company %}
+            <div class="dropdown">
+                <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" title="Đổi công ty">
+                    <i class="bi bi-building"></i>
+                    <span class="d-none d-md-inline">{{ request.current_company.short_name|default:request.current_company.name|truncatechars:15 }}</span>
+                    <i class="bi bi-chevron-down" style="font-size:10px"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li class="px-3 py-1 small text-muted">Công ty của bạn</li>
+                    {% for ucr in user.company_roles.all %}
+                    <li>
+                        <form method="post" action="/switch-company/" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="company_id" value="{{ ucr.company.id }}">
+                            <button type="submit" class="dropdown-item {% if request.current_company.id == ucr.company.id %}active{% endif %}">
+                                <i class="bi bi-building"></i> {{ ucr.company.name }}
+                                <small class="text-muted d-block">{{ ucr.role.name }}</small>
+                            </button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                    {% if user.is_superuser %}
+                    <li><hr class="dropdown-divider"></li>
+                    {% for c in all_companies|default:'' %}
+                    {% endfor %}
+                    {% endif %}
+                </ul>
+            </div>
+            {% endif %}
             <button class="sidebar-toggle" @click="toggleRight()" title="Ẩn/hiện ngữ cảnh" aria-label="Toggle context panel">
                 <i class="bi bi-layout-sidebar-inset-reverse"></i>
             </button>
-            <button class="btn btn-sm btn-light"><i class="bi bi-bell"></i></button>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-light position-relative" data-bs-toggle="dropdown" title="Thông báo">
+                    <i class="bi bi-bell"></i>
+                    {% if unread_count %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 9px;">
+                        {{ unread_count|truncatechars:3 }}
+                        <span class="visually-hidden">thông báo mới</span>
+                    </span>
+                    {% endif %}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" style="min-width: 360px; max-height: 480px; overflow-y: auto;">
+                    <li class="px-3 py-2 d-flex justify-content-between align-items-center border-bottom">
+                        <strong>Thông báo</strong>
+                        {% if unread_count %}
+                        <span class="badge bg-danger">{{ unread_count }} mới</span>
+                        {% endif %}
+                    </li>
+                    {% if recent_notifications %}
+                        {% for n in recent_notifications %}
+                        <li>
+                            <a class="dropdown-item d-flex py-2 border-bottom {% if not n.is_read %}bg-light{% endif %}" href="{{ n.url|default:'#' }}">
+                                <i class="bi {{ n.icon }} me-2" style="font-size: 18px;"></i>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between">
+                                        <strong class="small">{{ n.title|truncatechars:40 }}</strong>
+                                    </div>
+                                    <small class="text-muted d-block">{{ n.message|truncatechars:80 }}</small>
+                                    <small class="text-muted">{{ n.created_at|timesince }} trước</small>
+                                </div>
+                            </a>
+                        </li>
+                        {% endfor %}
+                    {% else %}
+                        <li class="px-3 py-4 text-center text-muted small">
+                            <i class="bi bi-bell-slash d-block mb-2" style="font-size: 28px;"></i>
+                            Chưa có thông báo
+                        </li>
+                    {% endif %}
+                    <li class="border-top">
+                        <a class="dropdown-item text-center small text-primary" href="{% url 'notifications:inbox' %}">
+                            Xem tất cả thông báo →
+                        </a>
+                    </li>
+                </ul>
+            </div>
             <button class="btn btn-sm btn-light"><i class="bi bi-gear"></i></button>
             {% if user.is_authenticated %}
             <div class="dropdown">
@@ -79,41 +161,80 @@
                 <a href="{% url 'ui_modern:dashboard' %}" class="nav-item">
                     <i class="bi bi-house"></i> <span>Trang chủ</span>
                 </a>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_CNDL') !== 'false' }">
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_CNDL') !== 'false' }"
+                     {% has_module_access "ledger" as can_ledger %}{% has_module_access "input_docs" as can_input_docs %}{% has_module_access "recurring" as can_recurring %}{% has_module_access "treasury" as can_treasury %}{% has_module_access "banking" as can_banking %}{% has_module_access "loans" as can_loans %}{% has_module_access "guarantees" as can_guarantees %}
+                     {% if not can_ledger and not can_input_docs and not can_recurring and not can_treasury and not can_banking and not can_loans and not can_guarantees %}style="display:none"{% endif %}>
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_CNDL', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                         <span>Cập nhật số liệu</span>
                         <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
                     </div>
                     <div x-show="open" x-collapse>
+                        {% if can_ledger %}
                         <a href="{% url 'ui_modern:voucher_list' %}" class="nav-item"><i class="bi bi-receipt"></i> <span>Phiếu kế toán</span></a>
+                        {% endif %}
+                        {% if can_treasury %}
                         <a href="{% url 'ui_modern:cash_receipt_create' %}" class="nav-item"><i class="bi bi-cash-coin"></i> <span>Phiếu thu</span></a>
                         <a href="{% url 'ui_modern:cash_payment_create' %}" class="nav-item"><i class="bi bi-credit-card"></i> <span>Phiếu chi</span></a>
+                        {% endif %}
+                        {% if can_banking %}
+                        <a href="{% url 'ui_modern:banking_account_list' %}" class="nav-item"><i class="bi bi-bank"></i> <span>Ngân hàng &amp; Đối soát</span></a>
+                        {% endif %}
+                        {% if can_guarantees %}
+                        <a href="{% url 'ui_modern:guarantee_list' %}" class="nav-item"><i class="bi bi-shield-check"></i> <span>Bảo lãnh ngân hàng</span></a>
+                        {% endif %}
+                        {% if can_loans %}
+                        <a href="{% url 'ui_modern:loan_list' %}" class="nav-item"><i class="bi bi-bank2"></i> <span>Vay vốn ngân hàng</span></a>
+                        {% endif %}
+                        {% if can_ledger %}
                         <a href="{% url 'ui_modern:period_closing' %}" class="nav-item"><i class="bi bi-arrow-repeat"></i> <span>Kết chuyển cuối kỳ</span></a>
+                        {% endif %}
+                        {% if can_input_docs %}
                         <a href="{% url 'ui_modern:input_invoice_list' %}" class="nav-item"><i class="bi bi-file-earmark-richtext"></i> <span>Hóa đơn đầu vào</span></a>
+                        {% endif %}
+                        {% if can_recurring %}
                         <a href="{% url 'ui_modern:recurring_list' %}" class="nav-item"><i class="bi bi-clock-history"></i> <span>Bút toán định kỳ</span></a>
+                        {% endif %}
                     </div>
                 </div>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_NV') !== 'false' }">
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_NV') !== 'false' }"
+                     {% has_module_access "sales" as can_sales %}{% has_module_access "purchasing" as can_purchasing %}{% has_module_access "master_data" as can_master_data %}{% has_module_access "inventory" as can_inventory %}{% has_module_access "contracts" as can_contracts %}{% has_module_access "bidding" as can_bidding %}
+                     {% if not can_sales and not can_purchasing and not can_master_data and not can_inventory and not can_contracts and not can_bidding %}style="display:none"{% endif %}>
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_NV', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                         <span>Nghiệp vụ</span>
                         <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
                     </div>
                     <div x-show="open" x-collapse>
+                        {% if can_sales %}
                         <a href="{% url 'ui_modern:customer_list' %}" class="nav-item">
                             <i class="bi bi-people"></i> <span>Khách hàng</span>
                         </a>
+                        {% endif %}
+                        {% if can_purchasing %}
                         <a href="{% url 'ui_modern:vendor_list' %}" class="nav-item">
                             <i class="bi bi-truck"></i> <span>Nhà cung cấp</span>
                         </a>
+                        {% endif %}
+                        {% if can_master_data %}
                         <a href="{% url 'ui_modern:product_list' %}" class="nav-item">
                             <i class="bi bi-box"></i> <span>Hàng hóa</span>
                         </a>
+                        {% endif %}
+                        {% if can_bidding %}
+                        <a href="{% url 'ui_modern:bid_list' %}" class="nav-item">
+                            <i class="bi bi-briefcase"></i> <span>Cơ hội đấu thầu</span>
+                        </a>
+                        {% endif %}
+                        {% if can_sales %}
                         <a href="{% url 'ui_modern:sales_invoice_list' %}" class="nav-item">
                             <i class="bi bi-receipt-cutoff"></i> <span>Hóa đơn bán</span>
                         </a>
+                        {% endif %}
+                        {% if can_purchasing %}
                         <a href="{% url 'ui_modern:purchase_invoice_list' %}" class="nav-item">
                             <i class="bi bi-bag"></i> <span>Phiếu nhập mua</span>
                         </a>
+                        {% endif %}
+                        {% if can_inventory %}
                         <a href="{% url 'ui_modern:stock_voucher_list' %}" class="nav-item">
                             <i class="bi bi-box-seam"></i> <span>Phiếu nhập xuất</span>
                         </a>
@@ -126,31 +247,41 @@
                         <a href="{% url 'ui_modern:stock_card_report' %}" class="nav-item">
                             <i class="bi bi-card-list"></i> <span>Thẻ kho</span>
                         </a>
+                        {% endif %}
+                        {% if can_contracts %}
                         <a href="{% url 'ui_modern:contract_list' %}" class="nav-item">
                             <i class="bi bi-file-earmark-text"></i> <span>Hợp đồng</span>
                         </a>
                         <a href="{% url 'ui_modern:contract_template_list' %}" class="nav-item">
                             <i class="bi bi-file-earmark-plus"></i> <span>Mẫu hợp đồng</span>
                         </a>
+                        {% endif %}
                     </div>
                 </div>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_PRJ') !== 'false' }">
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_PRJ') !== 'false' }"
+                     {% has_module_access "projects" as can_projects %}
+                     {% if not can_projects %}style="display:none"{% endif %}>
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_PRJ', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                         <span>Dự án</span>
                         <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
                     </div>
                     <div x-show="open" x-collapse>
+                        {% if can_projects %}
                         <a href="{% url 'ui_modern:project_list' %}" class="nav-item">
                             <i class="bi bi-kanban"></i> <span>Quản lý dự án</span>
                         </a>
+                        {% endif %}
                     </div>
                 </div>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_CRM') !== 'false' }">
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_CRM') !== 'false' }"
+                     {% has_module_access "crm" as can_crm %}
+                     {% if not can_crm %}style="display:none"{% endif %}>
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_CRM', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                         <span>CRM</span>
                         <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
                     </div>
                     <div x-show="open" x-collapse>
+                        {% if can_crm %}
                         <a href="{% url 'ui_modern:crm_lead_list' %}" class="nav-item">
                             <i class="bi bi-person-plus"></i> <span>Khách tiềm năng</span>
                         </a>
@@ -163,14 +294,18 @@
                         <a href="{% url 'ui_modern:crm_campaign_list' %}" class="nav-item">
                             <i class="bi bi-megaphone"></i> <span>Chiến dịch</span>
                         </a>
+                        {% endif %}
                     </div>
                 </div>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_TS') !== 'false' }">
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_TS') !== 'false' }"
+                     {% has_module_access "assets" as can_assets %}
+                     {% if not can_assets %}style="display:none"{% endif %}>
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_TS', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                         <span>Tài sản</span>
                         <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
                     </div>
                     <div x-show="open" x-collapse>
+                        {% if can_assets %}
                         <a href="{% url 'ui_modern:asset_list' %}" class="nav-item">
                             <i class="bi bi-bounding-box"></i> <span>Tài sản cố định / CCDC</span>
                         </a>
@@ -180,14 +315,18 @@
                         <a href="{% url 'ui_modern:asset_transaction_list' %}" class="nav-item">
                             <i class="bi bi-clock-history"></i> <span>Giao dịch tài sản</span>
                         </a>
+                        {% endif %}
                     </div>
                 </div>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_NS') !== 'false' }">
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_NS') !== 'false' }"
+                     {% has_module_access "hr" as can_hr %}{% has_module_access "payroll" as can_payroll %}
+                     {% if not can_hr and not can_payroll %}style="display:none"{% endif %}>
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_NS', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                         <span>Nhân sự</span>
                         <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
                     </div>
                     <div x-show="open" x-collapse>
+                        {% if can_hr %}
                         <a href="{% url 'ui_modern:employee_list' %}" class="nav-item">
                             <i class="bi bi-person-badge"></i> <span>Nhân viên</span>
                         </a>
@@ -203,27 +342,38 @@
                         <a href="{% url 'ui_modern:insurance_dashboard' %}" class="nav-item">
                             <i class="bi bi-shield-check"></i> <span>Bảo hiểm xã hội</span>
                         </a>
+                        {% endif %}
+                        {% if can_payroll %}
                         <a href="{% url 'ui_modern:payroll_run' %}" class="nav-item">
                             <i class="bi bi-cash-stack"></i> <span>Tính lương</span>
                         </a>
+                        {% endif %}
                     </div>
                 </div>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_SS') !== 'false' }">
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_SS') !== 'false' }"
+                     {% has_module_access "ledger" as can_ledger_2 %}{% if not can_ledger_2 %}style="display:none"{% endif %}>
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_SS', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                         <span>Sổ sách</span>
                         <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
                     </div>
                     <div x-show="open" x-collapse>
+                        {% if can_ledger_2 %}
                         <a href="{% url 'ui_modern:general_journal' %}" class="nav-item"><i class="bi bi-journal-book"></i> <span>Nhật ký chung</span></a>
                         <a href="{% url 'ui_modern:general_ledger' %}" class="nav-item"><i class="bi bi-book"></i> <span>Sổ cái</span></a>
+                        {% endif %}
                     </div>
                 </div>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_BC') !== 'false' }">
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_BC') !== 'false' }"
+                     {% has_module_access "reporting" as can_reporting %}{% has_module_access "einvoice" as can_einvoice %}{% has_module_access "budget" as can_budget %}{% has_module_access "fx" as can_fx %}{% if not can_reporting and not can_einvoice and not can_budget and not can_fx %}style="display:none"{% endif %}>
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_BC', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-                        <span>Báo cáo</span>
+                        <span>Báo cáo &amp; Thuế</span>
                         <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
                     </div>
                     <div x-show="open" x-collapse>
+                        {% if can_einvoice %}
+                        <a href="{% url 'ui_modern:einvoice_list' %}" class="nav-item"><i class="bi bi-receipt-cutoff"></i> <span>Hóa đơn điện tử</span></a>
+                        {% endif %}
+                        {% if can_reporting %}
                         <a href="{% url 'ui_modern:trial_balance' %}" class="nav-item"><i class="bi bi-bar-chart"></i> <span>BCĐ tài khoản</span></a>
                         <a href="{% url 'ui_modern:balance_sheet' %}" class="nav-item"><i class="bi bi-file-earmark-bar-graph"></i> <span>BCTH tài chính (B01)</span></a>
                         <a href="{% url 'ui_modern:pnl' %}" class="nav-item"><i class="bi bi-graph-up"></i> <span>KQ HĐKD (B02)</span></a>
@@ -232,15 +382,58 @@
                         <a href="{% url 'ui_modern:report_labor_usage' %}" class="nav-item"><i class="bi bi-people"></i> <span>BC sử dụng lao động</span></a>
                         <a href="{% url 'ui_modern:report_salary_fund' %}" class="nav-item"><i class="bi bi-cash-coin"></i> <span>BC quỹ lương</span></a>
                         <a href="{% url 'ui_modern:report_pit_monthly' %}" class="nav-item"><i class="bi bi-piggy-bank"></i> <span>BC thuế TNCN</span></a>
+                        {% endif %}
+                        {% if can_budget %}
+                        <a href="{% url 'ui_modern:budget_list' %}" class="nav-item"><i class="bi bi-graph-up-arrow"></i> <span>Ngân sách</span></a>
+                        <a href="{% url 'ui_modern:cash_flow' %}" class="nav-item"><i class="bi bi-cash-stack"></i> <span>Dự phóng dòng tiền</span></a>
+                        {% endif %}
+                        {% if can_fx %}
+                        <a href="{% url 'ui_modern:fx_rate_list' %}" class="nav-item"><i class="bi bi-currency-exchange"></i> <span>Tỷ giá ngoại tệ</span></a>
+                        <a href="{% url 'ui_modern:fx_revaluation_list' %}" class="nav-item"><i class="bi bi-arrow-left-right"></i> <span>Định giá lại ngoại tệ</span></a>
+                        {% endif %}
                     </div>
                 </div>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_DM') !== 'false' }">
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_DM') !== 'false' }"
+                     {% has_module_access "master_data" as can_md_2 %}{% if not can_md_2 %}style="display:none"{% endif %}>
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_DM', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                         <span>Danh mục</span>
                         <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
                     </div>
                     <div x-show="open" x-collapse>
+                        {% if can_md_2 %}
                         <a href="{% url 'ui_modern:chart_of_accounts_list' %}" class="nav-item"><i class="bi bi-list-ul"></i> <span>Hệ thống TK</span></a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_SYS') === 'true' }"
+                     {% has_module_access "approvals" as can_approvals %}>
+                    <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_SYS', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                        <span>Hệ thống</span>
+                        <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
+                    </div>
+                    <div x-show="open" x-collapse>
+                        {% if can_approvals %}
+                        <a href="{% url 'ui_modern:approval_queue' %}" class="nav-item">
+                            <i class="bi bi-clipboard-check"></i> <span>Phê duyệt chờ xử lý</span>
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'ui_modern:company_profile' %}" class="nav-item">
+                            <i class="bi bi-building"></i> <span>Hồ sơ công ty</span>
+                        </a>
+                        <a href="{% url 'notifications:inbox' %}" class="nav-item">
+                            <i class="bi bi-bell"></i> <span>Hộp thư thông báo</span>
+                        </a>
+                        {% if user.is_superuser or user.is_staff %}
+                        <a href="{% url 'ui_modern:admin_role_list' %}" class="nav-item">
+                            <i class="bi bi-shield-lock"></i> <span>Vai trò &amp; phân quyền</span>
+                        </a>
+                        <a href="{% url 'ui_modern:admin_user_list' %}" class="nav-item">
+                            <i class="bi bi-people-fill"></i> <span>Người dùng</span>
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'ui_modern:my_permissions' %}" class="nav-item">
+                            <i class="bi bi-card-checklist"></i> <span>Quyền của tôi</span>
+                        </a>
                     </div>
                 </div>
             </nav>
@@ -269,6 +462,38 @@
             {% include 'modern/base/_right_sidebar.html' %}
         </aside>
     </div>
+
+    <!-- Pull-to-refresh indicator (mobile only) -->
+    <div class="pull-to-refresh" id="ptr-indicator">
+        <i class="bi bi-arrow-clockwise"></i>
+    </div>
+
+    <!-- Mobile bottom navigation -->
+    <nav class="mobile-bottom-nav">
+        <a href="{% url 'ui_modern:dashboard' %}" class="mobile-bottom-nav-item">
+            <i class="bi bi-house"></i>
+            <span>Trang chủ</span>
+        </a>
+        <a href="{% url 'ui_modern:voucher_list' %}" class="mobile-bottom-nav-item">
+            <i class="bi bi-receipt"></i>
+            <span>Phiếu</span>
+        </a>
+        <a href="#" class="mobile-bottom-nav-item" onclick="document.querySelector('.sidebar-toggle').click(); return false;">
+            <i class="bi bi-list"></i>
+            <span>Menu</span>
+        </a>
+        <a href="{% url 'notifications:inbox' %}" class="mobile-bottom-nav-item">
+            <i class="bi bi-bell"></i>
+            <span>Thông báo</span>
+            {% if unread_count %}
+            <span class="mobile-bottom-nav-badge">{{ unread_count|truncatechars:3 }}</span>
+            {% endif %}
+        </a>
+        <a href="{% url 'ui_modern:my_permissions' %}" class="mobile-bottom-nav-item">
+            <i class="bi bi-person"></i>
+            <span>Tài khoản</span>
+        </a>
+    </nav>
 
     <!-- Right toggle when collapsed -->
     <button class="right-toggle" @click="toggleRight()" x-show="rightCollapsed" x-cloak
@@ -320,7 +545,74 @@
     <script src="{% static 'vendor/js/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'vendor/js/htmx.min.js' %}"></script>
     <script src="{% static 'modern/js/layout.js' %}?v=2"></script>
+    <script src="{% static 'modern/js/mobile.js' %}?v=1"></script>
     <script src="{% static 'vendor/js/alpine.min.js' %}" defer></script>
+
+    {% if not request.GET.nopwa %}
+    <script>
+    // PWA: register service worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/static/sw.js').catch(err => {
+                console.warn('SW registration failed:', err);
+            });
+        });
+    }
+
+    // PWA: install prompt
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        // Show install button if not already installed
+        if (!window.matchMedia('(display-mode: standalone)').matches
+            && !localStorage.getItem('pwa_dismissed')) {
+            showInstallPrompt();
+        }
+    });
+
+    function showInstallPrompt() {
+        const banner = document.createElement('div');
+        banner.className = 'pwa-install-banner';
+        banner.innerHTML = `
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-box-arrow-down"></i>
+                <div class="flex-grow-1">
+                    <strong>Cài đặt PMKetoan</strong>
+                    <small class="d-block text-muted">Thêm vào màn hình chính để dùng như app</small>
+                </div>
+                <button class="btn btn-sm btn-primary" id="pwa-install-btn">Cài</button>
+                <button class="btn btn-sm btn-link text-muted" id="pwa-dismiss-btn">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+        `;
+        document.body.appendChild(banner);
+
+        document.getElementById('pwa-install-btn').addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    banner.remove();
+                }
+                deferredPrompt = null;
+            }
+        });
+        document.getElementById('pwa-dismiss-btn').addEventListener('click', () => {
+            banner.remove();
+            localStorage.setItem('pwa_dismissed', '1');
+        });
+
+        setTimeout(() => banner.classList.add('show'), 100);
+    }
+
+    window.addEventListener('appinstalled', () => {
+        document.querySelectorAll('.pwa-install-banner').forEach(b => b.remove());
+    });
+    </script>
+    {% endif %}
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

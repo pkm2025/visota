@@ -14,7 +14,10 @@ from apps.ledger.models import AccountingVoucher, VoucherLine
 @pytest.fixture
 def setup(db):
     company = Company.objects.create(code="TCO", name="Test Company")
-    user = User.objects.create_user(username="alice", password="Secret123")
+    # Tests assume the user can access reports — make them a superuser so the
+    # new ModulePermissionMiddleware doesn't block them. Permission-aware
+    # behaviour is covered in test_permissions.py.
+    user = User.objects.create_superuser(username="alice", password="Secret123", email="alice@test.local")
     return company, user
 
 

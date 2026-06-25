@@ -84,7 +84,7 @@ def test_vat_return_payable(setup):
 def test_vat_return_view_loads(db):
     from django.test import Client
     from apps.identity.models import User
-    user = User.objects.create_user(username='alice', password='Secret123')
+    user = User.objects.create_superuser(username='alice', password='Secret123', email='alice@test.local')
     c = Client()
     c.force_login(user)
     response = c.get('/modern/reports/vat-return/')

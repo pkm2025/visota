@@ -25,6 +25,22 @@
             </div>
         </div>
         <div class="text-end">
+            <div class="btn-group mb-2">
+                {% if project.contract %}
+                <div class="dropdown">
+                    <button class="btn btn-outline-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="bi bi-file-earmark-text"></i> Tạo biên bản
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{% url 'ui_modern:contract_template_generate' 'bb_ban_giao' project.contract.id %}"><i class="bi bi-box-seam"></i> BB bàn giao</a></li>
+                        <li><a class="dropdown-item" href="{% url 'ui_modern:contract_template_generate' 'bb_nghiem_thu' project.contract.id %}"><i class="bi bi-clipboard-check"></i> BB nghiệm thu</a></li>
+                        <li><a class="dropdown-item" href="{% url 'ui_modern:contract_template_generate' 'bb_thanh_ly' project.contract.id %}"><i class="bi bi-file-earmark-x"></i> BB thanh lý</a></li>
+                        <li><a class="dropdown-item" href="{% url 'ui_modern:contract_template_generate' 'bb_doi_chieu' project.contract.id %}"><i class="bi bi-arrow-left-right"></i> BB đối chiếu</a></li>
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+            <br>
             {% if project.status == 'active' %}<span class="badge bg-primary fs-6">Đang thực hiện</span>
             {% elif project.status == 'planned' %}<span class="badge bg-secondary fs-6">Lập kế hoạch</span>
             {% elif project.status == 'completed' %}<span class="badge bg-success fs-6">Hoàn thành</span>

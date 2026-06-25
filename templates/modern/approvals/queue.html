@@ -1,0 +1,89 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item active">Phê duyệt</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0">
+            Phê duyệt chờ xử lý
+            {% if requests|length %}<span class="badge bg-warning">{{ requests|length }}</span>{% endif %}
+        </h1>
+        <a href="{% url 'ui_modern:approval_rules' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-gear"></i> Quy tắc phê duyệt
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if requests %}
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Loại</th>
+                            <th>Đối tượng</th>
+                            <th class="text-end">Giá trị</th>
+                            <th>Bước</th>
+                            <th>Vai trò cần</th>
+                            <th>Người yêu cầu</th>
+                            <th>Ngày tạo</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in requests %}
+                        <tr>
+                            <td class="font-mono">#{{ r.id }}</td>
+                            <td><small class="badge bg-secondary">{{ r.voucher_type|default:"—" }}</small></td>
+                            <td>{{ r.object_label|truncatechars:40 }}</td>
+                            <td class="text-end font-mono">{{ r.amount|floatformat:0|intcomma }}</td>
+                            {% with next_step=r.steps.filter|first %}
+                            <td>
+                                {% with done=r.steps.filter|length %}
+                                {% with pending=r.steps.all|length %}
+                                <small class="text-muted">{{ done }}/{{ pending }}</small>
+                                {% endwith %}
+                                {% endwith %}
+                            </td>
+                            {% endwith %}
+                            <td>
+                                {% for step in r.steps.all %}
+                                    {% if step.status == 'pending' %}
+                                        <span class="badge bg-warning me-1">{{ step.role_required }}</span>
+                                    {% elif step.status == 'approved' %}
+                                        <span class="badge bg-success me-1">{{ step.role_required }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary me-1">{{ step.role_required }}</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td>{{ r.requested_by.username|default:"—" }}</td>
+                            <td><small>{{ r.created_at|date:"d/m/Y H:i" }}</small></td>
+                            <td>
+                                <a href="{% url 'ui_modern:approval_detail' r.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted text-center py-5 mb-0">
+                <i class="bi bi-clipboard-check display-6 d-block mb-2"></i>
+                Không có yêu cầu nào chờ phê duyệt.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

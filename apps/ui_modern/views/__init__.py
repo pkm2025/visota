@@ -12,14 +12,72 @@ from .attachment_views import (
     AttachmentUploadView,
 )
 from .auth_views import PMKetoanLoginView, PMKetoanLogoutView
+from .company_views import CompanyProfileView
+from apps.public.views import ContactListAdminView
+from .admin_views import (
+    AdminRoleEditView,
+    AdminRoleListView,
+    AdminUserAssignView,
+    AdminUserListView,
+    MyPermissionsView,
+)
+from apps.approvals.views import (
+    ApprovalApproveView,
+    ApprovalDetailView,
+    ApprovalQueueView,
+    ApprovalRejectView,
+    ApprovalRuleListView,
+)
+from apps.einvoice.views import (
+    EInvoiceCancelView,
+    EInvoiceDetailView,
+    EInvoiceIssueFromSalesView,
+    EInvoiceJsonDownloadView,
+    EInvoiceListView,
+    EInvoicePublishView,
+    EInvoiceReportView,
+    EInvoiceXmlDownloadView,
+)
+from apps.banking.views import (
+    BankAccountListView,
+    BankReconciliationRunView,
+    BankReconciliationView,
+    BankStatementImportDetailView,
+    BankStatementImportListView,
+    BankStatementUploadView,
+)
+from apps.guarantees.views import BankGuaranteeListView
+from apps.loans.views import BankLoanListView
+from apps.bidding.views import (
+    BidConvertToContractView,
+    BidOpportunityDetailView,
+    BidOpportunityListView,
+)
+from apps.budget.views import (
+    BudgetDetailView,
+    BudgetGenerateView,
+    BudgetListView,
+    BudgetRefreshActualsView,
+    CashFlowGenerateView,
+    CashFlowView,
+)
+from apps.fx.views import (
+    ExchangeRateListView,
+    FxRevaluationListView,
+    FxRevaluationRunView,
+)
 from .chart_of_accounts_views import ChartOfAccountsListView
 from .closing_views import PeriodClosingView
 from .contract_template_views import (
     ContractGenerateView,
     ContractTemplateListView,
+    ContractTemplateCreateView,
+    ContractTemplateEditView,
+    ContractTemplateDeleteView,
+    ContractTemplatePreviewRawView,
     ContractTemplatePreviewView,
 )
-from .contract_views import ContractCreateView, ContractListView
+from .contract_views import ContractCreateView, ContractDetailView, ContractListView
 from .crm_views import (
     AccountCreateView,
     CampaignCreateView,
@@ -131,7 +189,47 @@ __all__ = [
     "ChartOfAccountsListView",
     "PMKetoanLoginView",
     "PMKetoanLogoutView",
+    "CompanyProfileView",
+    "ContactListAdminView",
     "PeriodClosingView",
+    "MyPermissionsView",
+    "AdminRoleListView",
+    "AdminRoleEditView",
+    "AdminUserListView",
+    "AdminUserAssignView",
+    "ApprovalQueueView",
+    "ApprovalDetailView",
+    "ApprovalApproveView",
+    "ApprovalRejectView",
+    "ApprovalRuleListView",
+    "EInvoiceListView",
+    "EInvoiceDetailView",
+    "EInvoiceIssueFromSalesView",
+    "EInvoicePublishView",
+    "EInvoiceCancelView",
+    "EInvoiceXmlDownloadView",
+    "EInvoiceJsonDownloadView",
+    "EInvoiceReportView",
+    "BankAccountListView",
+    "BankStatementImportListView",
+    "BankStatementUploadView",
+    "BankStatementImportDetailView",
+    "BankReconciliationView",
+    "BankReconciliationRunView",
+    "BankGuaranteeListView",
+    "BankLoanListView",
+    "BidOpportunityListView",
+    "BidOpportunityDetailView",
+    "BidConvertToContractView",
+    "BudgetListView",
+    "BudgetDetailView",
+    "BudgetGenerateView",
+    "BudgetRefreshActualsView",
+    "CashFlowView",
+    "CashFlowGenerateView",
+    "ExchangeRateListView",
+    "FxRevaluationListView",
+    "FxRevaluationRunView",
     "AttachmentUploadView",
     "AttachmentDeleteView",
     "AttachmentDownloadView",
@@ -194,9 +292,14 @@ __all__ = [
     "CashPaymentCreateView",
     "ContractListView",
     "ContractCreateView",
+    "ContractDetailView",
     "ContractTemplateListView",
-    "ContractGenerateView",
+    "ContractTemplateCreateView",
+    "ContractTemplateEditView",
+    "ContractTemplateDeleteView",
+    "ContractTemplatePreviewRawView",
     "ContractTemplatePreviewView",
+    "ContractGenerateView",
     "InputInvoiceListView",
     "InputInvoiceUploadView",
     "InputInvoiceProcessView",

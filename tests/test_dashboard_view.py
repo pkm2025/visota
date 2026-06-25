@@ -15,8 +15,8 @@ def test_dashboard_requires_login():
 @pytest.mark.django_db
 def test_dashboard_loads_for_authenticated_user():
     """Authenticated users see dashboard with greeting."""
-    user = User.objects.create_user(
-        username='alice', password='Secret123', full_name='Alice',
+    user = User.objects.create_superuser(
+        username='alice', password='Secret123', full_name='Alice', email='alice@test.local',
     )
     client = Client()
     client.force_login(user)
@@ -31,7 +31,7 @@ def test_dashboard_loads_for_authenticated_user():
 @pytest.mark.django_db
 def test_dashboard_has_layout_switcher():
     """Dashboard renders layout switcher."""
-    user = User.objects.create_user(username='alice', password='Secret123')
+    user = User.objects.create_superuser(username='alice', password='Secret123', email='alice@test.local')
     client = Client()
     client.force_login(user)
     response = client.get('/modern/')
@@ -41,7 +41,7 @@ def test_dashboard_has_layout_switcher():
 @pytest.mark.django_db
 def test_dashboard_has_sidebar_with_navigation():
     """Sidebar contains navigation sections."""
-    user = User.objects.create_user(username='alice', password='Secret123')
+    user = User.objects.create_superuser(username='alice', password='Secret123', email='alice@test.local')
     client = Client()
     client.force_login(user)
     response = client.get('/modern/')

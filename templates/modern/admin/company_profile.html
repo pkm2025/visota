@@ -1,0 +1,314 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item">Hệ thống</li>
+            <li class="breadcrumb-item active">Hồ sơ công ty</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Tab navigation -->
+        <ul class="nav nav-tabs mb-3">
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-legal" type="button"><i class="bi bi-building"></i> Pháp lý</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-reps" type="button"><i class="bi bi-people"></i> Đại diện</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-bank" type="button"><i class="bi bi-bank"></i> Ngân hàng</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-brand" type="button"><i class="bi bi-palette"></i> Thương hiệu</button></li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- Tab: Legal info -->
+            <div class="tab-pane fade show active" id="tab-legal">
+                <div class="card"><div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Tên công ty <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" value="{{ company.name }}" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tên viết tắt</label>
+                            <input type="text" name="short_name" class="form-control" value="{{ company.short_name }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tên tiếng Anh</label>
+                            <input type="text" name="name_en" class="form-control" value="{{ company.name_en }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Mã công ty</label>
+                            <input type="text" class="form-control" value="{{ company.code }}" readonly>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">MST</label>
+                            <input type="text" name="tax_code" class="form-control font-mono" value="{{ company.tax_code }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Điện thoại</label>
+                            <input type="text" name="phone" class="form-control" value="{{ company.phone }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ company.email }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Fax</label>
+                            <input type="text" name="fax" class="form-control" value="{{ company.fax }}">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Địa chỉ</label>
+                        <textarea name="address" class="form-control" rows="2">{{ company.address }}</textarea>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Số GPKD</label>
+                            <input type="text" name="business_license_no" class="form-control" value="{{ company.business_license_no }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Ngày cấp GPKD</label>
+                            <input type="date" name="business_license_date" class="form-control" value="{{ company.business_license_date|date:'Y-m-d' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Nơi cấp GPKD</label>
+                            <input type="text" name="business_license_place" class="form-control" value="{{ company.business_license_place }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Website</label>
+                            <input type="url" name="website" class="form-control" value="{{ company.website }}">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Chế độ kế toán</label>
+                            <select name="accounting_regime" class="form-select">
+                                {% for code, label in regime_choices %}
+                                <option value="{{ code }}" {% if company.accounting_regime == code %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Quy mô DN</label>
+                            <select name="sme_size" class="form-select">
+                                {% for code, label in sme_choices %}
+                                <option value="{{ code }}" {% if company.sme_size == code %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div></div>
+            </div>
+
+            <!-- Tab: Representatives -->
+            <div class="tab-pane fade" id="tab-reps">
+                <div class="card"><div class="card-body">
+                    <h6 class="text-muted mb-3">Người đại diện theo pháp luật</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Họ tên</label>
+                            <input type="text" name="legal_representative" class="form-control" value="{{ company.legal_representative }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Chức vụ</label>
+                            <input type="text" name="representative_position" class="form-control" value="{{ company.representative_position }}" placeholder="VD: Giám đốc">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Điện thoại</label>
+                            <input type="text" name="representative_phone" class="form-control" value="{{ company.representative_phone }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Số CCCD</label>
+                            <input type="text" name="representative_id_no" class="form-control" value="{{ company.representative_id_no }}">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email người đại diện</label>
+                        <input type="email" name="representative_email" class="form-control" value="{{ company.representative_email }}">
+                    </div>
+                    <hr>
+                    <h6 class="text-muted mb-3">Kế toán trưởng</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Họ tên</label>
+                            <input type="text" name="chief_accountant" class="form-control" value="{{ company.chief_accountant }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Số chứng chỉ KTV</label>
+                            <input type="text" name="chief_accountant_license" class="form-control" value="{{ company.chief_accountant_license }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Điện thoại</label>
+                            <input type="text" name="chief_accountant_phone" class="form-control" value="{{ company.chief_accountant_phone }}">
+                        </div>
+                    </div>
+                </div></div>
+            </div>
+
+            <!-- Tab: Bank accounts -->
+            <div class="tab-pane fade" id="tab-bank">
+                <div class="card"><div class="card-body">
+                    <p class="text-muted small">Thêm tài khoản ngân hàng — sẽ tự động in vào hóa đơn, hợp đồng.</p>
+                    <input type="hidden" name="bank_accounts_json" id="bank_accounts_json" value='{{ bank_accounts_json|escapejs }}'>
+                    <table class="table table-sm" id="bank_table">
+                        <thead><tr><th>Ngân hàng</th><th>Chi nhánh</th><th>Số TK</th><th>Chủ TK</th><th></th></tr></thead>
+                        <tbody id="bank_rows"></tbody>
+                    </table>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addBankRow();">
+                        <i class="bi bi-plus"></i> Thêm tài khoản
+                    </button>
+                </div></div>
+            </div>
+
+            <!-- Tab: Branding -->
+            <div class="tab-pane fade" id="tab-brand">
+                <div class="card"><div class="card-body">
+                    <div class="row">
+                        <!-- Logo -->
+                        <div class="col-md-3 text-center">
+                            <label class="form-label">Logo công ty</label>
+                            <div class="mb-2">
+                                {% if company.brand_logo %}
+                                <img src="{{ company.brand_logo.url }}" class="img-thumbnail" style="max-height: 100px;" alt="Logo">
+                                {% else %}
+                                <div class="border rounded d-flex align-items-center justify-content-center" style="height:100px;">
+                                    <i class="bi bi-image text-muted" style="font-size:32px;"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <input type="file" name="brand_logo" class="form-control form-control-sm" accept="image/*">
+                        </div>
+                        <!-- Logo dark -->
+                        <div class="col-md-3 text-center">
+                            <label class="form-label">Logo (dark mode)</label>
+                            <div class="mb-2">
+                                {% if company.brand_logo_dark %}
+                                <img src="{{ company.brand_logo_dark.url }}" class="img-thumbnail bg-dark" style="max-height: 100px;" alt="Logo Dark">
+                                {% else %}
+                                <div class="border rounded d-flex align-items-center justify-content-center bg-dark" style="height:100px;">
+                                    <i class="bi bi-image text-light" style="font-size:32px;"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <input type="file" name="brand_logo_dark" class="form-control form-control-sm" accept="image/*">
+                        </div>
+                        <!-- Favicon -->
+                        <div class="col-md-2 text-center">
+                            <label class="form-label">Favicon</label>
+                            <div class="mb-2">
+                                {% if company.brand_favicon %}
+                                <img src="{{ company.brand_favicon.url }}" class="img-thumbnail" style="max-height: 48px;" alt="Favicon">
+                                {% else %}
+                                <div class="border rounded d-flex align-items-center justify-content-center" style="height:48px;">
+                                    <i class="bi bi-image text-muted"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <input type="file" name="brand_favicon" class="form-control form-control-sm" accept="image/*">
+                        </div>
+                        <!-- Stamp -->
+                        <div class="col-md-2 text-center">
+                            <label class="form-label">Con dấu</label>
+                            <div class="mb-2">
+                                {% if company.company_stamp %}
+                                <img src="{{ company.company_stamp.url }}" class="img-thumbnail" style="max-height: 100px;" alt="Stamp">
+                                {% else %}
+                                <div class="border rounded d-flex align-items-center justify-content-center" style="height:100px;">
+                                    <i class="bi bi-sticky text-muted" style="font-size:32px;"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <input type="file" name="company_stamp" class="form-control form-control-sm" accept="image/png, image/svg+xml">
+                            <small class="text-muted">PNG trong suốt — tự động chèn vào văn bản</small>
+                        </div>
+                        <!-- Colors -->
+                        <div class="col-md-2">
+                            <label class="form-label">Màu chủ đạo</label>
+                            <input type="color" name="brand_primary_color" class="form-control form-control-color mb-2" value="{{ company.brand_primary_color }}">
+                            <label class="form-label">Màu nhấn</label>
+                            <input type="color" name="brand_accent_color" class="form-control form-control-color" value="{{ company.brand_accent_color }}">
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Tên thương hiệu</label>
+                            <input type="text" name="brand_name" class="form-control" value="{{ company.brand_name }}" placeholder="{{ company.name }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Facebook</label>
+                            <input type="url" name="facebook" class="form-control" value="{{ company.facebook }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">LinkedIn</label>
+                            <input type="url" name="linkedin" class="form-control" value="{{ company.linkedin }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Zalo OA</label>
+                            <input type="text" name="zalo" class="form-control" value="{{ company.zalo }}">
+                        </div>
+                    </div>
+                </div></div>
+            </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Lưu hồ sơ
+            </button>
+            <a href="{% url 'ui_modern:dashboard' %}" class="btn btn-outline-secondary">Hủy</a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Bank accounts dynamic rows
+let bankAccounts = [];
+try { bankAccounts = JSON.parse(document.getElementById('bank_accounts_json').value || '[]'); } catch(e) {}
+
+function renderBankRows() {
+    const tbody = document.getElementById('bank_rows');
+    tbody.innerHTML = '';
+    bankAccounts.forEach((acc, i) => {
+        tbody.innerHTML += `<tr>
+            <td><input type="text" class="form-control form-control-sm" value="${acc.bank||''}" onchange="updateBank(${i},'bank',this.value)"></td>
+            <td><input type="text" class="form-control form-control-sm" value="${acc.branch||''}" onchange="updateBank(${i},'branch',this.value)"></td>
+            <td><input type="text" class="form-control form-control-sm font-mono" value="${acc.account||''}" onchange="updateBank(${i},'account',this.value)"></td>
+            <td><input type="text" class="form-control form-control-sm" value="${acc.holder||''}" onchange="updateBank(${i},'holder',this.value)"></td>
+            <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeBank(${i})"><i class="bi bi-trash"></i></button></td>
+        </tr>`;
+    });
+}
+
+function addBankRow() {
+    bankAccounts.push({bank:'', branch:'', account:'', holder:''});
+    renderBankRows();
+}
+
+function removeBank(i) {
+    bankAccounts.splice(i, 1);
+    renderBankRows();
+}
+
+function updateBank(i, field, value) {
+    bankAccounts[i][field] = value;
+    syncJson();
+}
+
+function syncJson() {
+    document.getElementById('bank_accounts_json').value = JSON.stringify(bankAccounts);
+}
+
+// Sync before form submit
+document.querySelector('form').addEventListener('submit', syncJson);
+
+renderBankRows();
+</script>
+{% endblock %}

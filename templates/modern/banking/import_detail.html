@@ -1,0 +1,46 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    {% include 'shared/_breadcrumb.html' %}
+    <h1 class="h3 mb-3">Sao kê {{ import.bank_account.account_number }}</h1>
+    <p class="text-muted">
+        Kỳ {{ import.period_from|date:"d/m/Y" }} → {{ import.period_to|date:"d/m/Y" }}
+        · {{ transactions|length }} giao dịch
+        · {{ transactions|length|add:0 }} đã đối soát
+    </p>
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-sm table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Ngày</th><th>Loại</th><th class="text-end">Số tiền</th>
+                        <th>Đối tác</th><th>Diễn giải</th><th>Đối soát</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transactions %}
+                    <tr class="{% if t.is_reconciled %}table-success{% endif %}">
+                        <td>{{ t.txn_date|date:"d/m/Y" }}</td>
+                        <td>
+                            {% if t.direction == 'credit' %}<span class="badge bg-success">+</span>
+                            {% else %}<span class="badge bg-danger">−</span>{% endif %}
+                        </td>
+                        <td class="text-end font-mono">{{ t.amount|floatformat:0|intcomma }}</td>
+                        <td>{{ t.counterparty_name|default:"—" }}</td>
+                        <td>{{ t.description|truncatechars:50 }}</td>
+                        <td>
+                            {% if t.is_reconciled %}
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <small>{{ t.matches.first.object_label|truncatechars:30 }}</small>
+                            {% else %}<i class="bi bi-circle text-muted"></i>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

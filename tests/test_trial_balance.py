@@ -11,7 +11,7 @@ from apps.identity.models import User
 @pytest.fixture
 def setup(db):
     company = Company.objects.create(code='TCO', name='Test')
-    user = User.objects.create_user(username='alice', password='Secret123')
+    user = User.objects.create_superuser(username='alice', password='Secret123', email='alice@test.local')
     return company, user
 
 

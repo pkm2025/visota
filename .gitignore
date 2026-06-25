@@ -52,3 +52,26 @@ uv.lock.tmp
 
 # Playwright MCP
 .playwright-mcp/
+
+# Test artifacts
+tests/e2e/test-artifacts/
+tests/e2e/screenshots/
+tests/e2e/report.html
+
+# Media uploads (per-env)
+media/
+
+# Static collected
+static_collected/
+
+# Env files
+*.env
+.env*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor temp
+*.tmp
+*~

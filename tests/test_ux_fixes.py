@@ -17,9 +17,12 @@ User = get_user_model()
 @pytest.fixture
 def auth_user(db):
     u, _ = User.objects.get_or_create(
-        username="uxfixer", defaults={"email": "ux@t.co"}
+        username="uxfixer",
+        defaults={"email": "ux@t.co", "is_superuser": True, "is_staff": True},
     )
     u.set_password("pw")
+    u.is_superuser = True
+    u.is_staff = True
     u.save()
     return u
 

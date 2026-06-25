@@ -1,0 +1,119 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    {% include 'shared/_breadcrumb.html' %}
+    <h1 class="h3 mb-3">Gói thầu {{ bid.bid_no }}</h1>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header"><strong>Thông tin gói thầu</strong></div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Mã gói</dt>
+                        <dd class="col-sm-9 font-mono">{{ bid.bid_no }}</dd>
+                        <dt class="col-sm-3">Tên</dt>
+                        <dd class="col-sm-9">{{ bid.bid_name }}</dd>
+                        <dt class="col-sm-3">Chủ đầu tư</dt>
+                        <dd class="col-sm-9">{{ bid.investor_name }}
+                            {% if bid.investor_tax_code %}<small class="text-muted">(MST {{ bid.investor_tax_code }})</small>{% endif %}
+                        </dd>
+                        <dt class="col-sm-3">Phương thức</dt>
+                        <dd class="col-sm-9">{{ bid.get_bid_method_display }}</dd>
+                        <dt class="col-sm-3">Hình thức</dt>
+                        <dd class="col-sm-9">{{ bid.get_bid_form_display }}</dd>
+                        <dt class="col-sm-3">Loại gói</dt>
+                        <dd class="col-sm-9"><span class="badge bg-secondary">{{ bid.bid_type }}</span></dd>
+                        <dt class="col-sm-3">Giá gói thầu</dt>
+                        <dd class="col-sm-9 font-mono">{{ bid.bid_package_price|floatformat:0|intcomma }} {{ bid.currency_code }}</dd>
+                        <dt class="col-sm-3">Thời gian thực hiện</dt>
+                        <dd class="col-sm-9">{{ bid.duration_days }} ngày</dd>
+                        <dt class="col-sm-3">Hạn nộp HSDT</dt>
+                        <dd class="col-sm-9">{{ bid.bid_submission_deadline|date:"d/m/Y H:i" }}</dd>
+                        <dt class="col-sm-3">Hệ thống mạng</dt>
+                        <dd class="col-sm-9">
+                            {% if bid.is_online %}<span class="badge bg-info">Online</span>{% endif %}
+                            {% if bid.bid_system_ref %}<small class="text-muted font-mono">{{ bid.bid_system_ref }}</small>{% endif %}
+                        </dd>
+                        {% if bid.description %}
+                        <dt class="col-sm-3">Mô tả</dt>
+                        <dd class="col-sm-9">{{ bid.description|linebreaksbr }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+
+            {% if bid.submission %}
+            <div class="card">
+                <div class="card-header"><strong>Hồ sơ dự thầu đã nộp</strong></div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Ngày nộp</dt>
+                        <dd class="col-sm-9">{{ bid.submission.submitted_at|date:"d/m/Y H:i" }}</dd>
+                        <dt class="col-sm-3">Giá dự thầu</dt>
+                        <dd class="col-sm-9 font-mono">{{ bid.submission.proposed_price|floatformat:0|intcomma }} VND</dd>
+                        <dt class="col-sm-3">Thời gian đề xuất</dt>
+                        <dd class="col-sm-9">{{ bid.submission.proposed_duration_days }} ngày</dd>
+                        <dt class="col-sm-3">Bảo đảm dự thầu</dt>
+                        <dd class="col-sm-9">
+                            {{ bid.submission.bid_security_amount|floatformat:0|intcomma }} VND
+                            <small class="text-muted">({{ bid.submission.bid_security_provider }})</small>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header"><strong>Kết quả</strong></div>
+                <div class="card-body">
+                    {% if bid.result %}
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Kết quả</dt>
+                        <dd class="col-sm-7">
+                            {% if bid.result.outcome == 'won' %}<span class="badge bg-success">Trúng thầu</span>
+                            {% elif bid.result.outcome == 'lost' %}<span class="badge bg-danger">Trượt</span>
+                            {% elif bid.result.outcome == 'cancelled' %}<span class="badge bg-secondary">Hủy bỏ</span>
+                            {% else %}<span class="badge bg-warning">Chờ kết quả</span>{% endif %}
+                        </dd>
+                        {% if bid.result.awarded_at %}
+                        <dt class="col-sm-5">Ngày trúng</dt>
+                        <dd class="col-sm-7">{{ bid.result.awarded_at|date:"d/m/Y" }}</dd>
+                        {% endif %}
+                        {% if bid.result.final_contract_value %}
+                        <dt class="col-sm-5">Giá trị HĐ</dt>
+                        <dd class="col-sm-7 font-mono">{{ bid.result.final_contract_value|floatformat:0|intcomma }}</dd>
+                        {% endif %}
+                        {% if bid.result.contract %}
+                        <dt class="col-sm-5">Hợp đồng</dt>
+                        <dd class="col-sm-7">
+                            <a href="{% url 'ui_modern:contract_detail' bid.result.contract.id %}" class="font-mono">
+                                {{ bid.result.contract.contract_no }} →
+                            </a>
+                        </dd>
+                        {% endif %}
+                    </dl>
+                    {% else %}
+                    <p class="text-muted small">Chưa có kết quả.</p>
+                    {% endif %}
+                </div>
+                {% if not bid.result or bid.result.outcome != 'won' %}
+                <div class="card-footer">
+                    <form method="post" action="{% url 'ui_modern:bid_convert_to_contract' bid.id %}"
+                          onsubmit="return confirm('Đánh dấu trúng thầu và tạo hợp đồng?')">
+                        {% csrf_token %}
+                        <button class="btn btn-success btn-sm w-100">
+                            <i class="bi bi-check-circle"></i> Trúng thầu → tạo hợp đồng
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,10 +1,14 @@
 {% extends "modern/base/layout.html" %}
+{% load humanize %}
 {% block content %}
 <div class="container-fluid py-3">
   {% include 'shared/_breadcrumb.html' %}
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><i class="bi bi-file-earmark-text"></i> {{ page_title }}</h4>
     <div class="btn-group">
+      <a href="{% url 'ui_modern:contract_template_create' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus"></i> Tạo mẫu mới
+      </a>
       <a href="{% url 'ui_modern:contract_list' %}" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-arrow-left"></i> Hợp đồng
       </a>
@@ -13,15 +17,12 @@
 
   <form method="get" class="row g-2 mb-3">
     <div class="col-auto">
-      <select name="contract_type" class="form-select form-select-sm">
-        <option value="">— Tất cả loại —</option>
-        {% for code, label in contract_type_choices %}
-          <option value="{{ code }}" {% if request.GET.contract_type == code %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
+      <input type="text" name="search" class="form-control form-control-sm"
+             placeholder="Tìm theo mã hoặc tên..."
+             value="{{ request.GET.search }}">
     </div>
     <div class="col-auto">
-      <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-funnel"></i> Lọc</button>
+      <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Tìm</button>
     </div>
   </form>
 
@@ -32,8 +33,9 @@
           <tr>
             <th>Mã</th>
             <th>Tên mẫu</th>
-            <th>Loại HĐ</th>
+            <th>Loại</th>
             <th>Phiên bản</th>
+            <th>Active</th>
             <th>Thao tác</th>
           </tr>
         </thead>
@@ -45,29 +47,54 @@
             <td><span class="badge bg-secondary">{{ tpl.contract_type }}</span></td>
             <td>{{ tpl.version }}</td>
             <td>
-              <div class="dropdown">
-                <button class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
-                  <i class="bi bi-printer"></i> Tạo
-                </button>
-                <ul class="dropdown-menu">
-                  {% for c in contracts_available %}
-                  <li>
-                    <a class="dropdown-item"
-                       href="{% url 'ui_modern:contract_template_generate' tpl.code c.id %}">
-                      {{ c.contract_no }} — {{ c.party_name }}
-                    </a>
-                  </li>
-                  {% endfor %}
-                </ul>
+              {% if tpl.is_active %}<i class="bi bi-check-circle-fill text-success"></i>
+              {% else %}<i class="bi bi-x-circle text-muted"></i>{% endif %}
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <a href="{% url 'ui_modern:contract_template_edit' tpl.id %}"
+                   class="btn btn-outline-primary" title="Sửa mẫu">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{% url 'ui_modern:contract_template_duplicate' tpl.id %}"
+                   class="btn btn-outline-info" title="Nhân bản">
+                  <i class="bi bi-files"></i>
+                </a>
+                <div class="dropdown btn-group">
+                  <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" title="Tạo văn bản">
+                    <i class="bi bi-printer"></i>
+                  </button>
+                  <ul class="dropdown-menu">
+                    {% for c in contracts_available %}
+                    <li>
+                      <a class="dropdown-item"
+                         href="{% url 'ui_modern:contract_template_generate' tpl.code c.id %}">
+                        {{ c.contract_no }} — {{ c.party_name|truncatechars:30 }}
+                      </a>
+                    </li>
+                    {% endfor %}
+                  </ul>
+                </div>
               </div>
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="5" class="text-muted text-center">Chưa có mẫu hợp đồng nào.</td></tr>
+          <tr><td colspan="6" class="text-muted text-center py-4">
+            <i class="bi bi-inbox display-6 d-block mb-2"></i>
+            Chưa có mẫu văn bản nào.
+          </td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
+
+  <p class="text-muted small mt-2">
+    <i class="bi bi-info-circle"></i>
+    Template dùng Django template syntax: <code>{{ company.name }}</code>,
+    <code>{% verbatim %}{% if contract.value > 1000000 %}{% endverbatim %}</code>,
+    <code>{% verbatim %}{% for line in contract.lines.all %}{% endverbatim %}</code>.
+    Xem <a href="{% url 'ui_modern:contract_template_create' %}">tạo mẫu mới</a> để biết thêm.
+  </p>
 </div>
 {% endblock %}

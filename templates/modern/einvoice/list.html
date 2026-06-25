@@ -1,0 +1,114 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item active">Hóa đơn điện tử</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label small mb-0">Trạng thái</label>
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="">— Tất cả —</option>
+                        {% for code, label in status_choices %}
+                        <option value="{{ code }}" {% if request.GET.status == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-sm btn-outline-primary"><i class="bi bi-funnel"></i> Lọc</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if einvoices %}
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Số HĐĐT</th>
+                            <th>Pattern/Series</th>
+                            <th>Ngày phát hành</th>
+                            <th>Người mua</th>
+                            <th>MST</th>
+                            <th class="text-end">Tổng</th>
+                            <th>Trạng thái</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for e in einvoices %}
+                        <tr>
+                            <td class="font-mono">{{ e.invoice_no|default:"—" }}</td>
+                            <td><small class="text-muted">{{ e.pattern }} / {{ e.serial }}</small></td>
+                            <td>{{ e.issue_date|date:"d/m/Y H:i"|default:"—" }}</td>
+                            <td>{{ e.buyer_name|truncatechars:30 }}</td>
+                            <td class="font-mono">{{ e.buyer_tax_code|default:"—" }}</td>
+                            <td class="text-end font-mono">{{ e.total_amount|floatformat:0|intcomma }}</td>
+                            <td>
+                                {% if e.status == 'issued' %}<span class="badge bg-success">Đã phát hành</span>
+                                {% elif e.status == 'draft' %}<span class="badge bg-secondary">Dự thảo</span>
+                                {% elif e.status == 'cancelled' %}<span class="badge bg-danger">Đã hủy</span>
+                                {% elif e.status == 'adjusted' %}<span class="badge bg-info">Đã điều chỉnh</span>
+                                {% else %}<span class="badge bg-warning">{{ e.get_status_display }}</span>{% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'ui_modern:einvoice_detail' e.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted text-center py-5 mb-0">
+                <i class="bi bi-receipt display-6 d-block mb-2"></i>
+                Chưa có hóa đơn điện tử nào. Tạo mới từ <a href="{% url 'ui_modern:sales_invoice_list' %}">Hóa đơn bán</a>.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-header"><strong><i class="bi bi-file-earmark-spreadsheet"></i> Báo cáo BC01/BC26 (gửi CQT)</strong></div>
+        <div class="card-body">
+            <form method="post" action="{% url 'ui_modern:einvoice_report_generate' %}" class="row g-2 align-items-end">
+                {% csrf_token %}
+                <div class="col-auto">
+                    <label class="form-label small mb-0">Kỳ báo cáo</label>
+                    <div class="input-group input-group-sm">
+                        <select name="month" class="form-select form-select-sm" style="width:auto">
+                            <option value="1">Tháng 1</option><option value="2">Tháng 2</option>
+                            <option value="3">Tháng 3</option><option value="4">Tháng 4</option>
+                            <option value="5">Tháng 5</option><option value="6" selected>Tháng 6</option>
+                            <option value="7">Tháng 7</option><option value="8">Tháng 8</option>
+                            <option value="9">Tháng 9</option><option value="10">Tháng 10</option>
+                            <option value="11">Tháng 11</option><option value="12">Tháng 12</option>
+                        </select>
+                        <span class="input-group-text">/</span>
+                        <input type="number" name="year" class="form-control form-control-sm" value="2026" style="width:90px">
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-sm btn-primary">
+                        <i class="bi bi-file-earmark-arrow-down"></i> Tạo BC01
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

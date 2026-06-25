@@ -1,0 +1,41 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-5">
+                    <i class="bi bi-wifi-off text-warning" style="font-size: 80px;"></i>
+                    <h2 class="mt-3 mb-2">Bạn đang ngoại tuyến</h2>
+                    <p class="text-muted mb-4">
+                        Không có kết nối internet. Một số trang đã được lưu cache và
+                        vẫn xem được. Hãy kết nối lại internet để dùng đầy đủ chức năng.
+                    </p>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button onclick="window.location.reload()" class="btn btn-primary">
+                            <i class="bi bi-arrow-clockwise"></i> Thử lại
+                        </button>
+                        <a href="{% url 'ui_modern:dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-house"></i> Về trang chủ
+                        </a>
+                    </div>
+                    <hr class="my-4">
+                    <h6 class="text-muted">Trang đã cache (xem được offline):</h6>
+                    <div class="d-flex flex-wrap gap-2 justify-content-center">
+                        <a href="{% url 'ui_modern:dashboard' %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-house"></i> Dashboard
+                        </a>
+                        <a href="{% url 'ui_modern:voucher_list' %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-receipt"></i> Phiếu kế toán
+                        </a>
+                        <a href="{% url 'notifications:inbox' %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-bell"></i> Thông báo
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

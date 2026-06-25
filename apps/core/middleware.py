@@ -69,6 +69,8 @@ class BrandingMiddleware:
                 else DEFAULT_BRAND["favicon"],
                 "hide_pmketoan_branding": company.hide_pmketoan_branding,
                 "custom_css": company.custom_css,
+                "stamp": company.company_stamp.url if company.company_stamp else "",
+                "company": company,  # full object for templates
             }
         else:
             request.brand = DEFAULT_BRAND.copy()

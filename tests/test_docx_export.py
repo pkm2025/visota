@@ -14,7 +14,7 @@ from apps.ledger.models import AccountingVoucher, VoucherLine
 @pytest.fixture
 def setup(db):
     company = Company.objects.create(code="TCO", name="Test Co")
-    user = User.objects.create_user(username="alice", password="Secret123")
+    user = User.objects.create_superuser(username="alice", password="Secret123", email="alice@test.local")
     v = AccountingVoucher.objects.create(
         company=company,
         fiscal_year=2026,
@@ -47,7 +47,7 @@ def test_voucher_docx_export(setup):
 
 
 def test_trial_balance_docx_export(db):
-    user = User.objects.create_user(username="alice", password="Secret123")
+    user = User.objects.create_superuser(username="alice", password="Secret123", email="alice@test.local")
     client = Client()
     client.force_login(user)
     response = client.get("/modern/reports/trial-balance/docx/")
@@ -60,7 +60,7 @@ def test_contract_docx_export(db):
     from apps.contracts.models import Contract
 
     company = Company.objects.create(code="TCO2", name="Contract Co")
-    user = User.objects.create_user(username="alice2", password="Secret123")
+    user = User.objects.create_superuser(username="alice2", password="Secret123", email="alice2@test.local")
     contract = Contract.objects.create(
         company=company,
         contract_no="HD001",

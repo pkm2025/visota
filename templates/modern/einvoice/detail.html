@@ -1,0 +1,131 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:einvoice_list' %}">HĐĐT</a></li>
+            <li class="breadcrumb-item active">{{ einvoice.invoice_no|default:einvoice.transaction_id }}</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>Thông tin hóa đơn</strong>
+                    {% if einvoice.status == 'issued' %}<span class="badge bg-success">Đã phát hành</span>
+                    {% elif einvoice.status == 'draft' %}<span class="badge bg-secondary">Dự thảo</span>
+                    {% elif einvoice.status == 'cancelled' %}<span class="badge bg-danger">Đã hủy</span>
+                    {% elif einvoice.status == 'adjusted' %}<span class="badge bg-info">Đã điều chỉnh</span>{% endif %}
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Mẫu / Ký hiệu</dt>
+                        <dd class="col-sm-9 font-mono">{{ einvoice.pattern }} / {{ einvoice.serial }}</dd>
+                        <dt class="col-sm-3">Số HĐĐT</dt>
+                        <dd class="col-sm-9 font-mono">{{ einvoice.invoice_no|default:"— chưa cấp —" }}</dd>
+                        <dt class="col-sm-3">Transaction ID</dt>
+                        <dd class="col-sm-9 font-mono"><small>{{ einvoice.transaction_id }}</small></dd>
+                        <dt class="col-sm-3">Ngày phát hành</dt>
+                        <dd class="col-sm-9">{{ einvoice.issue_date|date:"d/m/Y H:i"|default:"—" }}</dd>
+                        {% if einvoice.sales_invoice %}
+                        <dt class="col-sm-3">Hóa đơn bán</dt>
+                        <dd class="col-sm-9">
+                            <a href="{% url 'ui_modern:sales_invoice_list' %}?search={{ einvoice.sales_invoice.invoice_no }}" class="font-mono">
+                                <i class="bi bi-receipt-cutoff"></i> {{ einvoice.sales_invoice.invoice_no }}
+                            </a>
+                        </dd>
+                        {% endif %}
+                    </dl>
+                    <hr>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Bên bán</dt>
+                        <dd class="col-sm-9">
+                            <strong>{{ einvoice.seller_name }}</strong><br>
+                            <small class="text-muted">MST: {{ einvoice.seller_tax_code }}<br>{{ einvoice.seller_address }}</small>
+                        </dd>
+                        <dt class="col-sm-3">Bên mua</dt>
+                        <dd class="col-sm-9">
+                            <strong>{{ einvoice.buyer_name }}</strong><br>
+                            <small class="text-muted">MST: {{ einvoice.buyer_tax_code|default:"—" }}<br>{{ einvoice.buyer_address }}</small>
+                        </dd>
+                    </dl>
+                    <hr>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Tổng trước thuế</dt>
+                        <dd class="col-sm-9 font-mono">{{ einvoice.subtotal|floatformat:0|intcomma }} VND</dd>
+                        <dt class="col-sm-3">VAT ({{ einvoice.vat_rate|floatformat:2 }}%)</dt>
+                        <dd class="col-sm-9 font-mono">{{ einvoice.vat_amount|floatformat:0|intcomma }} VND</dd>
+                        <dt class="col-sm-3"><strong>Tổng cộng</strong></dt>
+                        <dd class="col-sm-9 font-mono"><strong>{{ einvoice.total_amount|floatformat:0|intcomma }} VND</strong></dd>
+                        <dt class="col-sm-3">Viết bằng chữ</dt>
+                        <dd class="col-sm-9 fst-italic">{{ einvoice.total_in_words }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            {% if einvoice.status == 'draft' %}
+            <div class="card border-success">
+                <div class="card-header bg-success text-white"><strong>Phát hành</strong></div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'ui_modern:einvoice_publish' einvoice.id %}">
+                        {% csrf_token %}
+                        <div class="mb-2">
+                            <label class="form-label small">Số HĐĐT (để trống = tự sinh)</label>
+                            <input type="text" name="invoice_no" class="form-control form-control-sm"
+                                   placeholder="{{ einvoice.serial }}2606000001">
+                        </div>
+                        <button class="btn btn-success w-100">
+                            <i class="bi bi-send"></i> Phát hành HĐĐT
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if einvoice.status == 'issued' %}
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white"><strong>Hủy HĐĐT</strong></div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'ui_modern:einvoice_cancel' einvoice.id %}"
+                          onsubmit="return confirm('Hủy HĐĐT? Hành động không thể hoàn tác.')">
+                        {% csrf_token %}
+                        <div class="mb-2">
+                            <label class="form-label small text-danger">Lý do hủy *</label>
+                            <textarea name="reason" class="form-control form-control-sm" rows="2" required
+                                      placeholder="Sai tên khách, sai số tiền..."></textarea>
+                        </div>
+                        <button class="btn btn-outline-danger w-100">
+                            <i class="bi bi-x-circle"></i> Hủy hóa đơn
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card mt-3">
+                <div class="card-header"><strong>Tệp đính kèm</strong></div>
+                <div class="card-body">
+                    <a href="{% url 'ui_modern:einvoice_download_xml' einvoice.id %}" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                        <i class="bi bi-file-code"></i> XML (TT78 schema)
+                    </a>
+                    <a href="{% url 'ui_modern:einvoice_download_json' einvoice.id %}" class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="bi bi-filetype-json"></i> JSON (provider payload)
+                    </a>
+                    {% if einvoice.pdf_file %}
+                    <a href="{{ einvoice.pdf_file.url }}" class="btn btn-outline-danger btn-sm w-100 mt-2">
+                        <i class="bi bi-file-pdf"></i> PDF đã ký
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

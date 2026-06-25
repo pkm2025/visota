@@ -1,0 +1,174 @@
+"""Banking UI views."""
+
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views import View
+from django.views.generic import DetailView, ListView, TemplateView
+
+from apps.core.models import Company
+
+from .models import BankAccount, BankStatementImport, BankTransaction, ReconciliationMatch
+from .services import BankImportError, BankReconciliationService
+
+
+class BankAccountListView(LoginRequiredMixin, ListView):
+    template_name = "modern/banking/account_list.html"
+    context_object_name = "accounts"
+    login_url = "/auth/login/"
+
+    def get_queryset(self):
+        company = (
+            getattr(self.request, "current_company", None) or Company.objects.first()
+        )
+        return BankAccount.objects.filter(company=company)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = "Tài khoản ngân hàng"
+        return ctx
+
+
+class BankStatementImportListView(LoginRequiredMixin, ListView):
+    template_name = "modern/banking/import_list.html"
+    context_object_name = "imports"
+    login_url = "/auth/login/"
+
+    def get_queryset(self):
+        company = (
+            getattr(self.request, "current_company", None) or Company.objects.first()
+        )
+        return BankStatementImport.objects.filter(company=company).select_related(
+            "bank_account"
+        )
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = "Sao kê ngân hàng"
+        return ctx
+
+
+class BankStatementUploadView(LoginRequiredMixin, View):
+    login_url = "/auth/login/"
+
+    def post(self, request, *args, **kwargs):
+        company = (
+            getattr(request, "current_company", None) or Company.objects.first()
+        )
+        bank_account_id = request.POST.get("bank_account_id")
+        period_from = request.POST.get("period_from")
+        period_to = request.POST.get("period_to")
+        uploaded_file = request.FILES.get("file")
+
+        if not (bank_account_id and period_from and period_to and uploaded_file):
+            messages.error(request, "Thiếu thông tin tài khoản / kỳ / file.")
+            return redirect("ui_modern:banking_import_list")
+
+        bank_account = get_object_or_404(BankAccount, pk=bank_account_id, company=company)
+        from datetime import date as date_cls
+
+        imp = BankStatementImport.objects.create(
+            company=company,
+            bank_account=bank_account,
+            file_name=uploaded_file.name,
+            file=uploaded_file,
+            period_from=date_cls.fromisoformat(period_from),
+            period_to=date_cls.fromisoformat(period_to),
+            imported_by=request.user,
+        )
+        try:
+            # Re-read file (already saved via FileField)
+            imp.file.open("rb")
+            content = imp.file.read().decode("utf-8-sig")
+            imp.file.close()
+            from io import StringIO
+            import csv
+            from decimal import Decimal
+            from datetime import datetime
+
+            reader = csv.DictReader(StringIO(content))
+            count = 0
+            for row in reader:
+                try:
+                    txn_date = BankReconciliationService._parse_date(row.get("date", ""))
+                    amount = Decimal(str(row.get("amount", "0")).replace(",", ""))
+                    direction = (
+                        "credit" if amount > 0 else "debit"
+                    )
+                    BankTransaction.objects.create(
+                        import_session=imp,
+                        company=company,
+                        bank_account=bank_account,
+                        txn_date=txn_date,
+                        value_date=txn_date,
+                        direction=direction,
+                        amount=abs(amount),
+                        description=row.get("description", "")[:500],
+                        counterparty_name=row.get("counterparty", "")[:255],
+                        reference=row.get("reference", "")[:100],
+                    )
+                    count += 1
+                except Exception:
+                    continue
+            imp.status = "parsed"
+            imp.save()
+            messages.success(request, f"Đã import {count} giao dịch từ sao kê.")
+        except BankImportError as e:
+            messages.error(request, f"Lỗi parse: {e}")
+
+        # Try auto-reconcile immediately
+        matched = BankReconciliationService.auto_reconcile(company)
+        if matched:
+            messages.info(request, f"Đã tự động đối soát {matched} giao dịch.")
+        return redirect("ui_modern:banking_import_detail", pk=imp.pk)
+
+
+class BankStatementImportDetailView(LoginRequiredMixin, DetailView):
+    template_name = "modern/banking/import_detail.html"
+    context_object_name = "import"
+    pk_url_kwarg = "pk"
+    login_url = "/auth/login/"
+
+    def get_queryset(self):
+        return BankStatementImport.objects.select_related("bank_account")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = f"Sao kê {self.object.bank_account.account_number}"
+        ctx["transactions"] = self.object.transactions.all().order_by("-txn_date")
+        return ctx
+
+
+class BankReconciliationView(LoginRequiredMixin, TemplateView):
+    """Show unreconciled transactions + matches."""
+
+    template_name = "modern/banking/reconcile.html"
+    login_url = "/auth/login/"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        company = (
+            getattr(self.request, "current_company", None) or Company.objects.first()
+        )
+        ctx["page_title"] = "Đối soát ngân hàng"
+        ctx["unreconciled"] = BankTransaction.objects.filter(
+            company=company, is_reconciled=False
+        ).order_by("-txn_date")[:100]
+        ctx["recent_matches"] = ReconciliationMatch.objects.select_related(
+            "transaction"
+        ).order_by("-created_at")[:50]
+        return ctx
+
+
+class BankReconciliationRunView(LoginRequiredMixin, View):
+    """POST: trigger auto-reconcile."""
+
+    login_url = "/auth/login/"
+
+    def post(self, request, *args, **kwargs):
+        company = (
+            getattr(request, "current_company", None) or Company.objects.first()
+        )
+        matched = BankReconciliationService.auto_reconcile(company)
+        messages.success(request, f"Đã đối soát {matched} giao dịch.")
+        return redirect("ui_modern:banking_reconcile")

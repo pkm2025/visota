@@ -52,7 +52,7 @@ def test_balance_sheet_balanced(company_with_data):
 
 
 def test_balance_sheet_view_loads(db):
-    user = User.objects.create_user(username='alice', password='Secret123')
+    user = User.objects.create_superuser(username='alice', password='Secret123', email='alice@test.local')
     client = Client()
     client.force_login(user)
     response = client.get('/modern/reports/balance-sheet/')

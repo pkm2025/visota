@@ -14,9 +14,14 @@
             </nav>
             <h1 class="h3 mb-0">{{ page_title }}</h1>
         </div>
-        <a href="{% url 'ui_modern:labor_contract_create' %}" class="btn btn-primary btn-sm">
-            <i class="bi bi-plus-lg"></i> Thêm HĐLĐ
-        </a>
+        <div class="btn-group">
+            <a href="{% url 'ui_modern:contract_template_list' %}" class="btn btn-outline-info btn-sm">
+                <i class="bi bi-file-earmark-text"></i> Mẫu HĐLĐ
+            </a>
+            <a href="{% url 'ui_modern:labor_contract_create' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg"></i> Thêm HĐLĐ
+            </a>
+        </div>
     </div>
 
     <div class="card">

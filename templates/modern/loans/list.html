@@ -1,0 +1,44 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    {% include 'shared/_breadcrumb.html' %}
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+    <div class="card">
+        <div class="card-body">
+            {% if loans %}
+            <table class="table table-sm table-hover">
+                <thead class="table-light">
+                    <tr><th>Số HĐ vay</th><th>Loại</th><th>Ngân hàng</th><th>Ngày giải ngân</th><th>Ngày đáo hạn</th><th class="text-end">Lãi suất</th><th class="text-end">Dư nợ</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    {% for l in loans %}
+                    <tr>
+                        <td class="font-mono">{{ l.loan_no }}</td>
+                        <td><small>{{ l.get_loan_type_display }}</small></td>
+                        <td>{{ l.bank_name }}</td>
+                        <td>{{ l.disbursement_date|date:"d/m/Y" }}</td>
+                        <td>{{ l.maturity_date|date:"d/m/Y" }}</td>
+                        <td class="text-end font-mono">{{ l.interest_rate_pa|floatformat:2 }}%</td>
+                        <td class="text-end font-mono">{{ l.outstanding_principal|floatformat:0|intcomma }}</td>
+                        <td>
+                            {% if l.status == 'active' %}<span class="badge bg-success">Đang vay</span>
+                            {% elif l.status == 'closed' %}<span class="badge bg-secondary">Tất toán</span>
+                            {% elif l.status == 'defaulted' %}<span class="badge bg-danger">Quá hạn</span>
+                            {% else %}<span class="badge bg-light">{{ l.get_status_display }}</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted text-center py-4 mb-0">
+                <i class="bi bi-bank2 display-6 d-block mb-2"></i>
+                Chưa có khoản vay nào.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Visota — Phần mềm kế toán ERP cho doanh nghiệp Việt Nam. Tuân thủ TT133/2016, TT200/2014, TT78/2021. Hóa đơn điện tử, BHXH, PIT 2026, CRM, quản lý dự án.">
+    <meta name="keywords" content="phần mềm kế toán, ERP, hóa đơn điện tử, TT133, TT200, PIT 2026, BHXH, visota">
+    <meta property="og:title" content="Visota — Phần mềm kế toán ERP Việt Nam">
+    <meta property="og:description" content="ERP kế toán đa công ty, tuân thủ pháp luật VN. HĐĐT, lương, ngân hàng, CRM.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://visota.net">
+    <title>Visota — Phần mềm kế toán ERP cho doanh nghiệp Việt Nam</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #6366f1; --accent: #10b981; --dark: #0f172a; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Be Vietnam Pro', sans-serif; color: var(--dark); scroll-behavior: smooth; }
+        .hero { background: linear-gradient(135deg, #312e81 0%, #6366f1 50%, #8b5cf6 100%); color: white; padding: 100px 0 120px; }
+        .hero h1 { font-size: 3rem; font-weight: 800; line-height: 1.15; }
+        .hero .lead { font-size: 1.2rem; opacity: 0.9; max-width: 580px; }
+        .feature-card { border: 1px solid #e2e8f0; border-radius: 16px; padding: 28px; transition: all 0.3s; height: 100%; background: white; }
+        .feature-card:hover { box-shadow: 0 12px 32px rgba(99,102,241,0.1); transform: translateY(-2px); }
+        .feature-icon { width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 16px; }
+        .section { padding: 80px 0; }
+        .section-title { font-size: 2rem; font-weight: 800; }
+        .pricing-card { border: 2px solid #e2e8f0; border-radius: 16px; padding: 32px; background: white; }
+        .pricing-card.popular { border-color: var(--primary); position: relative; transform: scale(1.03); }
+        .pricing-card.popular::before { content: "PHỔ BIẾN"; position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: var(--primary); color: white; padding: 4px 16px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+        .contact-form { background: white; border-radius: 20px; padding: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.12); }
+        .alert-ok { background: #ecfdf5; border: 1px solid #10b981; color: #065f46; border-radius: 12px; padding: 16px; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+    <div class="container">
+        <a class="navbar-brand fw-bold fs-4" href="/"><span style="color: var(--primary)">V</span>isota</a>
+        <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+        <div class="collapse navbar-collapse" id="nav">
+            <ul class="navbar-nav mx-auto">
+                <li class="nav-item"><a class="nav-link" href="#features">Tính năng</a></li>
+                <li class="nav-item"><a class="nav-link" href="#pricing">Bảng giá</a></li>
+                <li class="nav-item"><a class="nav-link" href="/blog/">Blog</a></li>
+                <li class="nav-item"><a class="nav-link" href="#contact">Liên hệ</a></li>
+            </ul>
+            <a href="/auth/login/" class="btn btn-outline-primary me-2">Đăng nhập</a>
+            <a href="#contact" class="btn btn-primary">Dùng thử</a>
+        </div>
+    </div>
+</nav>
+
+{% if request.GET.contact == 'success' %}
+<div class="container mt-3"><div class="alert alert-ok"><i class="bi bi-check-circle-fill me-2"></i><strong>Cảm ơn!</strong> Đội ngũ Visota sẽ liên hệ trong 24h.</div></div>
+{% endif %}
+{% if request.GET.newsletter == 'success' %}
+<div class="container mt-3"><div class="alert alert-ok"><i class="bi bi-check-circle-fill me-2"></i> Đăng ký nhận tin thành công!</div></div>
+{% endif %}
+
+<section class="hero">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-7">
+                <span class="badge bg-light text-dark mb-3 px-3 py-2"><i class="bi bi-shield-check text-success"></i> TT133 · TT200 · TT78/2021 · Luật KT 2015</span>
+                <h1>Phần mềm kế toán<br><span style="color:#c7d2fe">ERP toàn diện</span><br>cho doanh nghiệp VN</h1>
+                <p class="lead mt-3">Hóa đơn điện tử, BHXH, PIT 2026, CRM, dự án, ngân hàng — 31 module trong 1 nền tảng. Đa công ty, phân quyền RBAC, PWA mobile.</p>
+                <div class="d-flex gap-3 mt-4 flex-wrap">
+                    <a href="#contact" class="btn btn-light btn-lg fw-semibold"><i class="bi bi-rocket-takeoff"></i> Bắt đầu dùng thử</a>
+                    <a href="#features" class="btn btn-outline-light btn-lg">Xem tính năng</a>
+                </div>
+                <div class="d-flex gap-3 mt-3 opacity-75 small">
+                    <span><i class="bi bi-check-circle"></i> Không cần thẻ tín dụng</span>
+                    <span><i class="bi bi-check-circle"></i> Setup 5 phút</span>
+                </div>
+            </div>
+            <div class="col-lg-5 d-none d-lg-block">
+                <div class="card shadow-lg" style="border-radius:16px;transform:rotate(3deg)">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between mb-3"><strong>Dashboard</strong><span class="badge bg-success">Live</span></div>
+                        <div class="row g-2 text-center">
+                            <div class="col-6"><div class="bg-light rounded p-3"><div class="text-muted small">Chứng từ</div><div class="h4 mb-0 text-primary">128</div></div></div>
+                            <div class="col-6"><div class="bg-light rounded p-3"><div class="text-muted small">Công nợ</div><div class="h4 mb-0 text-danger">2.1B</div></div></div>
+                            <div class="col-6"><div class="bg-light rounded p-3"><div class="text-muted small">HĐĐT</div><div class="h4 mb-0 text-success">42</div></div></div>
+                            <div class="col-6"><div class="bg-light rounded p-3"><div class="text-muted small">Dự án</div><div class="h4 mb-0 text-info">7</div></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="bg-light py-5">
+    <div class="container"><div class="row text-center">
+        <div class="col-6 col-md-3"><div style="font-size:2.4rem;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">31</div><p class="text-muted">Module</p></div>
+        <div class="col-6 col-md-3"><div style="font-size:2.4rem;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">25</div><p class="text-muted">Quyền</p></div>
+        <div class="col-6 col-md-3"><div style="font-size:2.4rem;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">622+</div><p class="text-muted">Tests</p></div>
+        <div class="col-6 col-md-3"><div style="font-size:2.4rem;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">100%</div><p class="text-muted">Tuân thủ VN</p></div>
+    </div></div>
+</section>
+
+<section class="section" id="features">
+    <div class="container">
+        <h2 class="section-title text-center mb-4">Mọi thứ doanh nghiệp cần</h2>
+        <p class="text-center text-muted mb-5">31 module tích hợp — từ kế toán đến CRM</p>
+        <div class="row g-4">
+            <div class="col-lg-4 col-md-6"><div class="feature-card">
+                <div class="feature-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-receipt"></i></div>
+                <h5>Kế toán tổng hợp</h5><p class="text-muted small">Phiếu kế toán, sổ cái, BCĐTK, BCTC B01/B02, kết chuyển kỳ — TT133 & TT200.</p>
+            </div></div>
+            <div class="col-lg-4 col-md-6"><div class="feature-card">
+                <div class="feature-icon bg-success bg-opacity-10 text-success"><i class="bi bi-receipt-cutoff"></i></div>
+                <h5>Hóa đơn điện tử</h5><p class="text-muted small">TT78/2021 — XML/JSON, BC01/BC26, tích hợp MISA/VNPT/eHoadon/BKAV.</p>
+            </div></div>
+            <div class="col-lg-4 col-md-6"><div class="feature-card">
+                <div class="feature-icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-cash-stack"></i></div>
+                <h5>Tính lương + PIT 2026</h5><p class="text-muted small">BHXH 29%, PIT 7 bậc (13.2M giảm trừ), D62, BC TNCN hàng tháng.</p>
+            </div></div>
+            <div class="col-lg-4 col-md-6"><div class="feature-card">
+                <div class="feature-icon bg-info bg-opacity-10 text-info"><i class="bi bi-bank"></i></div>
+                <h5>Ngân hàng & Đối soát</h5><p class="text-muted small">Import sao kê CSV, auto-match giao dịch với phiếu thu/chi ±3 ngày.</p>
+            </div></div>
+            <div class="col-lg-4 col-md-6"><div class="feature-card">
+                <div class="feature-icon bg-danger bg-opacity-10 text-danger"><i class="bi bi-file-earmark-text"></i></div>
+                <h5>Hợp đồng + Biên bản</h5><p class="text-muted small">21 mẫu sẵn — HĐLĐ, mua bán, dịch vụ, biên bản, QĐ. Logo + con dấu tự động.</p>
+            </div></div>
+            <div class="col-lg-4 col-md-6"><div class="feature-card">
+                <div class="feature-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-people"></i></div>
+                <h5>CRM + Dự án</h5><p class="text-muted small">Lead → Opportunity → Won → Contract → Project → Invoice.</p>
+            </div></div>
+        </div>
+    </div>
+</section>
+
+<section class="section bg-light" id="pricing">
+    <div class="container">
+        <h2 class="section-title text-center mb-4">Bảng giá</h2>
+        <p class="text-center text-muted mb-5">Bắt đầu miễn phí — nâng cấp khi cần</p>
+        <div class="row g-4 justify-content-center">
+            <div class="col-lg-4 col-md-6"><div class="pricing-card text-center h-100">
+                <h5 class="text-muted">Khởi đầu</h5>
+                <div class="my-3"><span style="font-size:2.2rem;font-weight:800">299K</span><span class="text-muted">/tháng</span></div>
+                <ul class="list-unstyled text-start mb-4">
+                    <li><i class="bi bi-check-circle text-success"></i> 3 người dùng</li>
+                    <li><i class="bi bi-check-circle text-success"></i> 1 công ty</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Kế toán + Bán/Mua</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Hóa đơn điện tử</li>
+                </ul>
+                <a href="#contact" class="btn btn-outline-primary w-100">Chọn gói</a>
+            </div></div>
+            <div class="col-lg-4 col-md-6"><div class="pricing-card popular text-center h-100">
+                <h5 class="text-primary">Doanh nghiệp</h5>
+                <div class="my-3"><span style="font-size:2.2rem;font-weight:800">899K</span><span class="text-muted">/tháng</span></div>
+                <ul class="list-unstyled text-start mb-4">
+                    <li><i class="bi bi-check-circle text-success"></i> 20 người dùng</li>
+                    <li><i class="bi bi-check-circle text-success"></i> 3 công ty</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Tất cả 31 module</li>
+                    <li><i class="bi bi-check-circle text-success"></i> CRM + Dự án + Ngân hàng</li>
+                    <li><i class="bi bi-check-circle text-success"></i> PWA Mobile</li>
+                </ul>
+                <a href="#contact" class="btn btn-primary w-100 fw-semibold">Chọn gói</a>
+            </div></div>
+            <div class="col-lg-4 col-md-6"><div class="pricing-card text-center h-100">
+                <h5 class="text-muted">Enterprise</h5>
+                <div class="my-3"><span style="font-size:2.2rem;font-weight:800">Liên hệ</span></div>
+                <ul class="list-unstyled text-start mb-4">
+                    <li><i class="bi bi-check-circle text-success"></i> Không giới hạn</li>
+                    <li><i class="bi bi-check-circle text-success"></i> On-prem / Cloud</li>
+                    <li><i class="bi bi-check-circle text-success"></i> API + Webhook</li>
+                    <li><i class="bi bi-check-circle text-success"></i> SLA 99.9%</li>
+                </ul>
+                <a href="#contact" class="btn btn-outline-primary w-100">Liên hệ</a>
+            </div></div>
+        </div>
+    </div>
+</section>
+
+{% if latest_articles %}
+<section class="section">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-end mb-4">
+            <div><h2 class="section-title mb-1">Blog mới nhất</h2><p class="text-muted">Mẹo kế toán, cập nhật thuế, hướng dẫn</p></div>
+            <a href="/blog/" class="btn btn-outline-primary">Xem tất cả →</a>
+        </div>
+        <div class="row g-4">
+            {% for a in latest_articles %}
+            <div class="col-md-4"><a href="/blog/{{ a.slug }}/" class="text-decoration-none text-dark">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-img-top d-flex align-items-center justify-content-center bg-light" style="height:160px;"><i class="bi bi-journal-text text-muted" style="font-size:36px;"></i></div>
+                    <div class="card-body">
+                        {% if a.category %}<span class="badge mb-2" style="background:{{ a.category.color }}">{{ a.category.name }}</span>{% endif %}
+                        <h6 class="fw-semibold">{{ a.title|truncatechars:60 }}</h6>
+                        <p class="text-muted small">{{ a.excerpt|truncatechars:80 }}</p>
+                    </div>
+                </div></a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<section class="section bg-light" id="contact">
+    <div class="container">
+        <div class="text-center mb-4">
+            <h2 class="section-title">Đăng ký dùng thử</h2>
+            <p class="text-muted">Để lại thông tin — Visota liên hệ trong 24h</p>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="contact-form">
+                    <form method="post" action="/contact/submit/">
+                        {% csrf_token %}
+                        <input type="hidden" name="source" value="landing">
+                        <input type="hidden" name="referrer" value="{{ request.META.HTTP_REFERER|default:'' }}">
+                        <div class="row g-3">
+                            <div class="col-md-6"><label class="form-label fw-semibold">Họ tên *</label><input type="text" name="full_name" class="form-control form-control-lg" required placeholder="Nguyễn Văn A"></div>
+                            <div class="col-md-6"><label class="form-label fw-semibold">Email *</label><input type="email" name="email" class="form-control form-control-lg" required placeholder="email@congty.vn"></div>
+                            <div class="col-md-6"><label class="form-label fw-semibold">Số điện thoại</label><input type="tel" name="phone" class="form-control form-control-lg" placeholder="0901 234 567"></div>
+                            <div class="col-md-6"><label class="form-label fw-semibold">Tên công ty</label><input type="text" name="company_name" class="form-control form-control-lg" placeholder="Công ty CP ABC"></div>
+                            <div class="col-md-6"><label class="form-label fw-semibold">Quy mô</label><select name="company_size" class="form-select form-select-lg"><option value="">— Chọn —</option><option>1-10 NV</option><option>11-50 NV</option><option>51-200 NV</option><option>200+ NV</option></select></div>
+                            <div class="col-md-6"><label class="form-label fw-semibold">Gói quan tâm</label><select class="form-select form-select-lg" onchange="document.querySelector('[name=message]').value='Quan tâm: '+this.value"><option value="">— Chọn —</option><option>Khởi đầu 299K</option><option>Doanh nghiệp 899K</option><option>Enterprise</option></select></div>
+                            <div class="col-12"><label class="form-label fw-semibold">Nội dung</label><textarea name="message" class="form-control" rows="3" placeholder="Tôi muốn tìm hiểu về..."></textarea></div>
+                            <div class="col-12"><button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-semibold"><i class="bi bi-send"></i> Gửi đăng ký</button></div>
+                        </div>
+                    </form>
+                    <p class="text-center text-muted small mt-3 mb-0"><i class="bi bi-shield-check"></i> Thông tin bảo mật. Không spam.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-4" style="background:var(--primary)">
+    <div class="container text-center text-white">
+        <p class="mb-2">Nhận tin kế toán + thuế mới nhất</p>
+        <form method="post" action="/newsletter/subscribe/" class="row g-2 justify-content-center" style="max-width:450px;margin:0 auto">
+            {% csrf_token %}
+            <div class="col-auto"><input type="email" name="email" class="form-control" placeholder="email@cua-ban.vn" required></div>
+            <div class="col-auto"><button type="submit" class="btn btn-light fw-semibold">Đăng ký</button></div>
+        </form>
+    </div>
+</section>
+
+<footer class="bg-dark text-light py-5">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-4 col-md-6"><h5 class="fw-bold mb-3"><span style="color:#818cf8">V</span>isota</h5>
+                <p class="small" style="color:#94a3b8">Phần mềm kế toán ERP cho doanh nghiệp VN.<br>Tuân thủ TT133/2016, TT200/2014, TT78/2021.</p></div>
+            <div class="col-lg-2 col-md-3"><h6 class="mb-3">Sản phẩm</h6><ul class="list-unstyled">
+                <li><a href="#features" class="text-muted text-decoration-none small">Tính năng</a></li>
+                <li><a href="#pricing" class="text-muted text-decoration-none small">Bảng giá</a></li>
+                <li><a href="/blog/" class="text-muted text-decoration-none small">Blog</a></li>
+            </ul></div>
+            <div class="col-lg-2 col-md-3"><h6 class="mb-3">Module</h6><ul class="list-unstyled">
+                <li><a href="#features" class="text-muted text-decoration-none small">Kế toán</a></li>
+                <li><a href="#features" class="text-muted text-decoration-none small">HĐĐT</a></li>
+                <li><a href="#features" class="text-muted text-decoration-none small">Lương</a></li>
+                <li><a href="#features" class="text-muted text-decoration-none small">CRM</a></li>
+            </ul></div>
+            <div class="col-lg-4 col-md-6"><h6 class="mb-3">Liên hệ</h6><p class="small" style="color:#94a3b8">
+                <i class="bi bi-globe"></i> visota.net<br><i class="bi bi-envelope"></i> contact@visota.net<br>
+                <i class="bi bi-telephone"></i> 1900 xxxx<br><i class="bi bi-geo-alt"></i> Hà Nội, VN</p></div>
+        </div>
+        <hr class="border-secondary"><p class="text-center text-muted small mb-0">© 2026 Visota — visota.net</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

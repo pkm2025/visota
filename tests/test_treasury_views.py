@@ -19,7 +19,7 @@ def setup(db):
         tax_code="0101234567",
         accounting_regime="tt133",
     )
-    user = User.objects.create_user(username="alice", password="Secret123")
+    user = User.objects.create_superuser(username="alice", password="Secret123", email="alice@test.local")
     return company, user
 
 

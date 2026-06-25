@@ -11,3 +11,11 @@ MIDDLEWARE = ['debug_toolbar.middleware.DebugToolbarMiddleware'] + MIDDLEWARE  #
 INTERNAL_IPS = ['127.0.0.1']
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Disable Axes brute-force lockout for dev (frequent test runs)
+AXES_FAILURE_LIMIT = 10000
+AXES_COOLOFF_TIME = 1
+# Only lock out remote, not localhost (for E2E tests)
+AXES_NEVER_LOCKOUT_WHITELIST = True
+AXES_IP_WHITELIST = ['127.0.0.1', '::1']
+

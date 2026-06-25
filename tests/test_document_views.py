@@ -11,7 +11,7 @@ from datetime import date
 @pytest.fixture
 def auth_client_with_voucher(db):
     company = Company.objects.create(code='TCO', name='Test')
-    user = User.objects.create_user(username='alice', password='Secret123')
+    user = User.objects.create_superuser(username='alice', password='Secret123', email='alice@test.local')
     v = AccountingVoucher.objects.create(
         company=company, fiscal_year=2026, period=6,
         voucher_no='BC0001', voucher_type='journal',

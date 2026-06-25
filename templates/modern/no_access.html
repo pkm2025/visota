@@ -1,0 +1,30 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-5">
+                    <i class="bi bi-shield-lock text-danger" style="font-size: 80px;"></i>
+                    <h2 class="mt-3 mb-2">Không có quyền truy cập</h2>
+                    <p class="text-muted mb-4">
+                        Bạn không được cấp quyền sử dụng module này.
+                        Vui lòng liên hệ quản trị viên nếu cần thêm quyền.
+                    </p>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <a href="{% url 'ui_modern:dashboard' %}" class="btn btn-primary">
+                            <i class="bi bi-house"></i> Về trang chủ
+                        </a>
+                        {% if user.is_authenticated %}
+                        <a href="{% url 'ui_modern:my_permissions' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-card-checklist"></i> Xem quyền của tôi
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

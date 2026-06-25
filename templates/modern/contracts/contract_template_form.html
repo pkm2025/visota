@@ -1,0 +1,230 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:contract_template_list' %}">Mẫu văn bản</a></li>
+            <li class="breadcrumb-item active">{{ page_title }}</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <form method="post" id="template-form">
+        {% csrf_token %}
+
+        <!-- Tab navigation -->
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-info" type="button">
+                    <i class="bi bi-info-circle"></i> Thông tin
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-editor" type="button">
+                    <i class="bi bi-code-slash"></i> Soạn thảo HTML
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-preview" type="button" onclick="refreshPreview(); return false;">
+                    <i class="bi bi-eye"></i> Xem trước
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- Tab 1: Info -->
+            <div class="tab-pane fade show active" id="tab-info">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Mã mẫu <span class="text-danger">*</span></label>
+                                <input type="text" name="code" class="form-control"
+                                       value="{{ form_data.code }}" required
+                                       {% if not is_new %}readonly{% endif %}
+                                       pattern="[a-z0-9_]+"
+                                       placeholder="VD: labor_fixed, bb_nghiem_thu">
+                                <small class="text-muted">Chỉ chữ thường, số, dấu gạch dưới. Không đổi được sau khi tạo.</small>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">Tên mẫu <span class="text-danger">*</span></label>
+                                <input type="text" name="name" class="form-control"
+                                       value="{{ form_data.name }}" required
+                                       placeholder="VD: Hợp đồng lao động xác định thời hạn">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Loại</label>
+                                <select name="contract_type" class="form-select">
+                                    {% for ct in contract_type_choices|default:'' %}
+                                    {% endfor %}
+                                    <option value="labor_fixed" {% if form_data.contract_type == 'labor_fixed' %}selected{% endif %}>HĐLĐ xác định</option>
+                                    <option value="labor_indefinite" {% if form_data.contract_type == 'labor_indefinite' %}selected{% endif %}>HĐLĐ không xác định</option>
+                                    <option value="labor_probation" {% if form_data.contract_type == 'labor_probation' %}selected{% endif %}>HĐ thử việc</option>
+                                    <option value="sale" {% if form_data.contract_type == 'sale' %}selected{% endif %}>HĐ mua bán</option>
+                                    <option value="purchase" {% if form_data.contract_type == 'purchase' %}selected{% endif %}>HĐ mua hàng</option>
+                                    <option value="service" {% if form_data.contract_type == 'service' %}selected{% endif %}>HĐ dịch vụ</option>
+                                    <option value="construction" {% if form_data.contract_type == 'construction' %}selected{% endif %}>HĐ thi công</option>
+                                    <option value="bidding_lump_sum" {% if form_data.contract_type == 'bidding_lump_sum' %}selected{% endif %}>HĐ đấu thầu</option>
+                                    <option value="lease" {% if form_data.contract_type == 'lease' %}selected{% endif %}>HĐ thuê</option>
+                                    <option value="labor" {% if form_data.contract_type == 'labor' %}selected{% endif %}>HĐ lao động</option>
+                                    <option value="other" {% if form_data.contract_type == 'other' %}selected{% endif %}>Khác (biên bản, QĐ...)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Required fields (JSON)</label>
+                                <input type="text" name="required_fields" class="form-control font-mono"
+                                       value="{{ form_data.required_fields }}"
+                                       placeholder='["company", "party_name", "value"]'>
+                                <small class="text-muted">Danh sách biến cần có để render. JSON array.</small>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Phiên bản</label>
+                                <input type="text" name="version" class="form-control"
+                                       value="{{ form_data.version }}" placeholder="2026">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Trạng thái</label>
+                                <div class="form-check mt-2">
+                                    <input type="checkbox" name="is_active" class="form-check-input"
+                                           id="is_active" {% if form_data.is_active %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_active">Đang sử dụng</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Căn cứ pháp lý</label>
+                            <textarea name="legal_basis" class="form-control" rows="2"
+                                      placeholder="VD: Luật Lao động 45/2019/QH14, BLDS 91/2015/QH13">{{ form_data.legal_basis }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Hợp đồng xem trước (tùy chọn)</label>
+                            <select name="contract_id" id="contract_id" class="form-select form-select-sm">
+                                <option value="">— Dữ liệu mẫu —</option>
+                                {% for c in contracts_available|default:'' %}
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Chọn HĐ để xem trước với dữ liệu thật.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: HTML editor -->
+            <div class="tab-pane fade" id="tab-editor">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong><i class="bi bi-code-slash"></i> HTML + Django template</strong>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="insertSnippet('var');">
+                                <i class="bi bi-braces"></i> Biến
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="insertSnippet('if');">
+                                <i class="bi bi-git"></i> If/Else
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="insertSnippet('for');">
+                                <i class="bi bi-list-ol"></i> For loop
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertSnippet('sig');">
+                                <i class="bi bi-pen"></i> Chữ ký
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <textarea name="template_html" id="template_html" class="form-control font-mono"
+                                  rows="25" style="border:none; border-radius:0; font-size:13px; tab-size:2;"
+                                  spellcheck="false">{{ form_data.template_html }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Preview -->
+            <div class="tab-pane fade" id="tab-preview">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong><i class="bi bi-eye"></i> Xem trước (render với dữ liệu mẫu)</strong>
+                        <button type="button" class="btn btn-sm btn-primary" onclick="refreshPreview();">
+                            <i class="bi bi-arrow-clockwise"></i> Làm mới
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <iframe id="preview-frame" style="width:100%; height:600px; border:none;"
+                                srcdoc="<p class='text-muted p-4'>Bấm 'Làm mới' để xem trước.</p>"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> {% if is_new %}Tạo mẫu{% else %}Lưu thay đổi{% endif %}
+            </button>
+            <a href="{% url 'ui_modern:contract_template_list' %}" class="btn btn-outline-secondary">Hủy</a>
+            {% if not is_new and template %}
+            <button type="button" class="btn btn-outline-info ms-auto"
+                    onclick="window.open('{% url "ui_modern:contract_template_duplicate" template.id %}', '_self');">
+                <i class="bi bi-files"></i> Nhân bản
+            </button>
+            <form method="post" action="{% url 'ui_modern:contract_template_delete' template.id %}"
+                  class="d-inline" onsubmit="return confirm('Xóa mẫu này?')">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger">
+                    <i class="bi bi-trash"></i> Xóa
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<script>
+// Insert snippets into HTML editor
+function insertSnippet(type) {
+    const ta = document.getElementById('template_html');
+    const snippets = {
+        'var': '{{ company.name }} — {{ contract.value|floatformat:0|intcomma }} đồng',
+        'if': '{% if contract.value > 1000000000 %}\n  <p>Điều khoản đặc biệt</p>\n{% endif %}',
+        'for': '{% for line in contract.lines.all %}\n  <tr>\n    <td>{{ forloop.counter }}</td>\n    <td>{{ line.description }}</td>\n    <td>{{ line.amount|floatformat:0|intcomma }}</td>\n  </tr>\n{% endfor %}',
+        'sig': '<table style="width:100%; margin-top:50px;">\n<tr>\n  <td style="text-align:center; width:50%;">\n    <strong>BÊN A</strong><br><br><br>\n    (Ký, ghi rõ họ tên, đóng dấu)\n  </td>\n  <td style="text-align:center; width:50%;">\n    <strong>BÊN B</strong><br><br><br>\n    (Ký, ghi rõ họ tên, đóng dấu)\n  </td>\n</tr>\n</table>',
+    };
+    const text = snippets[type] || '';
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    ta.value = ta.value.substring(0, start) + text + ta.value.substring(end);
+    ta.selectionStart = ta.selectionEnd = start + text.length;
+    ta.focus();
+}
+
+// Live preview
+function refreshPreview() {
+    const html = document.getElementById('template_html').value;
+    const contractId = document.getElementById('contract_id')?.value || '';
+    const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    fetch('/modern/contract-templates/preview-raw/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrf,
+        },
+        body: 'template_html=' + encodeURIComponent(html) + '&contract_id=' + contractId,
+    })
+    .then(r => r.text())
+    .then(rendered => {
+        document.getElementById('preview-frame').srcdoc = rendered;
+    })
+    .catch(err => {
+        document.getElementById('preview-frame').srcdoc =
+            '<div class="alert alert-danger m-3">Lỗi: ' + err + '</div>';
+    });
+}
+</script>
+{% endblock %}

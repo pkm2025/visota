@@ -1,0 +1,113 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item">Hệ thống</li>
+            <li class="breadcrumb-item active">Liên hệ</li>
+        </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0">{{ page_title }}
+            {% if new_count %}<span class="badge bg-danger">{{ new_count }} mới</span>{% endif %}
+        </h1>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ngày</th>
+                            <th>Họ tên</th>
+                            <th>Email</th>
+                            <th>SĐT</th>
+                            <th>Công ty</th>
+                            <th>Nguồn</th>
+                            <th>Trạng thái</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in contacts %}
+                        <tr class="{% if c.status == 'new' %}table-warning{% endif %}">
+                            <td><small>{{ c.created_at|date:"d/m/Y H:i" }}</small></td>
+                            <td>{{ c.full_name }}</td>
+                            <td><a href="mailto:{{ c.email }}" class="text-decoration-none">{{ c.email }}</a></td>
+                            <td>{{ c.phone|default:"—" }}</td>
+                            <td>{{ c.company_name|default:"—" }}</td>
+                            <td><small class="badge bg-secondary">{{ c.get_source_display }}</small></td>
+                            <td>
+                                {% if c.status == 'new' %}<span class="badge bg-warning text-dark">Mới</span>
+                                {% elif c.status == 'contacted' %}<span class="badge bg-info">Đã liên hệ</span>
+                                {% elif c.status == 'converted' %}<span class="badge bg-success">Đã chuyển</span>
+                                {% else %}<span class="badge bg-secondary">Từ chối</span>{% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#contact-{{ c.id }}">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Modal -->
+                        <div class="modal fade" id="contact-{{ c.id }}" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">{{ c.full_name }} — {{ c.email }}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <dl class="row mb-3">
+                                            <dt class="col-sm-3">SĐT</dt><dd class="col-sm-9">{{ c.phone|default:"—" }}</dd>
+                                            <dt class="col-sm-3">Công ty</dt><dd class="col-sm-9">{{ c.company_name|default:"—" }}</dd>
+                                            <dt class="col-sm-3">Quy mô</dt><dd class="col-sm-9">{{ c.company_size|default:"—" }}</dd>
+                                            <dt class="col-sm-3">Nguồn</dt><dd class="col-sm-9">{{ c.get_source_display }}</dd>
+                                            <dt class="col-sm-3">Ngày</dt><dd class="col-sm-9">{{ c.created_at|date:"d/m/Y H:i" }}</dd>
+                                            <dt class="col-sm-3">IP</dt><dd class="col-sm-9 font-mono">{{ c.ip_address|default:"—" }}</dd>
+                                        </dl>
+                                        {% if c.message %}
+                                        <div class="alert alert-light border">
+                                            <strong>Nội dung:</strong><br>{{ c.message|linebreaksbr }}
+                                        </div>
+                                        {% endif %}
+
+                                        <form method="post" action="/admin/contacts/{{ c.id }}/status/">
+                                            {% csrf_token %}
+                                            <div class="row g-2">
+                                                <div class="col-md-4">
+                                                    <select name="status" class="form-select form-select-sm">
+                                                        {% for code, label in status_choices %}
+                                                        <option value="{{ code }}" {% if c.status == code %}selected{% endif %}>{{ label }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <input type="text" name="notes" class="form-control form-control-sm" value="{{ c.notes }}" placeholder="Ghi chú">
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <button type="submit" class="btn btn-sm btn-primary w-100">Lưu</button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <tr><td colspan="8" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox display-6 d-block mb-2"></i>Chưa có yêu cầu liên hệ nào.
+                        </td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

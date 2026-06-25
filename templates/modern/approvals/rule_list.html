@@ -1,0 +1,59 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:approval_queue' %}">Phê duyệt</a></li>
+            <li class="breadcrumb-item active">Quy tắc</li>
+        </ol>
+    </nav>
+
+    <h1 class="h3 mb-3">Quy tắc phê duyệt</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <p class="small text-muted mb-3">
+                Khi một phiếu/hóa đơn khớp <em>voucher_type</em> và nằm trong khoảng
+                <em>[min_amount, max_amount]</em>, hệ thống sẽ tạo chuỗi phê duyệt
+                theo <em>approver_roles</em>.
+            </p>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Voucher type</th>
+                            <th class="text-end">Từ</th>
+                            <th class="text-end">Đến</th>
+                            <th>Vai trò phê duyệt</th>
+                            <th class="text-center">Active</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rule in rules %}
+                        <tr>
+                            <td><code>{{ rule.voucher_type }}</code></td>
+                            <td class="text-end font-mono">{{ rule.min_amount|floatformat:0|intcomma }}</td>
+                            <td class="text-end font-mono">{{ rule.max_amount|floatformat:0|intcomma }}</td>
+                            <td>
+                                {% for r in rule.approver_roles %}
+                                <span class="badge bg-primary me-1">{{ r }}</span>
+                                {% endfor %}
+                            </td>
+                            <td class="text-center">
+                                {% if rule.is_active %}<i class="bi bi-check-circle-fill text-success"></i>
+                                {% else %}<i class="bi bi-x-circle text-muted"></i>{% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center text-muted py-4">Chưa có quy tắc nào.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

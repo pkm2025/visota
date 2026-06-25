@@ -286,13 +286,184 @@ body.right-collapsed .right-sidebar { display: none; }
         left: -256px;
     }
     .right-sidebar {
-        display: none;
+        display: none !important;
     }
     .topbar-center {
         display: none;
     }
     .main-content {
         width: 100%;
+    }
+    body:not(.no-bottom-nav) .main-content {
+        padding-bottom: 72px;
+    }
+    .topbar {
+        padding-top: env(safe-area-inset-top);
+    }
+    .mobile-bottom-nav {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+}
+
+/* ===== PWA install banner ===== */
+.pwa-install-banner {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--color-bg, white);
+    color: var(--color-text, #1f2937);
+    border: 1px solid var(--color-border, #e5e7eb);
+    border-radius: 12px;
+    padding: 12px 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    z-index: 2000;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.pwa-install-banner.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+@media (min-width: 769px) {
+    .pwa-install-banner {
+        bottom: 16px;
+        right: 16px;
+        left: auto;
+        max-width: 360px;
+    }
+}
+
+/* ===== Mobile bottom navigation ===== */
+.mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: var(--color-bg, white);
+    border-top: 1px solid var(--color-border, #e5e7eb);
+    display: none;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.05);
+}
+@media (max-width: 768px) {
+    .mobile-bottom-nav {
+        display: flex;
+    }
+}
+.mobile-bottom-nav-item {
+    flex: 1;
+    text-align: center;
+    color: var(--color-text-muted, #6b7280);
+    text-decoration: none;
+    padding: 8px 4px;
+    font-size: 11px;
+    transition: color 0.15s;
+    position: relative;
+}
+.mobile-bottom-nav-item i {
+    font-size: 22px;
+    display: block;
+    margin-bottom: 2px;
+}
+.mobile-bottom-nav-item.active,
+.mobile-bottom-nav-item:active {
+    color: var(--brand-primary, #2563eb);
+}
+.mobile-bottom-nav-badge {
+    position: absolute;
+    top: 2px;
+    right: 50%;
+    margin-right: -22px;
+    background: #dc2626;
+    color: white;
+    border-radius: 10px;
+    font-size: 9px;
+    padding: 1px 5px;
+    line-height: 1;
+}
+
+/* ===== Pull-to-refresh indicator ===== */
+.pull-to-refresh {
+    position: fixed;
+    top: -60px;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--color-bg, white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    transition: top 0.2s ease;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.pull-to-refresh.visible {
+    top: 0;
+}
+.pull-to-refresh i {
+    font-size: 24px;
+    color: var(--color-text-muted, #6b7280);
+    transition: transform 0.2s;
+}
+.pull-to-refresh.refreshing i {
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
+
+/* ===== Swipe-to-delete row ===== */
+.swipe-row {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease;
+}
+.swipe-row.swiped {
+    transform: translateX(-80px);
+}
+.swipe-row-delete {
+    position: absolute;
+    right: -80px;
+    top: 0;
+    bottom: 0;
+    width: 80px;
+    background: #dc2626;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: right 0.2s ease;
+}
+
+/* ===== Tablet (769-1024px) ===== */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .sidebar {
+        width: 200px;
+    }
+    .sidebar .nav-section-title {
+        font-size: 11px;
+    }
+    .sidebar .nav-item span {
+        font-size: 13px;
+    }
+    .topbar {
+        height: 48px;
+    }
+}
+@media (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
+    .right-sidebar {
+        display: none !important;
+    }
+    .content-wrapper {
+        width: calc(100% - 200px);
     }
 }
 

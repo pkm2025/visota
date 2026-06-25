@@ -1,0 +1,62 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    {% include 'shared/_breadcrumb.html' %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0">{{ page_title }}</h1>
+        <form method="post" action="{% url 'ui_modern:fx_revaluation_run' %}" class="d-flex gap-1"
+              onsubmit="return confirm('Định giá lại ngoại tệ cuối kỳ?')">
+            {% csrf_token %}
+            <select name="month" class="form-select form-select-sm" style="width:auto">
+                <option value="6" selected>Tháng 6</option>
+                <option value="12">Tháng 12</option>
+            </select>
+            <input type="number" name="year" class="form-control form-control-sm" value="2026" style="width:90px">
+            <button class="btn btn-sm btn-primary"><i class="bi bi-arrow-repeat"></i> Định giá lại</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if batches %}
+            <table class="table table-sm table-hover">
+                <thead class="table-light">
+                    <tr><th>Kỳ</th><th>Ngày định giá</th><th>Tỷ giá tham chiếu</th><th>Voucher</th><th>Trạng thái</th><th>Ngày chạy</th></tr>
+                </thead>
+                <tbody>
+                    {% for b in batches %}
+                    <tr>
+                        <td><strong>{{ b.period_month|stringformat:"02d" }}/{{ b.period_year }}</strong></td>
+                        <td>{{ b.valuation_date|date:"d/m/Y" }}</td>
+                        <td>
+                            {% for cur, rate in b.reference_rate.items %}
+                            <small class="font-mono">{{ cur }}={{ rate|floatformat:0|intcomma }}</small>{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% if b.gl_voucher %}
+                            <a href="{% url 'ui_modern:voucher_detail' b.gl_voucher.id %}" class="font-mono">{{ b.gl_voucher.voucher_no }}</a>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if b.status == 'posted' %}<span class="badge bg-success">Đã ghi sổ</span>
+                            {% elif b.status == 'reversed' %}<span class="badge bg-secondary">Đã đảo</span>
+                            {% else %}<span class="badge bg-warning">{{ b.status }}</span>{% endif %}
+                        </td>
+                        <td><small>{{ b.posted_at|date:"d/m/Y H:i"|default:"—" }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted text-center py-4 mb-0">
+                <i class="bi bi-graph-down display-6 d-block mb-2"></i>
+                Chưa có kỳ định giá nào. Chọn kỳ + bấm "Định giá lại".
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

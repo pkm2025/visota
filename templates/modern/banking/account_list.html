@@ -1,0 +1,98 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    {% include 'shared/_breadcrumb.html' %}
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            {% if accounts %}
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                        <tr><th>Code</th><th>Ngân hàng</th><th>Số TK</th><th>Chủ TK</th><th>TK KT</th><th class="text-end">SD đầu</th><th>Active</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for a in accounts %}
+                        <tr>
+                            <td class="font-mono">{{ a.code }}</td>
+                            <td>{{ a.bank_name }}{% if a.bank_branch %} <small class="text-muted">— {{ a.bank_branch }}</small>{% endif %}</td>
+                            <td class="font-mono">{{ a.account_number }}</td>
+                            <td>{{ a.account_holder }}</td>
+                            <td class="font-mono">{{ a.gl_account }}</td>
+                            <td class="text-end font-mono">{{ a.opening_balance|floatformat:0|intcomma }}</td>
+                            <td>{% if a.is_active %}<i class="bi bi-check-circle-fill text-success"></i>{% else %}<i class="bi bi-x-circle text-muted"></i>{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-center text-muted py-4">
+                            <i class="bi bi-bank display-6 d-block mb-2"></i>
+                            Chưa có tài khoản ngân hàng. Tạo qua admin hoặc seed.
+                        </td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><strong>Import sao kê</strong></div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'ui_modern:banking_import_upload' %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-2">
+                            <label class="form-label small">Tài khoản ngân hàng</label>
+                            <select name="bank_account_id" class="form-select form-select-sm" required>
+                                <option value="">— Chọn TK —</option>
+                                {% for a in accounts %}
+                                <option value="{{ a.id }}">{{ a.account_number }} — {{ a.bank_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col">
+                                <label class="form-label small">Từ ngày</label>
+                                <input type="date" name="period_from" class="form-control form-control-sm" required>
+                            </div>
+                            <div class="col">
+                                <label class="form-label small">Đến ngày</label>
+                                <input type="date" name="period_to" class="form-control form-control-sm" required>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small">File sao kê (CSV)</label>
+                            <input type="file" name="file" class="form-control form-control-sm" accept=".csv" required>
+                        </div>
+                        <button class="btn btn-primary btn-sm w-100"><i class="bi bi-upload"></i> Import + Đối soát</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>Đối soát ngân hàng</strong>
+                    <a href="{% url 'ui_modern:banking_reconcile' %}" class="btn btn-sm btn-outline-primary">Xem chi tiết</a>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'ui_modern:banking_reconcile_run' %}">
+                        {% csrf_token %}
+                        <p class="small text-muted">
+                            Tự động match giao dịch chưa đối soát với phiếu thu/chi (TK 1111/1121)
+                            trong khoảng ±3 ngày, cùng số tiền.
+                        </p>
+                        <button class="btn btn-success btn-sm">
+                            <i class="bi bi-arrow-repeat"></i> Chạy auto-reconcile
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

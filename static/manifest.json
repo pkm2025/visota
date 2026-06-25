@@ -1,0 +1,54 @@
+{
+  "name": "PMKetoan ERP",
+  "short_name": "PMKetoan",
+  "description": "Hệ thống kế toán ERP cho doanh nghiệp VN — tuân thủ TT133/2016, TT200/2014, TT78/2021",
+  "start_url": "/modern/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "lang": "vi",
+  "dir": "ltr",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Tạo phiếu kế toán",
+      "short_name": "Phiếu",
+      "url": "/modern/vouchers/new/",
+      "icons": [{"src": "/static/icons/icon-192.svg", "sizes": "192x192"}]
+    },
+    {
+      "name": "Hóa đơn bán",
+      "short_name": "HĐ bán",
+      "url": "/modern/sales-invoices/",
+      "icons": [{"src": "/static/icons/icon-192.svg", "sizes": "192x192"}]
+    },
+    {
+      "name": "Phê duyệt",
+      "short_name": "Duyệt",
+      "url": "/modern/approvals/",
+      "icons": [{"src": "/static/icons/icon-192.svg", "sizes": "192x192"}]
+    }
+  ]
+}

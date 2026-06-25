@@ -11,7 +11,7 @@ from apps.recurring.services import RecurringService
 
 @pytest.fixture
 def auth_client(db):
-    user = User.objects.create_user(username="alice", password="Secret123")
+    user = User.objects.create_superuser(username="alice", password="Secret123", email="alice@test.local")
     c = Client()
     c.force_login(user)
     return c

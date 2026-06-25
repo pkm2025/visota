@@ -1,0 +1,120 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:admin_role_list' %}">Vai trò</a></li>
+            <li class="breadcrumb-item active">{{ role.code }}</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-2">Mã</dt>
+                <dd class="col-sm-4 font-mono">{{ role.code }}</dd>
+                <dt class="col-sm-2">Tên</dt>
+                <dd class="col-sm-4">{{ role.name }}</dd>
+                <dt class="col-sm-2">Mô tả</dt>
+                <dd class="col-sm-10">{{ role.description }}</dd>
+                <dt class="col-sm-2">Đang dùng bởi</dt>
+                <dd class="col-sm-4">{{ user_count }} người dùng</dd>
+                <dt class="col-sm-2">Loại</dt>
+                <dd class="col-sm-4">
+                    {% if role.is_system %}
+                    <span class="badge bg-info">Hệ thống (không xóa)</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Tùy chỉnh</span>
+                    {% endif %}
+                </dd>
+            </dl>
+        </div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Phân quyền module</strong>
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="$('input[type=checkbox]').prop('checked', true)">
+                        <i class="bi bi-check2-all"></i> Chọn tất cả
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="$('input[type=checkbox]').prop('checked', false)">
+                        <i class="bi bi-x-circle"></i> Bỏ chọn
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if role.code == 'admin' and role.is_system %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-shield-fill-exclamation"></i>
+                    Vai trò <strong>admin</strong> có toàn quyền và không thể sửa.
+                </div>
+                {% else %}
+                <div class="row">
+                    {% for module, perms in by_module %}
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3 h-100">
+                            <div class="form-check mb-2">
+                                <input type="checkbox" class="form-check-input module-toggle"
+                                       data-module="{{ module }}" id="mod_{{ module }}"
+                                       {% if perms.0.1 %}checked{% endif %}>
+                                <label class="form-check-label fw-bold text-uppercase small text-muted"
+                                       for="mod_{{ module }}">{{ module }}</label>
+                            </div>
+                            {% for p, assigned in perms %}
+                            <div class="form-check ms-3">
+                                <input type="checkbox" class="form-check-input perm-cb" name="permissions"
+                                       value="{{ p.code }}" id="perm_{{ p.code }}"
+                                       data-module="{{ module }}"
+                                       {% if assigned %}checked{% endif %}
+                                       {% if role.code == 'admin' and role.is_system %}disabled{% endif %}>
+                                <label class="form-check-label small" for="perm_{{ p.code }}">
+                                    {{ p.name }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% if not role.is_system or role.code != 'admin' %}
+            <div class="card-footer text-end">
+                <a href="{% url 'ui_modern:admin_role_list' %}" class="btn btn-outline-secondary btn-sm">Hủy</a>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-save"></i> Lưu phân quyền
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<script>
+// Module-level toggle: check/uncheck all permissions in that module
+document.querySelectorAll('.module-toggle').forEach(function(toggle) {
+    toggle.addEventListener('change', function() {
+        var mod = this.dataset.module;
+        document.querySelectorAll('.perm-cb[data-module="' + mod + '"]').forEach(function(cb) {
+            cb.checked = toggle.checked;
+        });
+    });
+});
+// Reverse: if all perms in module are checked, sync the module toggle
+document.querySelectorAll('.perm-cb').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+        var mod = this.dataset.module;
+        var all = document.querySelectorAll('.perm-cb[data-module="' + mod + '"]');
+        var checked = document.querySelectorAll('.perm-cb[data-module="' + mod + '"]:checked');
+        var modToggle = document.getElementById('mod_' + mod);
+        if (modToggle) modToggle.checked = (all.length === checked.length);
+    });
+});
+</script>
+{% endblock %}

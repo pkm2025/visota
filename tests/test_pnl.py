@@ -73,7 +73,7 @@ def test_pnl_operating_profit(company_with_pnl_data):
 def test_pnl_view_loads(db):
     from django.test import Client
     from apps.identity.models import User
-    user = User.objects.create_user(username='alice', password='Secret123')
+    user = User.objects.create_superuser(username='alice', password='Secret123', email='alice@test.local')
     c = Client()
     c.force_login(user)
     response = c.get('/modern/reports/pnl/')

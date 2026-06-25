@@ -1,13 +1,13 @@
-"""Contract UI views — list and create."""
+"""Contract UI views — list, detail, create."""
 
 from datetime import date
 from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
-from django.views.generic import ListView
+from django.views.generic import DetailView, ListView
 
 from apps.contracts.models import Contract
 from apps.core.models import Company
@@ -35,6 +35,30 @@ class ContractListView(LoginRequiredMixin, ListView):
         ctx = super().get_context_data(**kwargs)
         ctx["page_title"] = "Hợp đồng"
         ctx["contract_type_choices"] = Contract.ContractType.choices
+        return ctx
+
+
+class ContractDetailView(LoginRequiredMixin, DetailView):
+    """Detail view of a single contract with related vouchers/minutes."""
+
+    template_name = "modern/contracts/contract_detail.html"
+    context_object_name = "contract"
+    login_url = "/auth/login/"
+    pk_url_kwarg = "pk"
+
+    def get_queryset(self):
+        return Contract.objects.select_related("company", "linked_voucher")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        from apps.documents.services.attachment_service import AttachmentService
+
+        c = self.object
+        ctx["page_title"] = f"Hợp đồng {c.contract_no}"
+        ctx["minutes"] = c.minutes_set.all().order_by("-minutes_date")[:20]
+        ctx["attachments"] = AttachmentService.get_for_object(c)
+        ctx["object_type"] = "contracts.contract"
+        ctx["object_id"] = c.pk
         return ctx
 
 

@@ -1,0 +1,16 @@
+[Unit]
+Description=Visota django-q2 worker
+After=network.target mariadb.service
+
+[Service]
+Type=simple
+User=visota
+Group=www-data
+WorkingDirectory=/opt/visota/app
+EnvironmentFile=/opt/visota/.env
+ExecStart=/opt/visota/app/.venv/bin/python manage.py qcluster
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

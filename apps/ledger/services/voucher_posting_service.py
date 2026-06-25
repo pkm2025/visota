@@ -40,6 +40,25 @@ class VoucherPostingService:
         voucher.status = AccountingVoucher.Status.LEDGER
         voucher.save(update_fields=["status", "total_vnd", "total_fc", "updated_at"])
 
+        # Fire-and-forget notification to all superusers (KTT alerts)
+        try:
+            from apps.notifications.services import NotificationService
+
+            NotificationService.send_to_superusers(
+                company=voucher.company,
+                title=f"Phiếu kế toán đã ghi sổ: {voucher.voucher_no}",
+                message=(
+                    f"Phiếu {voucher.voucher_no} ({voucher.get_voucher_type_display()}) "
+                    f"đã được ghi sổ với giá trị {voucher.total_vnd:,.0f} VND."
+                ),
+                type="success",
+                url=f"/modern/vouchers/{voucher.id}/",
+                related_object_type="ledger.accountingvoucher",
+                related_object_id=voucher.id,
+            )
+        except Exception:
+            pass  # notification failure should never block posting
+
     @transaction.atomic
     def unpost(self, voucher: AccountingVoucher) -> None:
         """Unpost a voucher: revert balance updates + set status=DRAFT."""

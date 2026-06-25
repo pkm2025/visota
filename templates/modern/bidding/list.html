@@ -1,0 +1,47 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    {% include 'shared/_breadcrumb.html' %}
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+    <div class="card">
+        <div class="card-body">
+            {% if bids %}
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                        <tr><th>Mã gói</th><th>Tên gói thầu</th><th>Chủ đầu tư</th><th>Phương thức</th><th class="text-end">Giá gói</th><th>Hạn nộp</th><th>Trạng thái</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        {% for b in bids %}
+                        <tr>
+                            <td class="font-mono">{{ b.bid_no }}</td>
+                            <td>{{ b.bid_name|truncatechars:50 }}</td>
+                            <td>{{ b.investor_name|truncatechars:30 }}</td>
+                            <td><small>{{ b.get_bid_method_display }}</small></td>
+                            <td class="text-end font-mono">{{ b.bid_package_price|floatformat:0|intcomma }}</td>
+                            <td>{{ b.bid_submission_deadline|date:"d/m/Y H:i"|default:"—" }}</td>
+                            <td>
+                                {% if b.status == 'won' %}<span class="badge bg-success">Trúng</span>
+                                {% elif b.status == 'lost' %}<span class="badge bg-danger">Trượt</span>
+                                {% elif b.status == 'submitted' %}<span class="badge bg-info">Đã nộp</span>
+                                {% elif b.status == 'preparing' %}<span class="badge bg-warning">Đang chuẩn bị</span>
+                                {% else %}<span class="badge bg-secondary">{{ b.status }}</span>{% endif %}
+                            </td>
+                            <td><a href="{% url 'ui_modern:bid_detail' b.id %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted text-center py-4 mb-0">
+                <i class="bi bi-briefcase display-6 d-block mb-2"></i>
+                Chưa có gói thầu nào.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

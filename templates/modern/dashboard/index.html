@@ -1,6 +1,7 @@
 {% extends 'modern/base/layout.html' %}
 {% load humanize %}
 {% load format_utils %}
+{% load perm_tags %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -8,42 +9,99 @@
     <h1>{{ page_title }}</h1>
     <p class="text-muted">Chào {{ user.full_name|default:user.username }}, đây là dashboard của bạn.</p>
 
+    <!-- KPI Cards -->
     <div class="row mt-4">
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
+            <a href="{% url 'ui_modern:voucher_list' %}" class="text-decoration-none">
             <div class="card stat-card">
                 <div class="card-body">
                     <div class="text-muted small">Chứng từ hôm nay</div>
                     <div class="h3 mb-0">{{ vouchers_today }}</div>
                 </div>
             </div>
+            </a>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
+            <a href="{% url 'ui_modern:sales_invoice_list' %}" class="text-decoration-none">
             <div class="card stat-card">
                 <div class="card-body">
                     <div class="text-muted small">Công nợ KH</div>
                     <div class="h3 mb-0">{{ ar_total }}</div>
                 </div>
             </div>
+            </a>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
+            <a href="{% url 'ui_modern:purchase_invoice_list' %}" class="text-decoration-none">
             <div class="card stat-card">
                 <div class="card-body">
                     <div class="text-muted small">Công nợ NCC</div>
                     <div class="h3 mb-0">{{ ap_total }}</div>
                 </div>
             </div>
+            </a>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
+            <a href="{% url 'ui_modern:stock_dashboard' %}" class="text-decoration-none">
             <div class="card stat-card">
                 <div class="card-body">
                     <div class="text-muted small">Tồn kho</div>
                     <div class="h3 mb-0">{{ inventory_value }}</div>
                 </div>
             </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'ui_modern:voucher_create' %}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-receipt"></i> Phiếu kế toán
+                </a>
+                {% has_module_access "sales" as can_sales %}
+                {% if can_sales %}
+                <a href="{% url 'ui_modern:sales_invoice_create' %}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-receipt-cutoff"></i> Hóa đơn bán
+                </a>
+                {% endif %}
+                {% has_module_access "purchasing" as can_purchasing %}
+                {% if can_purchasing %}
+                <a href="{% url 'ui_modern:purchase_invoice_create' %}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-bag"></i> Phiếu nhập mua
+                </a>
+                {% endif %}
+                {% has_module_access "crm" as can_crm %}
+                {% if can_crm %}
+                <a href="{% url 'ui_modern:crm_opportunity_list' %}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-briefcase"></i> Cơ hội bán
+                </a>
+                {% endif %}
+                {% has_module_access "contracts" as can_contracts %}
+                {% if can_contracts %}
+                <a href="{% url 'ui_modern:contract_create' %}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-file-earmark-text"></i> Hợp đồng
+                </a>
+                {% endif %}
+                {% has_module_access "approvals" as can_approvals %}
+                {% if can_approvals %}
+                <a href="{% url 'ui_modern:approval_queue' %}" class="btn btn-outline-warning btn-sm">
+                    <i class="bi bi-clipboard-check"></i> Phê duyệt
+                </a>
+                {% endif %}
+                {% has_module_access "einvoice" as can_einvoice %}
+                {% if can_einvoice %}
+                <a href="{% url 'ui_modern:einvoice_list' %}" class="btn btn-outline-info btn-sm">
+                    <i class="bi bi-receipt-cutoff"></i> HĐĐT
+                </a>
+                {% endif %}
+            </div>
         </div>
     </div>
 
     <div class="row mt-4">
+        <!-- Recent vouchers -->
         <div class="col-md-8">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -52,6 +110,7 @@
                 </div>
                 <div class="card-body p-0">
                     {% if recent_vouchers %}
+                    <div class="table-responsive">
                     <table class="table table-sm table-hover mb-0">
                         <thead class="table-light">
                             <tr><th>Ngày</th><th>Số CT</th><th>Loại</th><th>Diễn giải</th><th class="text-end">Số tiền</th></tr>
@@ -68,6 +127,7 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    </div>
                     {% else %}
                     <p class="text-muted text-center py-4 mb-0">
                         <i class="bi bi-inbox"></i> Chưa có chứng từ nào.
@@ -76,8 +136,11 @@
                 </div>
             </div>
         </div>
+
+        <!-- Quick info + approvals + notifications -->
         <div class="col-md-4">
-            <div class="card">
+            <!-- Stats summary -->
+            <div class="card mb-3">
                 <div class="card-header">Thông tin nhanh</div>
                 <div class="card-body">
                     <div class="d-flex justify-content-between mb-2">
@@ -92,12 +155,38 @@
                         <span class="text-muted">Lưu tạm:</span>
                         <strong class="text-warning">{{ draft_count|default:0 }}</strong>
                     </div>
-                    <hr>
-                    <a href="{% url 'ui_modern:voucher_create' %}" class="btn btn-primary btn-sm w-100">
-                        <i class="bi bi-plus"></i> Tạo phiếu mới
-                    </a>
                 </div>
             </div>
+
+            <!-- Unread notifications -->
+            {% if unread_count %}
+            <div class="card mb-3 border-warning">
+                <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-bell"></i> Thông báo mới ({{ unread_count }})</span>
+                    <a href="{% url 'notifications:inbox' %}" class="btn btn-sm btn-dark">Xem tất cả</a>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for n in recent_notifications|default:'' %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Pending approvals (if has approval access) -->
+            {% has_module_access "approvals" as can_approvals_2 %}
+            {% if can_approvals_2 %}
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-clipboard-check"></i> Phê duyệt chờ xử lý</span>
+                    <a href="{% url 'ui_modern:approval_queue' %}" class="btn btn-sm btn-outline-primary">→</a>
+                </div>
+                <div class="card-body text-center py-3">
+                    <p class="text-muted mb-0 small">Vào <a href="{% url 'ui_modern:approval_queue' %}">hàng đợi phê duyệt</a> để xem các yêu cầu chờ bạn.</p>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

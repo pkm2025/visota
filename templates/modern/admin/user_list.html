@@ -1,0 +1,108 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item">Hệ thống</li>
+            <li class="breadcrumb-item active">Người dùng</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+    {% if company %}
+    <p class="text-muted">
+        Gán vai trò cho người dùng tại công ty <strong>{{ company.name }}</strong>.
+    </p>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Username</th>
+                            <th>Họ tên</th>
+                            <th>Email</th>
+                            <th>Loại</th>
+                            <th>Vai trò hiện tại</th>
+                            <th>Gán vai trò</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        {% with assignments=u.company_roles.all %}
+                        <tr>
+                            <td class="font-mono">
+                                {{ u.username }}
+                                {% if u == request.user %}<span class="badge bg-primary">Bạn</span>{% endif %}
+                            </td>
+                            <td>{{ u.full_name|default:"-" }}</td>
+                            <td class="text-muted small">{{ u.email|default:"-" }}</td>
+                            <td>
+                                {% if u.is_superuser %}
+                                <span class="badge bg-danger">Superuser</span>
+                                {% elif u.is_staff %}
+                                <span class="badge bg-info">Staff</span>
+                                {% else %}
+                                <span class="badge bg-secondary">User</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if u.is_superuser %}
+                                <span class="text-muted small">— toàn quyền —</span>
+                                {% else %}
+                                {% for a in assignments %}{% if a.company_id == company.id %}
+                                <span class="badge bg-success me-1">{{ a.role.code }}</span>
+                                {% endif %}{% endfor %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if u.is_superuser %}
+                                <span class="text-muted small">(bypass)</span>
+                                {% else %}
+                                <form method="post" action="{% url 'ui_modern:admin_user_assign' u.id %}" class="d-flex gap-1">
+                                    {% csrf_token %}
+                                    <select name="role_id" class="form-select form-select-sm" style="width:auto">
+                                        <option value="">— Chọn vai trò —</option>
+                                        {% for r in available_roles %}
+                                        <option value="{{ r.id }}">{{ r.name }} ({{ r.code }})</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-check"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not u.is_superuser and assignments.count > 0 %}
+                                <form method="post" action="{% url 'ui_modern:admin_user_assign' u.id %}" class="d-inline"
+                                      onsubmit="return confirm('Gỡ mọi vai trò của {{ u.username }}?')">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="remove">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Gỡ vai trò">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endwith %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                                Chưa có người dùng.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

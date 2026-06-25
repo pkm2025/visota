@@ -1,0 +1,205 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+{% load format_utils %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:contract_list' %}">Hợp đồng</a></li>
+            <li class="breadcrumb-item active">{{ contract.contract_no }}</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="d-flex gap-2 mb-3">
+        <div class="dropdown">
+            <button class="btn btn-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-file-earmark-text"></i> Tạo văn bản từ mẫu
+            </button>
+            <ul class="dropdown-menu">
+                {% load static %}
+                <li class="px-3 py-1 small text-muted">Hợp đồng</li>
+                <li><a class="dropdown-item" href="{% url 'ui_modern:contract_template_generate' 'service' contract.id %}"><i class="bi bi-file-text"></i> HĐ dịch vụ</a></li>
+                <li><a class="dropdown-item" href="{% url 'ui_modern:contract_template_generate' 'sale' contract.id %}"><i class="bi bi-file-text"></i> HĐ mua bán</a></li>
+                <li><a class="dropdown-item" href="{% url 'ui_modern:contract_template_generate' 'it_service' contract.id %}"><i class="bi bi-file-text"></i> HĐ dịch vụ IT</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li class="px-3 py-1 small text-muted">Biên bản</li>
+                <li><a class="dropdown-item" href="{% url 'ui_modern:contract_template_generate' 'bb_ban_giao' contract.id %}"><i class="bi bi-file-earmark-check"></i> BB bàn giao</a></li>
+                <li><a class="dropdown-item" href="{% url 'ui_modern:contract_template_generate' 'bb_nghiem_thu' contract.id %}"><i class="bi bi-file-earmark-check"></i> BB nghiệm thu</a></li>
+                <li><a class="dropdown-item" href="{% url 'ui_modern:contract_template_generate' 'bb_thanh_ly' contract.id %}"><i class="bi bi-file-earmark-check"></i> BB thanh lý</a></li>
+                <li><a class="dropdown-item" href="{% url 'ui_modern:contract_template_generate' 'bb_doi_chieu' contract.id %}"><i class="bi bi-file-earmark-check"></i> BB đối chiếu</a></li>
+                <li><a class="dropdown-item" href="{% url 'ui_modern:contract_template_generate' 'bb_dieu_chinh' contract.id %}"><i class="bi bi-file-earmark-check"></i> BB điều chỉnh</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-muted" href="{% url 'ui_modern:contract_template_list' %}"><i class="bi bi-gear"></i> Quản lý mẫu...</a></li>
+            </ul>
+        </div>
+        <a href="{% url 'ui_modern:contract_export_docx' contract.pk %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-file-word"></i> Word (.docx)
+        </a>
+        <a href="{% url 'ui_modern:contract_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Quay lại
+        </a>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <strong>Thông tin hợp đồng</strong>
+            {% if contract.status == 'active' %}<span class="badge bg-success">Hiệu lực</span>
+            {% elif contract.status == 'draft' %}<span class="badge bg-secondary">Dự thảo</span>
+            {% elif contract.status == 'completed' %}<span class="badge bg-info">Hoàn thành</span>
+            {% else %}<span class="badge bg-danger">Đã hủy</span>{% endif %}
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-2">Số HĐ</dt>
+                <dd class="col-sm-4 font-mono">{{ contract.contract_no }}</dd>
+                <dt class="col-sm-2">Ngày HĐ</dt>
+                <dd class="col-sm-4">{{ contract.contract_date|date:"d/m/Y" }}</dd>
+                <dt class="col-sm-2">Loại</dt>
+                <dd class="col-sm-4">{{ contract.get_contract_type_display }}</dd>
+                <dt class="col-sm-2">Tiền tệ</dt>
+                <dd class="col-sm-4 font-mono">{{ contract.currency_code }}</dd>
+                <dt class="col-sm-2">Giá trị</dt>
+                <dd class="col-sm-4 font-mono">{{ contract.value|vnd }} {{ contract.currency_code }}</dd>
+                <dt class="col-sm-2">Hiệu lực</dt>
+                <dd class="col-sm-4">
+                    {% if contract.start_date and contract.end_date %}
+                    {{ contract.start_date|date:"d/m/Y" }} → {{ contract.end_date|date:"d/m/Y" }}
+                    {% elif contract.start_date %}Từ {{ contract.start_date|date:"d/m/Y" }}
+                    {% else %}-{% endif %}
+                </dd>
+
+                <dt class="col-sm-2 mt-2">Bên A (Công ty)</dt>
+                <dd class="col-sm-4 mt-2">
+                    <strong>{{ contract.company.name }}</strong>
+                    {% if contract.company.tax_code %}<br><small class="text-muted">MST: {{ contract.company.tax_code }}</small>{% endif %}
+                </dd>
+                <dt class="col-sm-2 mt-2">Bên B (Đối tác)</dt>
+                <dd class="col-sm-4 mt-2">
+                    <strong>{{ contract.party_name }}</strong>
+                    {% if contract.party_code %}<br><small class="text-muted font-mono">{{ contract.party_code }}</small>{% endif %}
+                    {% if contract.party_tax_code %}<br><small class="text-muted">MST: {{ contract.party_tax_code }}</small>{% endif %}
+                    {% if contract.party_address %}<br><small class="text-muted">{{ contract.party_address }}</small>{% endif %}
+                </dd>
+
+                {% if contract.description %}
+                <dt class="col-sm-2 mt-2">Diễn giải</dt>
+                <dd class="col-sm-10 mt-2">{{ contract.description|linebreaksbr }}</dd>
+                {% endif %}
+
+                {% if contract.linked_voucher %}
+                <dt class="col-sm-2 mt-2">Phiếu kế toán</dt>
+                <dd class="col-sm-4 mt-2">
+                    <a href="{% url 'ui_modern:voucher_detail' contract.linked_voucher.id %}" class="font-mono">
+                        {{ contract.linked_voucher.voucher_no }}
+                    </a>
+                    <small class="text-muted">({{ contract.linked_voucher.total_vnd|vnd }} VND)</small>
+                </dd>
+                {% endif %}
+            </dl>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><strong>Biên bản liên quan</strong></div>
+        <div class="card-body">
+            {% if minutes %}
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Số BB</th>
+                            <th>Ngày</th>
+                            <th>Loại</th>
+                            <th>Diễn giải</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in minutes %}
+                        <tr>
+                            <td class="font-mono">{{ m.minutes_no }}</td>
+                            <td>{{ m.minutes_date|date:"d/m/Y" }}</td>
+                            <td><small>{{ m.get_minutes_type_display }}</small></td>
+                            <td>{{ m.description|truncatechars:60 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted text-center py-3 mb-0">
+                <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                Chưa có biên bản nào cho hợp đồng này.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Related modules -->
+    <div class="row mt-3">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><strong><i class="bi bi-kanban"></i> Dự án</strong></div>
+                <div class="card-body">
+                    {% if contract.projects.first %}
+                    {% with project=contract.projects.first %}
+                    <a href="{% url 'ui_modern:project_detail' project.id %}">
+                        <strong>{{ project.code }}</strong> — {{ project.name|truncatechars:30 }}
+                    </a>
+                    <div class="text-muted small mt-1">
+                        Tiến độ: {{ project.progress_percent }}% ·
+                        {% if project.status == 'active' %}<span class="badge bg-primary">Đang thực hiện</span>
+                        {% elif project.status == 'completed' %}<span class="badge bg-success">Hoàn thành</span>
+                        {% endif %}
+                    </div>
+                    {% endwith %}
+                    {% else %}
+                    <p class="text-muted small mb-0">Chưa có dự án.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><strong><i class="bi bi-shield-check"></i> Bảo lãnh</strong></div>
+                <div class="card-body">
+                    {% if contract.guarantees.first %}
+                    {% with g=contract.guarantees.first %}
+                    <strong>{{ g.guarantee_no }}</strong>
+                    <div class="text-muted small mt-1">
+                        {{ g.get_guarantee_type_display }} ·
+                        {{ g.amount|floatformat:0|intcomma }} VND ·
+                        Hết hạn: {{ g.expiry_date|date:"d/m/Y" }}
+                    </div>
+                    {% endwith %}
+                    {% else %}
+                    <p class="text-muted small mb-0">Chưa có bảo lãnh.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><strong><i class="bi bi-bank2"></i> Khoản vay</strong></div>
+                <div class="card-body">
+                    {% if contract.loans.first %}
+                    {% with loan=contract.loans.first %}
+                    <strong>{{ loan.loan_no }}</strong>
+                    <div class="text-muted small mt-1">
+                        {{ loan.bank_name }} ·
+                        {{ loan.principal_amount|floatformat:0|intcomma }} VND ·
+                        Dư nợ: {{ loan.outstanding_principal|floatformat:0|intcomma }}
+                    </div>
+                    {% endwith %}
+                    {% else %}
+                    <p class="text-muted small mb-0">Chưa có khoản vay.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% include 'shared/_attachments.html' with attachments=attachments object_type=object_type object_id=object_id %}
+{% endblock %}
