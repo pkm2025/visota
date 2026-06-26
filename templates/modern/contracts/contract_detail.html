@@ -36,8 +36,11 @@
             </ul>
         </div>
         <a href="{% url 'ui_modern:contract_export_docx' contract.pk %}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-file-word"></i> Word (.docx)
+            <i class="bi bi-file-word"></i> Word
         </a>
+        <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#contractEmailModal">
+            <i class="bi bi-envelope"></i> Email
+        </button>
         <a href="{% url 'ui_modern:contract_list' %}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left"></i> Quay lại
         </a>
@@ -202,4 +205,27 @@
     </div>
 </div>
 {% include 'shared/_attachments.html' with attachments=attachments object_type=object_type object_id=object_id %}
+
+<!-- Email modal -->
+<div class="modal fade" id="contractEmailModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'ui_modern:contract_email' contract.id %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-envelope"></i> Gửi hợp đồng qua email</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted">HĐ <strong>{{ contract.contract_no }}</strong> sẽ được đính kèm PDF và gửi tới:</p>
+                    <input type="email" name="email" class="form-control" placeholder="email@doitac.vn" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Gửi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}

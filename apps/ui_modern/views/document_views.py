@@ -1,5 +1,6 @@
-"""Document views — print, upload, download, delete."""
+"""Document views — print, upload, download, delete, email."""
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse
@@ -218,3 +219,114 @@ class TrialBalanceDocxView(LoginRequiredMixin, View):
             f'attachment; filename="BCDTK_{period}_{fiscal_year}.docx"'
         )
         return response
+
+
+class VoucherEmailView(LoginRequiredMixin, View):
+    """Send voucher PDF to email recipient."""
+
+    login_url = "/auth/login/"
+
+    def post(self, request, pk):
+        voucher = get_object_or_404(AccountingVoucher, pk=pk)
+        to_email = request.POST.get("email", "").strip()
+        if not to_email:
+            messages.error(request, "Vui lòng nhập email người nhận.")
+            return redirect("ui_modern:voucher_detail", pk=pk)
+
+        # Generate PDF
+        service = PrintService(company=voucher.company)
+        pdf_bytes = service.generate_voucher_pdf(voucher)
+
+        # Send email with attachment
+        from django.core.mail import EmailMessage
+
+        subject = f"Chứng từ {voucher.voucher_no} — {voucher.company.name}"
+        body = f"""
+Kính gửi Quý đối tác,
+
+Đính kèm là chứng từ kế toán số {voucher.voucher_no} ngày {voucher.voucher_date.strftime('%d/%m/%Y')}.
+
+Nội dung: {voucher.description or '—'}
+Tổng số tiền: {voucher.total_vnd:,.0f} VNĐ
+
+Trân trọng,
+{voucher.company.name}
+        """.strip()
+
+        email_msg = EmailMessage(
+            subject=subject,
+            body=body,
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@visota.net'),
+            to=[to_email],
+        )
+        ext = "pdf" if pdf_bytes[:4] == b"%PDF" else "html"
+        email_msg.attach(f"{voucher.voucher_no}.{ext}", pdf_bytes,
+                        "application/pdf" if ext == "pdf" else "text/html")
+
+        try:
+            email_msg.send(fail_silently=False)
+            messages.success(request, f"Đã gửi chứng từ {voucher.voucher_no} tới {to_email}")
+        except Exception as e:
+            messages.error(request, f"Lỗi gửi email: {e}")
+
+        return redirect("ui_modern:voucher_detail", pk=pk)
+
+
+class ContractEmailView(LoginRequiredMixin, View):
+    """Send contract PDF to email recipient."""
+
+    login_url = "/auth/login/"
+
+    def post(self, request, pk):
+        from apps.contracts.models import Contract, ContractTemplate
+        from apps.contracts.services.contract_print_service import ContractPrintService
+
+        contract = get_object_or_404(Contract, pk=pk)
+        to_email = request.POST.get("email", "").strip()
+        if not to_email:
+            messages.error(request, "Vui lòng nhập email người nhận.")
+            return redirect("ui_modern:contract_detail", pk=pk)
+
+        # Generate PDF from template
+        template = ContractTemplate.objects.filter(
+            contract_type=contract.contract_type, is_active=True
+        ).first()
+        pdf_bytes = b""
+        if template:
+            try:
+                service = ContractPrintService()
+                pdf_bytes = service.generate_contract_pdf(contract, template.code)
+            except Exception:
+                pass
+
+        from django.core.mail import EmailMessage
+        from django.conf import settings as dj_settings
+
+        subject = f"Hợp đồng {contract.contract_no} — {contract.company.name}"
+        body = f"""
+Kính gửi {contract.party_name or 'Quý đối tác'},
+
+Đính kèm là hợp đồng số {contract.contract_no} ngày {contract.contract_date.strftime('%d/%m/%Y')}.
+
+Giá trị: {contract.value:,.0f} {contract.currency_code}
+
+Trân trọng,
+{contract.company.name}
+        """.strip()
+
+        email_msg = EmailMessage(
+            subject=subject,
+            body=body,
+            from_email=getattr(dj_settings, 'DEFAULT_FROM_EMAIL', 'noreply@visota.net'),
+            to=[to_email],
+        )
+        if pdf_bytes:
+            email_msg.attach(f"{contract.contract_no}.pdf", pdf_bytes, "application/pdf")
+
+        try:
+            email_msg.send(fail_silently=False)
+            messages.success(request, f"Đã gửi hợp đồng {contract.contract_no} tới {to_email}")
+        except Exception as e:
+            messages.error(request, f"Lỗi gửi email: {e}")
+
+        return redirect("ui_modern:contract_detail", pk=pk)

@@ -1,6 +1,7 @@
-"""Public URL routes — landing + blog + contact + newsletter + signup."""
+"""Public URL routes — landing + blog + contact + newsletter + signup + legal."""
 
 from django.urls import path
+from django.views.generic import TemplateView
 
 from .views import (
     BlogDetailView,
@@ -22,6 +23,8 @@ urlpatterns = [
     path("blog/<slug:slug>/", BlogDetailView.as_view(), name="blog_detail"),
     path("contact/submit/", ContactSubmitView.as_view(), name="contact_submit"),
     path("newsletter/subscribe/", NewsletterSubscribeView.as_view(), name="newsletter_subscribe"),
+    path("terms/", TemplateView.as_view(template_name="public/terms.html"), name="terms"),
+    path("privacy/", TemplateView.as_view(template_name="public/privacy.html"), name="privacy"),
     path("admin/contacts/", ContactListAdminView.as_view(), name="admin_contact_list"),
     path("admin/contacts/<int:pk>/status/", ContactUpdateStatusView.as_view(), name="admin_contact_status"),
 ]

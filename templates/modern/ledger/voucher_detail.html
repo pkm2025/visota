@@ -106,14 +106,17 @@
             <div class="btn-group btn-group-sm">
                 <a href="{% url 'ui_modern:voucher_print' voucher.id %}" target="_blank"
                    class="btn btn-outline-primary">
-                    <i class="bi bi-printer"></i> In chứng từ (PDF)
+                    <i class="bi bi-printer"></i> PDF
                 </a>
                 <a href="{% url 'ui_modern:voucher_print_docx' voucher.id %}"
                    class="btn btn-outline-secondary">
-                    <i class="bi bi-file-word"></i> Word (.docx)
+                    <i class="bi bi-file-word"></i> Word
                 </a>
+                <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#emailModal">
+                    <i class="bi bi-envelope"></i> Email
+                </button>
                 <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#uploadModal">
-                    <i class="bi bi-upload"></i> Tải lên scan
+                    <i class="bi bi-upload"></i> Scan
                 </button>
             </div>
         </div>
@@ -215,4 +218,27 @@
     </div>
 </div>
 {% include 'shared/_attachments.html' with attachments=attachments object_type='ledger.accountingvoucher' object_id=object_id %}
+
+<!-- Email modal -->
+<div class="modal fade" id="emailModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'ui_modern:voucher_email' voucher.id %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-envelope"></i> Gửi chứng từ qua email</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted">Chứng từ <strong>{{ voucher.voucher_no }}</strong> sẽ được đính kèm PDF và gửi tới:</p>
+                    <input type="email" name="email" class="form-control" placeholder="email@khachhang.vn" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Gửi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}

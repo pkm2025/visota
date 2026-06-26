@@ -27,6 +27,8 @@ from .views import (
     BankReconciliationView,
     CompanyProfileView,
     ContactListAdminView,
+    MigrationUploadView,
+    MigrationTemplateView,
     BankStatementImportDetailView,
     BankStatementImportListView,
     BankStatementUploadView,
@@ -60,6 +62,7 @@ from .views import (
     ChartOfAccountsListView,
     ContractCreateView,
     ContractDetailView,
+    ContractEmailView,
     ContractExportDocxView,
     ContractGenerateView,
     ContractListView,
@@ -145,6 +148,7 @@ from .views import (
     VoucherListView,
     VoucherPrintDocxView,
     VoucherPrintView,
+    VoucherEmailView,
     VoucherUploadView,
 )
 
@@ -210,6 +214,17 @@ urlpatterns = [
         "admin/contacts/",
         login_required(ContactListAdminView.as_view()),
         name="admin_contact_list",
+    ),
+    # Migration tool
+    path(
+        "admin/migration/",
+        login_required(MigrationUploadView.as_view()),
+        name="migration",
+    ),
+    path(
+        "admin/migration/template/",
+        login_required(MigrationTemplateView.as_view()),
+        name="migration_template",
     ),
     # Approvals workflow
     path(
@@ -420,6 +435,11 @@ urlpatterns = [
         name="voucher_upload",
     ),
     path(
+        "vouchers/<int:pk>/email/",
+        login_required(VoucherEmailView.as_view()),
+        name="voucher_email",
+    ),
+    path(
         "vouchers/export/",
         login_required(VoucherExportView.as_view()),
         name="voucher_export",
@@ -453,6 +473,11 @@ urlpatterns = [
         "contracts/<int:pk>/export-docx/",
         login_required(ContractExportDocxView.as_view()),
         name="contract_export_docx",
+    ),
+    path(
+        "contracts/<int:pk>/email/",
+        login_required(ContractEmailView.as_view()),
+        name="contract_email",
     ),
     path(
         "reports/balance-sheet/",

@@ -14,6 +14,7 @@ from .attachment_views import (
 from .auth_views import PMKetoanLoginView, PMKetoanLogoutView
 from .company_views import CompanyProfileView
 from apps.public.views import ContactListAdminView
+from .migration_views import MigrationUploadView, MigrationTemplateView
 from .admin_views import (
     AdminRoleEditView,
     AdminRoleListView,
@@ -100,10 +101,12 @@ from .customer_views import (
 )
 from .dashboard_views import DashboardView, QuickExpenseView
 from .document_views import (
+    ContractEmailView,
     ContractExportDocxView,
     DocumentDeleteView,
     DocumentDownloadView,
     TrialBalanceDocxView,
+    VoucherEmailView,
     VoucherPrintDocxView,
     VoucherPrintView,
     VoucherUploadView,
@@ -193,6 +196,8 @@ __all__ = [
     "PMKetoanLogoutView",
     "CompanyProfileView",
     "ContactListAdminView",
+    "MigrationUploadView",
+    "MigrationTemplateView",
     "PeriodClosingView",
     "MyPermissionsView",
     "AdminRoleListView",
@@ -239,7 +244,9 @@ __all__ = [
     "DocumentDownloadView",
     "VoucherPrintView",
     "VoucherPrintDocxView",
+    "VoucherEmailView",
     "ContractExportDocxView",
+    "ContractEmailView",
     "TrialBalanceDocxView",
     "VoucherUploadView",
     "AssetListView",
