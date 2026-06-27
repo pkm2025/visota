@@ -1,24 +1,24 @@
 ---
-title: Visota Control Panel
+title: Visota Monitor
 theme: dark
-color: slate
-headerStyle: clean
+color: indigo
+headerStyle: boxed
 language: vi
 hideVersion: true
+iconStyle: theme
 layout:
-  Visota:
+  Giám sát hệ thống:
     style: row
-    columns: 4
-  Giám sát:
+    columns: 3
+  Visota:
     style: row
     columns: 3
   Hạ tầng:
-    style: column
-  Liên kết:
     style: row
-    columns: 3
+    columns: 2
 quicklaunch:
     searchDescriptions: true
     hideInternetSearch: true
     hideVisitURL: true
-showStats: false
+showStats: true
+target: _blank
