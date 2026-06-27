@@ -67,7 +67,12 @@ services:
       - "traefik.http.routers.mon.rule=Host(`mon.${DOMAIN:-visota.net}`)"
       - "traefik.http.routers.mon.entrypoints=websecure"
       - "traefik.http.routers.mon.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.mon.middlewares=mon-auth"
       - "traefik.http.services.mon.loadbalancer.server.port=3000"
+      # BasicAuth — đổi user/pass:
+      #   htpasswd -nbB admin NEWPASSWORD | sed 's/\$/\$\$/g'
+      # Default: admin / visota2026
+      - "traefik.http.middlewares.mon-auth.basicauth.users=admin:$$2y$$05$$FA5BT.Gr6XAMkNK7J5EOruZQMpckXpiF9LYydesVFX4HDPTWv/KM."
     networks: [web, mon-net]
 
 volumes:
