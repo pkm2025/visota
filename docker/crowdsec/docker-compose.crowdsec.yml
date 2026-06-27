@@ -1,0 +1,44 @@
+# ============================================================
+#  CrowdSec — Threat Intelligence + Intrusion Prevention
+#  Replaces fail2ban with community-powered IP blocklist
+#  ~15-30MB RAM, near-zero CPU impact
+# ============================================================
+
+services:
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    container_name: crowdsec
+    restart: unless-stopped
+    environment:
+      - COLLECTIONS=crowdsecurity/traefik,crowdsecurity/http-cve,crowdsecurity/whitelist-good-actors
+      # ^ traefik = parse Traefik logs
+      #   http-cve = detect CVE exploits
+      #   whitelist-good-actors = don't block Google/Cloudflare bots
+    volumes:
+      # Read Traefik logs
+      - /opt/traefik/logs:/var/log/traefik:ro
+      # Read system auth logs (SSH attacks)
+      - /var/log:/var/log/host:ro
+      # CrowdSec data (database, config)
+      - crowdsec_data:/var/lib/crowdsec/data
+      - crowdsec_config:/etc/crowdsec
+    # Admin API — only accessible from localhost
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - visota-net
+    # Auto-register with CrowdSec console (optional, for dashboard)
+    # Sign up at https://app.crowdsec.net → get enrollment key
+    # - ENROLL_INSTANCE_KEY=your-key-here
+    # - ENROLL_INSTANCE_NAME=visota-prod
+
+  # Bouncer — blocks IPs via firewalld (runs on host, not Docker)
+  # Install separately on host: see docker/crowdsec/install-bouncer.sh
+
+volumes:
+  crowdsec_data:
+  crowdsec_config:
+
+networks:
+  visota-net:
+    external: true
