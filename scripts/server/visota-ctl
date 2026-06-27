@@ -1,0 +1,835 @@
+#!/bin/bash
+# ============================================================
+#  visota-ctl — Visota Server Control Panel
+#  Quản lý toàn bộ VPS: Docker, Traefik, Visota, apps, security
+#  Usage: sudo ./visota-ctl [command] [options]
+# ============================================================
+
+set -euo pipefail
+
+# ===== CONFIG =====
+APP_DIR="/opt/visota"
+TRAEFIK_DIR="/opt/traefik"
+PORTAINER_DIR="/opt/portainer"
+BACKUP_DIR="/opt/visota/backups"
+LOG_FILE="/var/log/visota-ctl.log"
+CONFIG_FILE="/etc/visota/visota-ctl.conf"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+# ===== HELPER FUNCTIONS =====
+
+log() {
+    echo -e "[$(date '+%H:%M:%S')] $1" | tee -a "$LOG_FILE" 2>/dev/null || echo -e "[$(date '+%H:%M:%S')] $1"
+}
+
+info()  { echo -e "${BLUE}ℹ${NC}  $1"; }
+ok()    { echo -e "${GREEN}✓${NC}  $1"; }
+warn()  { echo -e "${YELLOW}⚠${NC}  $1"; }
+err()   { echo -e "${RED}✗${NC}  $1"; }
+title() { echo -e "\n${BOLD}${CYAN}═══ $1 ═══${NC}\n"; }
+
+check_root() {
+    if [ "$EUID" -ne 0 ]; then
+        err "Cần chạy với sudo: sudo visota-ctl $1"
+        exit 1
+    fi
+}
+
+check_docker() {
+    if ! command -v docker &>/dev/null; then
+        err "Docker chưa cài. Chạy: visota-ctl install"
+        exit 1
+    fi
+}
+
+# ===== COMMANDS =====
+
+cmd_status() {
+    title "SYSTEM STATUS"
+
+    # System info
+    info "Hostname: $(hostname)"
+    info "OS: $(cat /etc/os-release | grep PRETTY_NAME | cut -d'"' -f2)"
+    info "Kernel: $(uname -r)"
+    info "Uptime: $(uptime -p)"
+    info "IP: $(hostname -I | awk '{print $1}')"
+
+    # Resources
+    echo ""
+    title "RESOURCES"
+    # CPU
+    local cpu_cores=$(nproc)
+    local cpu_usage=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1)
+    info "CPU: ${cpu_cores} cores — ${cpu_usage}% used"
+
+    # RAM
+    local ram_total=$(free -h | awk '/Mem:/ {print $2}')
+    local ram_used=$(free -h | awk '/Mem:/ {print $3}')
+    local ram_pct=$(free | awk '/Mem:/ {printf "%.0f", $3/$2*100}')
+    info "RAM: ${ram_used}/${ram_total} (${ram_pct}%)"
+
+    # Disk
+    local disk_info=$(df -h / | awk 'NR==2 {print $3"/"$2" ("$5")"}')
+    info "Disk: ${disk_info}"
+
+    # Docker
+    if command -v docker &>/dev/null; then
+        echo ""
+        title "DOCKER CONTAINERS"
+        docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || warn "Docker daemon not running"
+
+        echo ""
+        title "DOCKER RESOURCE USAGE"
+        docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}" 2>/dev/null || true
+    else
+        warn "Docker chưa cài đặt"
+    fi
+
+    # Firewall
+    echo ""
+    title "FIREWALL"
+    firewall-cmd --list-all 2>/dev/null | grep -E "zone|services|ports" || warn "Firewalld not running"
+
+    # SSL certs
+    echo ""
+    title "SSL CERTIFICATES"
+    if [ -d "${TRAEFIK_DIR}/letsencrypt" ]; then
+        local cert_count=$(find ${TRAEFIK_DIR}/letsencrypt -name "*.json" 2>/dev/null | wc -l)
+        info "Traefik Let's Encrypt: ${cert_count} cert(s)"
+    else
+        info "No Traefik certs found"
+    fi
+}
+
+cmd_install() {
+    check_root
+    title "INSTALLING DOCKER + TRAEFIK"
+
+    # Step 1: Update OS
+    info "Updating system..."
+    dnf update -y
+
+    # Step 2: Remove conflicts
+    info "Removing conflicting packages..."
+    dnf remove -y podman buildah runc 2>/dev/null || true
+
+    # Step 3: Install Docker
+    info "Installing Docker CE..."
+    dnf install -y dnf-utils
+    dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+    dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    systemctl enable --now docker
+    ok "Docker installed: $(docker --version)"
+
+    # Step 4: Firewall
+    info "Configuring firewall..."
+    systemctl enable --now firewalld
+    firewall-cmd --permanent --add-service=ssh
+    firewall-cmd --permanent --add-service=http
+    firewall-cmd --permanent --add-service=https
+    firewall-cmd --reload
+    ok "Firewall configured: ssh, http, https"
+
+    # Step 5: Docker network
+    info "Creating Docker network..."
+    docker network create web 2>/dev/null || info "Network 'web' already exists"
+    ok "Docker network 'web' created"
+
+    # Step 6: Traefik
+    info "Installing Traefik..."
+    mkdir -p /opt/traefik/letsencrypt
+    _write_traefik_compose
+    _write_traefik_config
+    cd /opt/traefik && docker compose up -d
+    ok "Traefik started — dashboard at http://$(hostname -I | awk '{print $1}'):8080"
+
+    # Step 7: Security
+    info "Hardening security..."
+    _install_security
+
+    # Step 8: Add user to docker group
+    local REAL_USER="${SUDO_USER:-$USER}"
+    usermod -aG docker "$REAL_USER"
+    ok "User '$REAL_USER' added to docker group"
+
+    echo ""
+    ok "═══ INSTALL COMPLETE ═══"
+    info "Next steps:"
+    info "  1. visota-ctl deploy visota"
+    info "  2. visota-ctl status"
+    info "  3. Edit /opt/traefik/traefik.yml — change email for Let's Encrypt"
+}
+
+cmd_deploy() {
+    check_root
+    local app_name="${1:-}"
+    local domain="${2:-}"
+
+    if [ -z "$app_name" ]; then
+        title "AVAILABLE DEPLOYMENTS"
+        echo "  visota        — Visota ERP (accounting)"
+        echo "  portainer     — Portainer (container management UI)"
+        echo "  metabase      — Metabase (analytics)"
+        echo "  n8n           — n8n (workflow automation)"
+        echo ""
+        info "Usage: visota-ctl deploy <app> [domain]"
+        return
+    fi
+
+    case "$app_name" in
+        visota)   _deploy_visota "$domain" ;;
+        portainer) _deploy_portainer "$domain" ;;
+        metabase)  _deploy_metabase "$domain" ;;
+        n8n)       _deploy_n8n "$domain" ;;
+        *)        err "Unknown app: $app_name" ;;
+    esac
+}
+
+cmd_backup() {
+    check_root
+    title "BACKUP"
+
+    mkdir -p "$BACKUP_DIR"
+    local ts=$(date +%Y%m%d_%H%M%S)
+
+    # Visota DB
+    if [ -f "$APP_DIR/.env" ]; then
+        source "$APP_DIR/.env"
+        info "Backing up Visota database..."
+        cd "$APP_DIR"
+        docker compose exec -T db mysqldump -u root -p"${DB_ROOT_PASSWORD}" "${DB_NAME:-visota}" 2>/dev/null | gzip > "$BACKUP_DIR/visota_db_${ts}.sql.gz"
+        local size=$(du -h "$BACKUP_DIR/visota_db_${ts}.sql.gz" | awk '{print $1}')
+        ok "Database backup: visota_db_${ts}.sql.gz ($size)"
+    fi
+
+    # Docker volumes
+    info "Backing up media files..."
+    local media_backup="$BACKUP_DIR/visota_media_${ts}.tar.gz"
+    docker run --rm -v visota_media_files:/data:ro -v "$BACKUP_DIR:/backup" alpine tar czf "/backup/$(basename $media_backup)" /data 2>/dev/null
+    if [ -f "$media_backup" ]; then
+        ok "Media backup: $(basename $media_backup) ($(du -h $media_backup | awk '{print $1}'))"
+    fi
+
+    # Cleanup old backups (>30 days)
+    info "Cleaning old backups..."
+    local old_count=$(find "$BACKUP_DIR" -name "*.gz" -mtime +30 | wc -l)
+    find "$BACKUP_DIR" -name "*.gz" -mtime +30 -delete
+    ok "Removed $old_count old backup(s)"
+
+    echo ""
+    info "Backup directory: $BACKUP_DIR"
+    ls -lh "$BACKUP_DIR" | tail -5
+}
+
+cmd_restore() {
+    check_root
+    local backup_file="${1:-}"
+
+    if [ -z "$backup_file" ]; then
+        title "AVAILABLE BACKUPS"
+        ls -lht "$BACKUP_DIR"/*.sql.gz 2>/dev/null | head -10
+        echo ""
+        err "Usage: visota-ctl restore <backup_file>"
+        return
+    fi
+
+    title "RESTORE: $backup_file"
+    warn "This will OVERWRITE current database!"
+    read -p "Continue? (yes/no): " confirm
+    [ "$confirm" != "yes" ] && warn "Cancelled." && return
+
+    source "$APP_DIR/.env"
+    cd "$APP_DIR"
+
+    info "Restoring database..."
+    gunzip < "$BACKUP_DIR/$backup_file" | docker compose exec -T db mysql -u root -p"${DB_ROOT_PASSWORD}" "${DB_NAME:-visota}"
+    ok "Database restored from $backup_file"
+
+    info "Restarting Visota..."
+    docker compose restart web worker
+    ok "Done"
+}
+
+cmd_update() {
+    check_root
+    title "UPDATING VISOTA"
+
+    cd "$APP_DIR"
+    info "Pulling latest code..."
+    git pull origin main
+
+    info "Rebuilding containers..."
+    docker compose up -d --build
+
+    info "Running migrations..."
+    docker compose exec -T web python manage.py migrate --noinput
+
+    info "Collecting static..."
+    docker compose exec -T web python manage.py collectstatic --noinput
+
+    info "Seeding permissions..."
+    docker compose exec -T web python manage.py seed_permissions 2>/dev/null || true
+
+    ok "Visota updated and restarted"
+}
+
+cmd_ssl() {
+    title "SSL CERTIFICATES"
+
+    if [ ! -d "$TRAEFIK_DIR" ]; then
+        err "Traefik not installed"
+        return
+    fi
+
+    info "Traefik ACME certificates:"
+    if [ -f "$TRAEFIK_DIR/letsencrypt/acme.json" ]; then
+        local domains=$(cat "$TRAEFIK_DIR/letsencrypt/acme.json" 2>/dev/null | python3 -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    for resolver, certs in data.items():
+        for domain, cert in certs.get('Certificates', {}).items():
+            print(f'  ✓ {domain}')
+except: print('  (cannot parse)')
+" 2>/dev/null || echo "  (no certs yet)")
+        echo "$domains"
+    else
+        warn "No acme.json found — SSL will auto-generate when domains resolve"
+    fi
+}
+
+cmd_apps() {
+    title "MANAGED APPLICATIONS"
+
+    local apps=$(docker ps --format "{{.Names}}\t{{.Status}}" 2>/dev/null)
+
+    if [ -z "$apps" ]; then
+        warn "No containers running"
+        return
+    fi
+
+    echo "$apps" | while IFS=$'\t' read -r name status; do
+        local health="✓"
+        echo "$status" | grep -qi "healthy" && health="✓"
+        echo "$status" | grep -qi "unhealthy" && health="✗"
+        printf "  %s %-20s %s\n" "$health" "$name" "$status"
+    done
+
+    echo ""
+    info "Traefik routes:"
+    docker logs traefik 2>&1 | grep -i "route" | tail -5 2>/dev/null || true
+}
+
+cmd_logs() {
+    local service="${1:-web}"
+    check_docker
+
+    case "$service" in
+        traefik)  cd "$TRAEFIK_DIR" && docker compose logs -f traefik ;;
+        *)        cd "$APP_DIR" && docker compose logs -f "$service" ;;
+    esac
+}
+
+cmd_restart() {
+    local service="${1:-}"
+    check_docker
+    cd "$APP_DIR"
+
+    if [ -z "$service" ]; then
+        title "RESTARTING ALL SERVICES"
+        docker compose restart
+        ok "All services restarted"
+    else
+        info "Restarting $service..."
+        docker compose restart "$service"
+        ok "$service restarted"
+    fi
+}
+
+cmd_shell() {
+    local service="${1:-web}"
+    check_docker
+    cd "$APP_DIR"
+    docker compose exec "$service" bash
+}
+
+cmd_manage() {
+    local cmd="${1:-}"
+    check_docker
+    cd "$APP_DIR"
+
+    case "$cmd" in
+        shell)        docker compose exec -T web python manage.py shell ;;
+        superuser)    docker compose exec -T web python manage.py createsuperuser ;;
+        migrate)      docker compose exec -T web python manage.py migrate ;;
+        collectstatic) docker compose exec -T web python manage.py collectstatic --noinput ;;
+        seed)         docker compose exec -T web python manage.py seed_permissions --reset ;;
+        flush)        warn "This DELETES all data!"; read -p "Type DELETE to confirm: " c
+                      [ "$c" = "DELETE" ] && docker compose exec -T web python manage.py flush --noinput ;;
+        *)            info "Usage: visota-ctl manage <shell|superuser|migrate|collectstatic|seed|flush>" ;;
+    esac
+}
+
+cmd_security() {
+    check_root
+    title "SECURITY CHECK"
+
+    # SSH config
+    info "SSH password auth: $(grep -i PasswordAuthentication /etc/ssh/sshd_config | tail -1 | awk '{print $2}')"
+    info "Root login: $(grep -i PermitRootLogin /etc/ssh/sshd_config | tail -1 | awk '{print $2}')"
+
+    # fail2ban
+    if systemctl is-active --quiet fail2ban 2>/dev/null; then
+        ok "fail2ban: active"
+        systemctl status fail2ban | grep "Currently failed" | head -1
+    else
+        warn "fail2ban: not running"
+    fi
+
+    # Firewall
+    if systemctl is-active --quiet firewalld; then
+        ok "firewalld: active"
+        info "Open services: $(firewall-cmd --list-services)"
+        info "Open ports: $(firewall-cmd --list-ports || echo 'none')"
+    else
+        err "firewalld: not running!"
+    fi
+
+    # Docker
+    info "Docker containers: $(docker ps -q 2>/dev/null | wc -l) running"
+    info "Exposed ports: $(docker ps --format '{{.Ports}}' 2>/dev/null | grep -o '0.0.0.0:[0-9]*' | sort -u | tr '\n' ' ')"
+
+    # Automatic updates
+    if systemctl is-active --quiet dnf-automatic.timer 2>/dev/null; then
+        ok "Auto-updates: enabled"
+    else
+        warn "Auto-updates: disabled"
+    fi
+
+    # Disk space warning
+    local disk_pct=$(df / | awk 'NR==2 {gsub(/%/,""); print $5}')
+    if [ "$disk_pct" -gt 80 ]; then
+        err "Disk usage: ${disk_pct}% — CRITICAL"
+    elif [ "$disk_pct" -gt 60 ]; then
+        warn "Disk usage: ${disk_pct}%"
+    else
+        ok "Disk usage: ${disk_pct}%"
+    fi
+}
+
+cmd_cleanup() {
+    check_root
+    title "DOCKER CLEANUP"
+
+    info "Removing unused images..."
+    docker image prune -f
+
+    info "Removing unused volumes..."
+    docker volume prune -f
+
+    info "Removing stopped containers..."
+    docker container prune -f
+
+    info "Building cache..."
+    docker builder prune -f
+
+    ok "Docker cleaned up"
+
+    # Old logs
+    info "Rotating logs..."
+    journalctl --vacuum-time=7d 2>/dev/null || true
+    ok "System logs rotated"
+}
+
+# ===== INTERNAL FUNCTIONS =====
+
+_write_traefik_compose() {
+    cat > /opt/traefik/docker-compose.yml << 'TEOF'
+services:
+  traefik:
+    image: traefik:v3.2
+    container_name: traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+    networks:
+      - web
+
+networks:
+  web:
+    external: true
+TEOF
+}
+
+_write_traefik_config() {
+    local email="${1:-admin@visota.net}"
+    cat > /opt/traefik/traefik.yml << 'TEOF'
+api:
+  dashboard: true
+  insecure: true
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: "admin@visota.net"
+      storage: /letsencrypt/acme.json
+      httpChallenge:
+        entryPoint: web
+TEOF
+}
+
+_install_security() {
+    # Fail2ban
+    dnf install -y epel-release fail2ban 2>/dev/null || true
+    cat > /etc/fail2ban/jail.local << 'FEOF'
+[DEFAULT]
+bantime = 3600
+findtime = 600
+maxretry = 5
+banaction = firewallcmd-ipset
+
+[sshd]
+enabled = true
+FEOF
+    systemctl enable --now fail2ban 2>/dev/null || true
+
+    # Auto security updates
+    dnf install -y dnf-automatic 2>/dev/null || true
+    systemctl enable --now dnf-automatic.timer 2>/dev/null || true
+
+    ok "Security: fail2ban + auto-updates enabled"
+}
+
+_deploy_visota() {
+    local domain="${1:-visota.net}"
+    title "DEPLOYING VISOTA ($domain)"
+
+    mkdir -p "$APP_DIR"
+    cd "$APP_DIR"
+
+    if [ -d ".git" ]; then
+        info "Updating existing Visota..."
+        git pull origin main
+    else
+        info "Cloning Visota..."
+        git clone https://github.com/pkm2025/visota.git .
+    fi
+
+    # Create .env if not exists
+    if [ ! -f ".env" ]; then
+        info "Generating .env..."
+        local secret=$(openssl rand -hex 32)
+        local db_pass=$(openssl rand -hex 16)
+        local admin_pass=$(openssl rand -base64 12)
+        cat > .env << EENV
+DJANGO_SETTINGS_MODULE=config.settings.prod
+SECRET_KEY=${secret}
+DB_ROOT_PASSWORD=${db_pass}
+DB_NAME=visota
+DB_USER=visota
+DB_PASSWORD=${db_pass}
+SUPERUSER_EMAIL=admin@${domain}
+SUPERUSER_PASSWORD=${admin_pass}
+ALLOWED_HOSTS=${domain},www.${domain},localhost
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_HOST_USER=noreply@${domain}
+EMAIL_HOST_PASSWORD=
+GUNICORN_WORKERS=4
+SENTRY_DSN=
+EENV
+        ok ".env created — SAVE THIS PASSWORD: ${admin_pass}"
+    fi
+
+    # Write Traefik-enabled docker-compose
+    _write_visota_compose "$domain"
+
+    info "Building + starting containers..."
+    docker compose up -d --build
+
+    echo ""
+    ok "═══ VISOTA DEPLOYED ═══"
+    info "URL: https://${domain}/"
+    info "Login: /auth/login/ with admin / [SUPERUSER_PASSWORD from .env]"
+    info "Signup: /signup/"
+    info ""
+    info "Wait 1-2 min for first migrate + collectstatic to complete."
+    info "Check: visota-ctl logs web"
+}
+
+_write_visota_compose() {
+    local domain="$1"
+    cat > "$APP_DIR/docker-compose.yml" << VEOF
+services:
+  web:
+    build: .
+    container_name: visota-web
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.prod
+      - DB_HOST=db
+      - DB_PORT=3306
+    volumes:
+      - static_files:/app/staticfiles
+      - media_files:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.visota.rule=Host(\`${domain}\`,\`www.${domain}\`)"
+      - "traefik.http.routers.visota.entrypoints=websecure"
+      - "traefik.http.routers.visota.tls.certresolver=letsencrypt"
+      - "traefik.http.services.visota.loadbalancer.server.port=8900"
+    networks:
+      - web
+      - visota-net
+
+  worker:
+    build: .
+    container_name: visota-worker
+    restart: unless-stopped
+    command: python manage.py qcluster
+    env_file: .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.prod
+      - DB_HOST=db
+      - DB_PORT=3306
+    volumes:
+      - media_files:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - visota-net
+
+  db:
+    image: mariadb:11.4
+    container_name: visota-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=\${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=\${DB_NAME:-visota}
+      - MYSQL_USER=\${DB_USER:-visota}
+      - MYSQL_PASSWORD=\${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - visota-net
+
+volumes:
+  db_data:
+  static_files:
+  media_files:
+
+networks:
+  web:
+    external: true
+  visota-net:
+    driver: bridge
+VEOF
+}
+
+_deploy_portainer() {
+    local domain="${1:-docker.visota.net}"
+    title "DEPLOYING PORTAINER ($domain)"
+    mkdir -p "$PORTAINER_DIR"
+    cd "$PORTAINER_DIR"
+
+    cat > docker-compose.yml << 'PEOF'
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`DOMAIN`)"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.tls.certresolver=letsencrypt"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+    networks:
+      - web
+
+volumes:
+  portainer_data:
+
+networks:
+  web:
+    external: true
+PEOF
+    sed -i "s|DOMAIN|$domain|g" docker-compose.yml
+
+    docker compose up -d
+    ok "Portainer: https://${domain}/"
+}
+
+_deploy_metabase() {
+    local domain="${1:-analytics.visota.net}"
+    title "DEPLOYING METABASE ($domain)"
+    mkdir -p /opt/metabase
+    cd /opt/metabase
+
+    cat > docker-compose.yml << 'MEOF'
+services:
+  metabase:
+    image: metabase/metabase:latest
+    container_name: metabase
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.metabase.rule=Host(`DOMAIN`)"
+      - "traefik.http.routers.metabase.entrypoints=websecure"
+      - "traefik.http.routers.metabase.tls.certresolver=letsencrypt"
+      - "traefik.http.services.metabase.loadbalancer.server.port=3000"
+    networks:
+      - web
+
+networks:
+  web:
+    external: true
+MEOF
+    sed -i "s|DOMAIN|$domain|g" docker-compose.yml
+
+    docker compose up -d
+    ok "Metabase: https://${domain}/"
+}
+
+_deploy_n8n() {
+    local domain="${1:-flow.visota.net}"
+    title "DEPLOYING n8n ($domain)"
+    mkdir -p /opt/n8n
+    cd /opt/n8n
+
+    cat > docker-compose.yml << 'NEOF'
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    environment:
+      - N8N_HOST=DOMAIN
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://DOMAIN/
+      - GENERIC_TIMEZONE=Asia/Ho_Chi_Minh
+    volumes:
+      - n8n_data:/home/node/.n8n
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.n8n.rule=Host(`DOMAIN`)"
+      - "traefik.http.routers.n8n.entrypoints=websecure"
+      - "traefik.http.routers.n8n.tls.certresolver=letsencrypt"
+      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+    networks:
+      - web
+
+volumes:
+  n8n_data:
+
+networks:
+  web:
+    external: true
+NEOF
+    sed -i "s|DOMAIN|$domain|g" docker-compose.yml
+
+    docker compose up -d
+    ok "n8n: https://${domain}/"
+}
+
+# ===== MAIN =====
+
+cmd_help() {
+    cat << 'HELP'
+visota-ctl — Visota Server Control Panel
+
+USAGE:
+    sudo visota-ctl <command> [options]
+
+COMMANDS:
+    install           Cài Docker + Traefik + security (lần đầu)
+    deploy <app> [domain]  Deploy app (visota/portainer/metabase/n8n)
+    update            Update Visota (git pull + rebuild)
+    status            Xem trạng thái hệ thống (CPU/RAM/Disk/Docker)
+    apps              Liệt kê containers đang chạy
+    logs [service]    Xem log (web/worker/db/traefik)
+    restart [service] Restart service (hoặc tất cả)
+    shell [service]   Mở shell trong container
+    backup            Backup database + media
+    restore <file>    Restore database từ file backup
+    manage <cmd>      Django management (shell/superuser/migrate/seed)
+    ssl               Kiểm tra SSL certificates
+    security          Security audit (SSH/firewall/fail2ban/disk)
+    cleanup           Dọn Docker (images/volumes/cache cũ)
+    help              Hiện hướng dẫn này
+
+EXAMPLES:
+    sudo visota-ctl install              # Lần đầu
+    sudo visota-ctl deploy visota visota.net
+    sudo visota-ctl deploy portainer docker.visota.net
+    sudo visota-ctl deploy metabase analytics.visota.net
+    sudo visota-ctl backup
+    sudo visota-ctl logs web
+    sudo visota-ctl manage superuser
+    sudo visota-ctl status
+HELP
+}
+
+# ===== ENTRY POINT =====
+
+case "${1:-help}" in
+    install)  cmd_install ;;
+    deploy)   cmd_deploy "${2:-}" "${3:-}" ;;
+    update)   cmd_update ;;
+    status)   cmd_status ;;
+    apps)     cmd_apps ;;
+    logs)     cmd_logs "${2:-web}" ;;
+    restart)  cmd_restart "${2:-}" ;;
+    shell)    cmd_shell "${2:-web}" ;;
+    backup)   cmd_backup ;;
+    restore)  cmd_restore "${2:-}" ;;
+    manage)   cmd_manage "${2:-}" ;;
+    ssl)      cmd_ssl ;;
+    security) cmd_security ;;
+    cleanup)  cmd_cleanup ;;
+    help|--help|-h) cmd_help ;;
+    *)        err "Unknown command: $1"; echo ""; cmd_help ;;
+esac
