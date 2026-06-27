@@ -73,7 +73,7 @@ echo "";echo -e "  ${YELLOW}0${NC})← Quay lại\n";read -rp "${BOLD}[0-6]:${NC
 case "$c" in 1)cd "$APP_DIR"2>/dev/null&&docker compose restart web&&ok "Web";;2)cd "$APP_DIR"2>/dev/null&&docker compose restart worker&&ok "Worker";;3)cd "$APP_DIR"2>/dev/null&&docker compose restart db&&ok "DB";;4)cd "$TRAEFIK_DIR"2>/dev/null&&docker compose restart traefik&&ok "Traefik";;5)docker restart crowdsec 2>/dev/null&&ok "CrowdSec";;6)cd "$APP_DIR"2>/dev/null&&docker compose restart&&ok "All";;0)return;;esac;pause;}
 
 menu_restore(){ show_header;title "RESTORE";[ ! -d "$BACKUP_DIR" ]||[ -z "$(ls -A "$BACKUP_DIR" 2>/dev/null)" ]&&{ warn "Chưa có backup";pause;return;}
-local i=1;declare -a f;for x in "$BACKUP_DIR"/*.sql.gz;do[ -f "$x" ]||continue;f[$i]="$x";printf "  %s) %s (%s)\n" "$i" "$(basename "$x")" "$(du -h "$x"|awk '{print $1}')";((i++));done
+local i=1;declare -a f;for x in "$BACKUP_DIR"/*.sql.gz;do [ -f "$x" ]||continue;f[$i]="$x";printf "  %s) %s (%s)\n" "$i" "$(basename "$x")" "$(du -h "$x"|awk '{print $1}')";((i++));done
 echo "";echo -e "  ${YELLOW}0${NC})←Quay lại\n";read -rp "${BOLD}[0-$((i-1))]:${NC} " c;[ "$c" = "0" ]&&return
 warn "OVERWRITE!";read -p "'RESTORE': " cf;[ "$cf" != "RESTORE" ]&&return
 source "$APP_DIR/.env"2>/dev/null;cd "$APP_DIR";gunzip<"${f[$c]}"|docker compose exec -T db mysql -u root -p"${DB_ROOT_PASSWORD}" "${DB_NAME:-visota}" 2>/dev/null;docker compose restart web worker;ok "Done";pause;}
