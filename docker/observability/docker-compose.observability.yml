@@ -1,0 +1,109 @@
+# ============================================================
+#  Visota Observability Stack
+#  CrowdSec + Netdata + Uptime Kuma + Homepage
+#  Total: ~200MB RAM, ~2% CPU
+# ============================================================
+
+services:
+  # ===== 1. CrowdSec — Threat Intelligence + IPS =====
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    container_name: crowdsec
+    restart: unless-stopped
+    environment:
+      - COLLECTIONS=crowdsecurity/traefik,crowdsecurity/http-cve,crowdsecurity/whitelist-good-actors
+    volumes:
+      - /opt/traefik/logs:/var/log/traefik:ro
+      - /var/log:/var/log/host:ro
+      - crowdsec_data:/var/lib/crowdsec/data
+      - crowdsec_config:/etc/crowdsec
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks: [visota-net]
+
+  # ===== 2. Netdata — Real-time System Metrics =====
+  netdata:
+    image: netdata/netdata:latest
+    container_name: netdata
+    restart: unless-stopped
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    pid_mode: host
+    volumes:
+      - netdata_config:/etc/netdata
+      - netdata_lib:/var/lib/netdata
+      - netdata_cache:/var/cache/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/hostname:/etc/hostname:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - NETDATA_CLAIM_TOKEN=${NETDATA_CLAIM_TOKEN:-}
+      - NETDATA_CLAIM_URL=https://app.netdata.cloud
+      - NETDATA_CLAIM_ROOMS=${NETDATA_CLAIM_ROOMS:-}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.netdata.rule=Host(`metrics.${DOMAIN:-visota.net}`)"
+      - "traefik.http.routers.netdata.entrypoints=websecure"
+      - "traefik.http.routers.netdata.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.netdata.middlewares=netdata-auth"
+      - "traefik.http.services.netdata.loadbalancer.server.port=19999"
+      # Basic auth — CHANGE THIS!
+      - "traefik.http.middlewares.netdata-auth.basicauth.users=admin:$$apr1$$dGRrxP11$$vd0YjqrZyW8K1yQKQKq2G0"
+    networks: [web]
+
+  # ===== 3. Uptime Kuma — Uptime Monitor + Alerts =====
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma
+    restart: unless-stopped
+    volumes:
+      - kuma_data:/app/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kuma.rule=Host(`status.${DOMAIN:-visota.net}`)"
+      - "traefik.http.routers.kuma.entrypoints=websecure"
+      - "traefik.http.routers.kuma.tls.certresolver=letsencrypt"
+      - "traefik.http.services.kuma.loadbalancer.server.port=3001"
+    networks: [web]
+
+  # ===== 4. Homepage — Single Pane Dashboard =====
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    restart: unless-stopped
+    volumes:
+      - homepage_config:/app/config
+      - homepage_icons:/app/public/icons
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - HOMEPAGE_VAR_DOMAIN=${DOMAIN:-visota.net}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.homepage.rule=Host(`panel.${DOMAIN:-visota.net}`)"
+      - "traefik.http.routers.homepage.entrypoints=websecure"
+      - "traefik.http.routers.homepage.tls.certresolver=letsencrypt"
+      - "traefik.http.services.homepage.loadbalancer.server.port=3000"
+    networks: [web]
+
+volumes:
+  crowdsec_data:
+  crowdsec_config:
+  netdata_config:
+  netdata_lib:
+  netdata_cache:
+  kuma_data:
+  homepage_config:
+  homepage_icons:
+
+networks:
+  web:
+    external: true
+  visota-net:
+    external: true

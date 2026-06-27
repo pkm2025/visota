@@ -1,0 +1,24 @@
+---
+title: Visota Control Panel
+theme: dark
+color: slate
+headerStyle: clean
+language: vi
+hideVersion: true
+layout:
+  Visota:
+    style: row
+    columns: 4
+  Giám sát:
+    style: row
+    columns: 3
+  Hạ tầng:
+    style: column
+  Liên kết:
+    style: row
+    columns: 3
+quicklaunch:
+    searchDescriptions: true
+    hideInternetSearch: true
+    hideVisitURL: true
+showStats: false
