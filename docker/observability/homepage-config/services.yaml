@@ -1,7 +1,3 @@
-# Homepage configuration — auto-generated on first deploy
-# Edit at: docker exec homepage vi /app/config/services.yaml
-# Or mount custom: docker/observability/homepage-config/
-
 ---
 # Visota ERP
 - Visota:
@@ -14,22 +10,18 @@
         description: Dashboard admin
         icon: si-adminer
 
-# Monitoring
+# Giám sát
 - Giám sát:
-    - Netdata:
+    - Beszel:
         href: https://metrics.${DOMAIN}
-        description: Real-time system metrics
-        icon: si-netdata
-    - Uptime Status:
-        href: https://status.${DOMAIN}
-        description: Uptime + alerts
-        icon: si-uptime-kuma
+        description: CPU/RAM/Disk/Docker metrics + alerts
+        icon: si-beszel
     - CrowdSec:
         href: https://app.crowdsec.net
-        description: Threat intelligence
+        description: Threat intelligence + blocked IPs
         icon: si-shield
 
-# Infrastructure
+# Hạ tầng
 - Hạ tầng:
     - Portainer:
         href: https://docker.${DOMAIN}

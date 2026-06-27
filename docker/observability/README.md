@@ -1,140 +1,119 @@
-# Visota Observability Stack Setup Guide
+# Visota Observability Stack — Lean Edition
 
-## Combo: CrowdSec + Netdata + Uptime Kuma + Homepage
+## Combo: CrowdSec + Beszel + Homepage
+
+**Total: ~100MB RAM, <1% CPU** — nhẹ nhất có thể.
 
 ```
-                    ┌─────────────────────────────────┐
-                    │      Homepage (panel.visota.net) │
-                    │     Single Pane of Glass UI      │
-                    └──────┬──────┬──────┬─────────────┘
-                           │      │      │
-              ┌────────────┘      │      └────────────┐
-              ▼                   ▼                   ▼
-    ┌─────────────────┐ ┌──────────────────┐ ┌──────────────────┐
-    │ CrowdSec (~30MB)│ │ Netdata (~80MB)  │ │ Uptime Kuma      │
-    │ IPS + blocklist │ │ Real-time metrics│ │ (~50MB)          │
-    │                 │ │ CPU/RAM/Disk/DB  │ │ HTTP/TCP/cert    │
-    │ Block bad IPs   │ │ Per-second data  │ │ Push alerts      │
-    │ at kernel level │ │ Built-in alarms  │ │ Telegram/email   │
-    └─────────────────┘ └──────────────────┘ └──────────────────┘
-              │                                       │
-              ▼                                       ▼
-    ┌─────────────────┐                    ┌──────────────────┐
-    │ firewalld       │                    │ External probes  │
-    │ (iptables drop) │                    │ (every 60s)      │
-    └─────────────────┘                    └──────────────────┘
+                ┌──────────────────────────────────┐
+                │     Homepage (panel.visota.net)   │
+                │      Single Pane of Glass UI      │
+                └──────┬───────────┬────────────────┘
+                       │           │
+              ┌────────┘           └────────┐
+              ▼                             ▼
+    ┌─────────────────┐          ┌──────────────────┐
+    │ CrowdSec (~30MB)│          │ Beszel (~30MB)   │
+    │ IPS + blocklist │          │ Metrics + alerts │
+    │                 │          │                  │
+    │ Block bad IPs   │          │ CPU/RAM/Disk/    │
+    │ at kernel level │          │ Docker stats     │
+    │                 │          │ Historical data  │
+    │ Reads Traefik   │          │ Web alerts       │
+    │ access logs     │          │ (Telegram/webhook)│
+    └─────────────────┘          └──────────────────┘
+              │                             │
+              ▼                             ▼
+    ┌─────────────────┐          ┌──────────────────┐
+    │ firewalld       │          │ Beszel Agent     │
+    │ (iptables drop) │          │ (~10MB, Go binary)│
+    └─────────────────┘          │ /proc + Docker   │
+                                 └──────────────────┘
 ```
 
 ## Deploy
 
 ```bash
-# 1. Deploy all 4 services
-sudo visota-ctl
-> 2 (Deploy Apps)
-> 7 (Observability Stack)
-
-# Hoặc CLI:
 sudo visota-ctl deploy observability
 ```
 
-## Sau deploy — cần config thủ công
+## Setup sau deploy
 
-### 1. Homepage (panel.visota.net)
-- Truy cập `https://panel.visota.net`
-- Homepage auto-discovers Docker containers
-- Edit config: `docker exec homepage vi /app/config/services.yaml`
-- Đổi `${DOMAIN}` thành domain thật trong services.yaml
+### 1. Beszel — thêm server monitor
 
-### 2. Uptime Kuma (status.visota.net)
-- Truy cập `https://status.visota.net`
-- Tạo admin account (lần đầu)
-- Add monitors:
-  ```
-  Monitor 1: HTTPS → https://visota.net/health/
-    Type: HTTP(s)
-    Interval: 60s
-    Expected status: 200
-    
-  Monitor 2: TCP → visota-db:3306
-    Type: TCP Port
-    Hostname: visota-db (Docker DNS)
-    Port: 3306
-    
-  Monitor 3: HTTPS Certificate → visota.net
-    Type: Keyword/HTTPS
-    Check SSL cert expiry
-  ```
-- Setup notifications: Telegram / Email / Discord
+```bash
+# Lấy agent key từ hub (chạy 1 lần sau khi container up)
+docker exec beszel /beszel cli add-sys
 
-### 3. Netdata (metrics.visota.net)
-- Truy cập `https://metrics.visota.net` (admin:admin — đổi trong Traefik middleware)
-- Auto-collects: CPU, RAM, Disk, Docker containers, MariaDB (if mysql plugin enabled)
-- Enable MariaDB plugin:
-  ```bash
-  docker exec netdata bash -c "
-  cat > /etc/netdata/python.d/mysql.conf << 'EOF'
-  tcp:
-    name: 'visota'
-    host: 'visota-db'
-    port: 3306
-    user: 'root'
-    pass: 'YOUR_DB_ROOT_PASSWORD'
-  EOF
-  "
-  docker restart netdata
-  ```
-- Optional: Claim to Netdata Cloud for remote access:
-  ```bash
-  # Sign up at https://app.netdata.cloud → get token
-  docker exec netdata netdata-claim.sh -token=YOUR_TOKEN -rooms=ROOM_ID -url=https://app.netdata.cloud
-  ```
+# Output sẽ hiện key dạng: ssh-ed25519 AAAA...
+# Copy key → set vào .env:
+echo "BESZEL_AGENT_KEY=ssh-ed25519 AAAA..." >> /opt/visota/.env
 
-### 4. CrowdSec
-- Bouncer auto-installed via `install-crowdsec.sh`
-- View blocked IPs: `docker exec crowdsec cscli decisions list`
-- View metrics: `docker exec crowdsec cscli metrics`
-- Optional: Register at https://app.crowdsec.net for dashboard
+# Restart agent
+cd /opt/visota && docker compose -f docker/observability/docker-compose.observability.yml restart beszel-agent
+```
+
+Verify: `https://metrics.visota.net` → Beszel UI hiện CPU/RAM/Disk real-time.
+
+### 2. Beszel — setup alerts (Telegram)
+
+Trong Beszel UI → Settings → Notifications:
+- Webhook URL: `https://api.telegram.org/bot<TOKEN>/sendMessage`
+- Method: POST
+- Body:
+```json
+{
+  "chat_id": "<CHAT_ID>",
+  "text": "🚨 {{.system.name }}: {{ .title }}"
+}
+```
+
+### 3. Beszel — health check cho Visota
+
+Trong Beszel UI → Systems → Edit → HTTP Checks:
+```
+URL: https://visota.net/health/
+Expected: 200
+Interval: 60s
+```
+
+### 4. Homepage config
+
+Edit: `docker/observability/homepage-config/services.yaml`
+- Thay `${DOMAIN}` bằng domain thật
+- Restart: `docker restart homepage`
+
+### 5. CrowdSec
+
+Bouncer (block IPs via firewalld):
+```bash
+sudo bash /opt/visota/docker/crowdsec/install-crowdsec.sh
+```
+
+Check:
+```bash
+docker exec crowdsec cscli decisions list   # IPs đang bị block
+docker exec crowdsec cscli metrics          # số tấn công đã chặn
+```
 
 ## DNS Records
 
-| Subdomain | A Record | Service |
-|-----------|----------|---------|
-| `panel.visota.net` | VPS IP | Homepage dashboard |
-| `status.visota.net` | VPS IP | Uptime Kuma |
-| `metrics.visota.net` | VPS IP | Netdata |
-| `visota.net` | VPS IP | Django app |
+| Subdomain | Service |
+|-----------|---------|
+| `panel.visota.net` | Homepage dashboard |
+| `metrics.visota.net` | Beszel metrics |
+| `visota.net` | Visota ERP app |
 
-Traefik auto-generates SSL cho mỗi subdomain.
+## So sánh: combo cũ vs combo mới
 
-## Resource Summary
+| | Cũ (Netdata + Kuma) | Mới (Beszel only) |
+|--|---------------------|-------------------|
+| RAM | 200-620MB | **~100MB** |
+| CPU | 2-5% | **<1%** |
+| Uptime check | Uptime Kuma (50MB) | Beszel HTTP check (0MB extra) |
+| Metrics | Netdata (150-500MB) | Beszel (~30MB) |
+| Alerts | Uptime Kuma | Beszel (webhook/Telegram) |
+| Services | 4 containers | **3 containers** |
+| Dashboard | Homepage | Homepage |
 
-| Component | RAM | VPS 2GB | VPS 4GB |
-|-----------|-----|---------|---------|
-| CrowdSec | 30MB | ✅ | ✅ |
-| Netdata | 80MB | ⚠️ Optional | ✅ |
-| Uptime Kuma | 50MB | ✅ | ✅ |
-| Homepage | 40MB | ✅ | ✅ |
-| **Total** | **200MB** | OK (bỏ Netdata) | **Dư dả** |
-
-## Alert Setup (Telegram — recommended cho VN)
-
-1. Tạo bot: Telegram → @BotFather → `/newbot` → copy token
-2. Tạo group: Thêm bot vào group → copy chat_id
-3. Uptime Kuma → Settings → Notifications → Telegram:
-   ```
-   Bot Token: 123456:ABC-DEF...
-   Chat ID: -100123456789
-   ```
-
-## So sánh combo này vs Monit (đề xuất cũ)
-
-| | Monit | Combo 4 service |
-|--|-------|-----------------|
-| Dashboard | ❌ CLI | ✅ Homepage đẹp |
-| Metrics | ❌ Không | ✅ Netdata real-time |
-| External check | ❌ | ✅ Uptime Kuma |
-| Threat intel | ❌ | ✅ CrowdSec |
-| Telegram alert | ❌ | ✅ |
-| RAM | 5MB | 200MB |
-| Setup effort | Thấp | Trung bình |
-| **Phù hợp** | VPS 2GB | **VPS 4GB+** |
+**Tiết kiệm: 100-520MB RAM + bỏ 1 container.**
