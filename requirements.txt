@@ -11,6 +11,9 @@ weasyprint>=60.0
 python-docx>=1.1
 openpyxl>=3.1
 Pillow>=10.0
+whitenoise>=6.7
+gunicorn>=23.0
+playwright>=1.40
 
 # Full freeze for deployment:
 Django==5.2.15

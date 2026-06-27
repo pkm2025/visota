@@ -1,0 +1,96 @@
+# ============================================================
+#  Monit config for Visota — lightweight monitoring (~5MB RAM)
+#  Checks: disk, RAM, Docker containers, MariaDB, HTTP
+#  Alerts: email when something fails
+#  Install: visota-ctl menu → Security → Install Monit
+# ============================================================
+
+set daemon 60                    # Check every 60 seconds
+set logfile syslog
+set pidfile /var/run/monit.pid
+set idfile /var/.monit.id
+set statefile /var/.monit.state
+set eventqueue
+    basedir /var/monit
+    slots 100
+
+# ===== Alert email =====
+set mailserver smtp.gmail.com port 587
+    username "admin@visota.net" password "APP_PASSWORD"
+    using tlsv1
+    timeout 30 seconds
+set alert admin@visota.net
+set mail-format {
+    from: monit@visota.net
+    subject: [MONIT] $SERVICE $EVENT
+    message: |
+Monit $ACTION $SERVICE at $DATE on $HOST
+
+Event: $EVENT
+Service: $SERVICE
+Description: $DESCRIPTION
+
+Action: $ACTION
+Date: $DATE
+Host: $HOST
+}
+
+# ===== Web UI (optional, for status) =====
+# set httpd port 2812 and
+#     use address 0.0.0.0
+#     allow admin:monit
+
+# ===== System checks =====
+check system $HOST
+    if loadavg (1min) > 4 then alert
+    if loadavg (5min) > 3 then alert
+    if memory usage > 90% then alert
+    if swap usage > 50% then alert
+    if cpu usage (user) > 80% for 5 cycles then alert
+
+# ===== Disk =====
+check filesystem rootfs with path /
+    if space usage > 85% then alert
+    if space usage > 95% then exec "/usr/local/bin/visota-ctl cleanup"
+
+check filesystem tmpfs with path /dev/shm
+    if space usage > 80% then alert
+
+# ===== Docker daemon =====
+check process docker with pidfile /var/run/docker.pid
+    start program = "/usr/bin/systemctl start docker"
+    stop program = "/usr/bin/systemctl stop docker"
+    if does not exist then restart
+    if does not exist for 3 cycles then alert
+
+# ===== Visota containers =====
+check program visota-web with path "/usr/bin/docker inspect --format='{{.State.Status}}' visota-web"
+    if status != 0 then alert
+    every 2 cycles
+
+check program visota-worker with path "/usr/bin/docker inspect --format='{{.State.Status}}' visota-worker"
+    if status != 0 then alert
+    every 2 cycles
+
+check program visota-db with path "/usr/bin/docker inspect --format='{{.State.Status}}' visota-db"
+    if status != 0 then alert
+    every 2 cycles
+
+# ===== HTTP health check =====
+check host visota-https with address 127.0.0.1
+    if failed
+        port 443
+        protocol https
+        and request "/health/"
+        and status = 200
+        with timeout 10 seconds
+    for 3 cycles
+    then alert
+
+# ===== SSH =====
+check process sshd with pidfile /var/run/sshd.pid
+    if does not exist then alert
+
+# ===== fail2ban =====
+check process fail2ban with pidfile /var/run/fail2ban/fail2ban.pid
+    if does not exist then alert
