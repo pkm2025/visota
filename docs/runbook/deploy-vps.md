@@ -194,14 +194,41 @@ Xác nhận? (yes/no): █  ← gõ yes
 ```
 
 Sau đó script tự động:
-- Cài `podman`, `podman-compose`, `cockpit`, `cockpit-podman`, `firewalld`, `crowdsec-firewall-bouncer`, `dnf-automatic` (auto security updates)
+- Cài `git`, `podman`, `podman-compose`, `cockpit`, `cockpit-podman`, `firewalld`, `crowdsec-firewall-bouncer`, `dnf-automatic` (auto security updates)
 - Bật firewalld, mở port 22/80/443/9090
 - Tạo docker network `web` (Traefik + các app chia sẻ)
 - Khởi động Traefik edge proxy với auto Let's Encrypt
 - Bật Cockpit web UI ở port 9090
 - Bật CrowdSec (IPS, block IP tấn công)
+- **Gen SSH deploy key cho GitHub** (vì repo private)
 
-Mất ~10 phút. Cuối cùng báo: `✓ Done → Menu 2 Deploy`.
+Mất ~10 phút.
+
+### 3.5. Thêm SSH deploy key vào GitHub
+
+Cuối install script in ra:
+
+```
+═══ DEPLOY KEY — thêm vào GitHub ═══
+Repo → Settings → Deploy keys → Add deploy key
+
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... visota-deploy@your-server
+
+⚠  Sau khi add deploy key trên GitHub, chạy tiếp: visota-ctl deploy visota visota.net
+```
+
+**Copy toàn bộ dòng bắt đầu bằng `ssh-ed25519`** (kể cả email cuối).
+
+Làm theo:
+
+1. Mở browser: **https://github.com/pkm2025/visota/settings/keys** (phải login account có quyền admin repo)
+2. Click **Add deploy key**
+3. **Title**: `visota-prod` (hoặc tên server)
+4. **Key**: paste dòng ssh-ed25519 đã copy
+5. **Allow write access**: KHÔNG tick (chỉ cần read để clone/pull; chỉ tick nếu muốn VPS push backup code lên repo)
+6. Click **Add key**
+
+**Không qua bước này là `visota-ctl deploy` sẽ fail** với lỗi `git@github.com: Permission denied (publickey)`.
 
 ---
 
