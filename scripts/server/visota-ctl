@@ -56,8 +56,9 @@ menu_deploy(){ while true;do show_header;echo -e "${BOLD}DEPLOY${NC}\n"
 echo -e "  ${CYAN}1${NC}) 🧮 Visota ERP     ${DIM}kế toán+CRM+HĐĐT${NC}"
 echo -e "  ${CYAN}2${NC}) 📈 Metabase       ${DIM}Analytics${NC}"
 echo -e "  ${CYAN}3${NC}) 🔗 n8n            ${DIM}Workflow${NC}"
-echo "";echo -e "  ${YELLOW}0${NC}) ← Quay lại\n";read -rp "${BOLD}[0-3]:${NC} " c
-case "$c" in 1)read -p "Domain(visota.net):" d;_dv "${d:-visota.net}";pause;;2)read -p "Domain:" d;_dm "${d:-analytics.visota.net}";pause;;3)read -p "Domain:" d;_dn "${d:-flow.visota.net}";pause;;0)break;;esac;done;}
+echo -e "  ${CYAN}4${NC}) 🪣 MinIO          ${DIM}S3 storage (PDF/backup)${NC}"
+echo "";echo -e "  ${YELLOW}0${NC}) ← Quay lại\n";read -rp "${BOLD}[0-4]:${NC} " c
+case "$c" in 1)read -p "Domain(visota.net):" d;_dv "${d:-visota.net}";pause;;2)read -p "Domain:" d;_dm "${d:-analytics.visota.net}";pause;;3)read -p "Domain:" d;_dn "${d:-flow.visota.net}";pause;;4)read -p "Domain(s3.visota.net):" d;_dminio "${d:-s3.visota.net}";pause;;0)break;;esac;done;}
 
 menu_logs(){ show_header;echo -e "${BOLD}LOGS${NC}\n"
 echo -e "  ${CYAN}1${NC})🌐 Web  ${CYAN}2${NC})⚙️ Worker  ${CYAN}3${NC})🗄️ DB  ${CYAN}4${NC})🔀 Traefik  ${CYAN}5${NC})🛡️ CrowdSec"
@@ -194,11 +195,52 @@ networks: {web: {external: true}}
 NEOF
 sed -i "s|DOMAIN|$d|g" docker-compose.yml;dk up -d;ok "https://$d/";}
 
+_dminio(){ local d="$1";title "MINIO($d)";mkdir -p /opt/minio/data;cd /opt/minio
+local ak sk;ak=$(openssl rand -hex 8);sk=$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)
+cat>docker-compose.yml<<MEOF
+services:
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: "$ak"
+      MINIO_ROOT_PASSWORD: "$sk"
+    volumes: [minio_data:/data]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.minio.rule=Host(\`$d\`)"
+      - "traefik.http.routers.minio.entrypoints=websecure"
+      - "traefik.http.routers.minio.tls.certresolver=letsencrypt"
+      - "traefik.http.services.minio.loadbalancer.server.port=9000"
+      - "traefik.http.routers.minio-console.rule=Host(\`console.$d\`)"
+      - "traefik.http.routers.minio-console.entrypoints=websecure"
+      - "traefik.http.routers.minio-console.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.minio-console.service=minio-console"
+      - "traefik.http.services.minio-console.loadbalancer.server.port=9001"
+    networks: [web]
+volumes: {minio_data: }
+networks: {web: {external: true}}
+MEOF
+dk up -d 2>&1 | tail -3
+sleep 8
+dk exec minio mc alias set local http://localhost:9000 "$ak" "$sk" 2>/dev/null
+dk exec minio mc mb local/visota-media local/visota-backup 2>/dev/null
+ok "API:    https://$d/"
+ok "Console: https://console.$d/"
+echo ""
+echo -e "${BOLD}═══ MINIO CREDENTIALS ═══${NC}"
+echo "  Access Key: ${CYAN}$ak${NC}"
+echo "  Secret Key: ${YELLOW}$sk${NC}"
+echo -e "${RED}Lưu lại!${NC}"
+}
+
 _fi(){ local e="$1";show_header;title "INSTALL";dnf update -y;dnf install -y podman-compose 2>/dev/null||pip3 install podman-compose 2>/dev/null||true;dnf install -y cockpit cockpit-podman 2>/dev/null||true;systemctl enable --now cockpit.socket;systemctl enable --now firewalld;firewall-cmd --permanent --add-service={ssh,http,https,cockpit};firewall-cmd --reload;podman network create web 2>/dev/null||true;mkdir -p /opt/traefik/letsencrypt;_wt "$e";cd /opt/traefik&&dk up -d;curl -s https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.rpm.sh|bash 2>/dev/null||true;dnf install -y crowdsec-firewall-bouncer dnf-automatic 2>/dev/null||true;systemctl enable --now dnf-automatic.timer 2>/dev/null||true;ok "Done";}
 
 cmd_cli(){ case "${1:-help}" in
 install)check_root;_fi "${2:-admin@visota.net}";;
-deploy)check_root;shift;case "${1:-}" in visota)_dv "${2:-visota.net}";;metabase)_dm "${2:-analytics.visota.net}";;n8n)_dn "${2:-flow.visota.net}";;*)err "Apps: visota/metabase/n8n";;esac;;
+deploy)check_root;shift;case "${1:-}" in visota)_dv "${2:-visota.net}";;metabase)_dm "${2:-analytics.visota.net}";;n8n)_dn "${2:-flow.visota.net}";;minio)_dminio "${2:-s3.visota.net}";;*)err "Apps: visota/metabase/n8n/minio";;esac;;
 update)check_root;cmd_update;;status)cmd_status;;apps|containers)cmd_containers;;
 logs)local s="${2:-web}";case "$s" in traefik)cd "$TRAEFIK_DIR" 2>/dev/null&&dk logs -f --tail=50 traefik;;crowdsec)podman logs -f --tail=50 crowdsec 2>/dev/null;;*)cd "$APP_DIR" 2>/dev/null&&dk logs -f --tail=50 "$s";;esac;;
 restart)check_root;cd "$APP_DIR" 2>/dev/null&&dk restart "${2:-}";;backup)check_root;cmd_backup;;shell)cd "$APP_DIR" 2>/dev/null&&dk exec "${2:-web}" bash;;security)cmd_security;;cleanup)check_root;cmd_cleanup;;
