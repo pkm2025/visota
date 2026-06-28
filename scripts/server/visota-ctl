@@ -118,30 +118,21 @@ services:
     restart: unless-stopped
     ports: ["80:80","443:443","8080:8080"]
     volumes:
-      - type: bind
-        source: /var/run/podman/podman.sock
-        target: /var/run/docker.sock
-        read_only: true
-      - type: bind
-        source: ./letsencrypt
-        target: /letsencrypt
-      - type: bind
-        source: ./traefik.yml
-        target: /etc/traefik/traefik.yml
-        read_only: true
-    security_opt: ["label=disable"]
+      - /var/run/podman/podman.sock:/var/run/docker.sock:z
+      - ./letsencrypt:/letsencrypt:z
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro,z
     networks: [web]
 networks: {web: {external: true}}
 EOF
 cat>/opt/traefik/traefik.yml<<TEOF
-api: {dashboard: true, insecure: true}
+api: {dashboard: true, insecure: false}
 entryPoints:
   web: {address: ":80", http: {redirections: {entryPoint: {to: websecure, scheme: https}}}}
   websecure: {address: ":443"}
 providers: {docker: {endpoint: "unix:///var/run/docker.sock", exposedByDefault: false}}
 certificatesResolvers:
   letsencrypt:
-    acme: {email: "$e", storage: /letsencrypt/acme.json, httpChallenge: {entryPoint: web}}
+    acme: {email: "$e", storage: /letsencrypt/acme.json, tlsChallenge: {}}
 TEOF
 }
 
