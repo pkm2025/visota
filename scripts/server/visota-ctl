@@ -116,7 +116,6 @@ services:
     image: docker.io/library/traefik:v3.2
     container_name: traefik
     restart: unless-stopped
-    userns_mode: host
     privileged: true
     ports: ["80:80","443:443","8080:8080"]
     volumes:
@@ -129,12 +128,12 @@ EOF
 cat>/opt/traefik/traefik.yml<<TEOF
 api: {dashboard: true, insecure: false}
 entryPoints:
-  web: {address: ":80", http: {redirections: {entryPoint: {to: websecure, scheme: https}}}}
+  web: {address: ":80"}
   websecure: {address: ":443"}
 providers: {docker: {endpoint: "unix:///var/run/docker.sock", exposedByDefault: false}}
 certificatesResolvers:
   letsencrypt:
-    acme: {email: "$e", storage: /letsencrypt/acme.json, tlsChallenge: {}}
+    acme: {email: "$e", storage: /letsencrypt/acme.json, httpChallenge: {entryPoint: web}}
 TEOF
 }
 
