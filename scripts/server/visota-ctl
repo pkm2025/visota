@@ -36,9 +36,10 @@ echo -e "  ${CYAN}11${NC}) 🔒 Security    ${DIM}CrowdSec/Firewall/Audit${NC}"
 echo -e "  ${CYAN}12${NC}) 🗄️ Cleanup      ${DIM}Podman prune${NC}"
 echo -e "  ${CYAN}13${NC}) 🎌 Shell       ${DIM}Bash container${NC}"
 echo -e "  ${CYAN}14${NC}) ⚙️ Config       ${DIM}.env/Traefik/Cockpit${NC}"
+echo -e "  ${CYAN}15${NC}) 🪣 MinIO        ${DIM}buckets/creds/upload${NC}"
 echo "";echo -e "  ${YELLOW}q${NC}) Thoát";echo ""
-read -rp "${BOLD}Chọn [1-14/q]:${NC} " c
-case "$c" in 1)menu_install;;2)menu_deploy;;3)cmd_status;pause;;4)cmd_containers;pause;;5)menu_logs;;6)menu_restart;;7)cmd_backup;pause;;8)menu_restore;;9)cmd_update;pause;;10)menu_manage;;11)menu_security;;12)cmd_cleanup;pause;;13)menu_shell;;14)menu_config;;q|Q)echo -e "${GREEN}👋${NC}";exit 0;;*)warn "Sai";sleep 1;;esac;done;}
+read -rp "${BOLD}Chọn [1-15/q]:${NC} " c
+case "$c" in 1)menu_install;;2)menu_deploy;;3)cmd_status;pause;;4)cmd_containers;pause;;5)menu_logs;;6)menu_restart;;7)cmd_backup;pause;;8)menu_restore;;9)cmd_update;pause;;10)menu_manage;;11)menu_security;;12)cmd_cleanup;pause;;13)menu_shell;;14)menu_config;;15)menu_minio;;q|Q)echo -e "${GREEN}👋${NC}";exit 0;;*)warn "Sai";sleep 1;;esac;done;}
 
 menu_install(){ check_root;show_header;title "INSTALL"
 warn "Cài: podman-compose, Traefik v3, Cockpit, CrowdSec, firewalld, auto-updates"
@@ -203,7 +204,7 @@ services:
     image: quay.io/minio/minio:latest
     container_name: minio
     restart: unless-stopped
-    command: server /data --console-address "127.0.0.1:9001"
+    command: server /data
     environment:
       MINIO_ROOT_USER: "$ak"
       MINIO_ROOT_PASSWORD: "$sk"
@@ -222,14 +223,28 @@ dk up -d 2>&1 | tail -3
 sleep 8
 dk exec minio mc alias set local http://localhost:9000 "$ak" "$sk" 2>/dev/null
 dk exec minio mc mb local/visota-media local/visota-backup 2>/dev/null
-ok "API: https://$d/"
-ok "Console: SSH tunnel → ssh -L 9001:127.0.0.1:9001 root@server  (không expose public)"
+ok "API: https://$d/  (no console)"
 echo ""
 echo -e "${BOLD}═══ MINIO CREDENTIALS ═══${NC}"
 echo "  Access Key: ${CYAN}$ak${NC}"
 echo "  Secret Key: ${YELLOW}$sk${NC}"
-echo -e "${RED}Lưu lại!${NC}"
+echo -e "${RED}Lưu lại! (hoặc xem lại: visota-ctl minio creds)${NC}"
 }
+
+# _mc <mc args...> — run mc inside container with creds from compose
+_mc(){ local f=/opt/minio/docker-compose.yml;[ -f "$f" ]||{ err "MinIO chưa deploy";return 1;};local ak sk;ak=$(grep MINIO_ROOT_USER "$f"|head -1|sed 's/.*: "//;s/"//');sk=$(grep MINIO_ROOT_PASSWORD "$f"|head -1|sed 's/.*: "//;s/"//');podman exec minio mc alias set local http://localhost:9000 "$ak" "$sk" >/dev/null 2>&1;podman exec minio mc "$@";}
+
+menu_minio(){ while true;do show_header;echo -e "${BOLD}MINIO${NC}\n"
+echo -e "  ${CYAN}1${NC})📋 List buckets  ${CYAN}2${NC})📁 Tạo bucket  ${CYAN}3${NC})📊 Bucket size  ${CYAN}4${NC})⬆️ Upload file  ${CYAN}5${NC})⬇️ Download file  ${CYAN}6${NC})🔑 Show creds"
+echo "";echo -e "  ${YELLOW}0${NC})← Quay lại\n";read -rp "${BOLD}[0-6]:${NC} " c
+case "$c" in
+1)title "BUCKETS";_mc ls local 2>&1||warn "MinIO off";pause;;
+2)read -p "Tên bucket: " b;[ -n "$b" ]&&_mc mb "local/$b"&&ok "Tạo xong";pause;;
+3)title "SIZE";read -p "Bucket (enter=all): " b;if [ -z "$b" ];then _mc du local 2>&1;else _mc du "local/$b" 2>&1;fi;pause;;
+4)read -p "File local: " f;read -p "Bucket: " b;if [ -f "$f" ]&&[ -n "$b" ];then podman cp "$f" minio:/tmp/upload&&_mc cp /tmp/upload "local/$b/$(basename "$f")"&&podman exec minio rm /tmp/upload&&ok "Uploaded";else err "File thiếu";fi;pause;;
+5)read -p "Bucket/key (vd: visota-backup/db.sql.gz): " k;read -p "Lưu vào (path local): " out;_mc cp "local/$k" /tmp/dl 2>&1&&podman cp minio:/tmp/dl "$out" 2>&1&&podman exec minio rm /tmp/dl&&ok "Downloaded → $out";pause;;
+6)title "CREDENTIALS";local ak sk;ak=$(grep MINIO_ROOT_USER /opt/minio/docker-compose.yml 2>/dev/null|head -1|sed 's/.*: "//;s/"//');sk=$(grep MINIO_ROOT_PASSWORD /opt/minio/docker-compose.yml 2>/dev/null|head -1|sed 's/.*: "//;s/"//');[ -n "$ak" ]&&{ echo "  Access Key: $ak";echo "  Secret Key: $sk";}||warn "MinIO chưa deploy";pause;;
+0)break;;esac;done;}
 
 _fi(){ local e="$1";show_header;title "INSTALL";dnf update -y;dnf install -y podman-compose 2>/dev/null||pip3 install podman-compose 2>/dev/null||true;dnf install -y cockpit cockpit-podman 2>/dev/null||true;systemctl enable --now cockpit.socket;systemctl enable --now firewalld;firewall-cmd --permanent --add-service={ssh,http,https,cockpit};firewall-cmd --reload;podman network create web 2>/dev/null||true;mkdir -p /opt/traefik/letsencrypt;_wt "$e";cd /opt/traefik&&dk up -d;curl -s https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.rpm.sh|bash 2>/dev/null||true;dnf install -y crowdsec-firewall-bouncer dnf-automatic 2>/dev/null||true;systemctl enable --now dnf-automatic.timer 2>/dev/null||true;ok "Done";}
 
@@ -239,7 +254,8 @@ deploy)check_root;shift;case "${1:-}" in visota)_dv "${2:-visota.net}";;metabase
 update)check_root;cmd_update;;status)cmd_status;;apps|containers)cmd_containers;;
 logs)local s="${2:-web}";case "$s" in traefik)cd "$TRAEFIK_DIR" 2>/dev/null&&dk logs -f --tail=50 traefik;;crowdsec)podman logs -f --tail=50 crowdsec 2>/dev/null;;*)cd "$APP_DIR" 2>/dev/null&&dk logs -f --tail=50 "$s";;esac;;
 restart)check_root;cd "$APP_DIR" 2>/dev/null&&dk restart "${2:-}";;backup)check_root;cmd_backup;;shell)cd "$APP_DIR" 2>/dev/null&&dk exec "${2:-web}" bash;;security)cmd_security;;cleanup)check_root;cmd_cleanup;;
-help|--help|-h)echo "visota-ctl v4 — Menu: sudo visota-ctl | CLI: sudo visota-ctl <cmd>";echo "Commands: install deploy update status containers logs restart backup shell security cleanup";;
+minio)shift;case "${1:-help}" in ls)_mc ls local 2>&1;;mb)_mc mb "local/${2:?bucket name required}" 2>&1&&ok "Created";;size)_mc du local 2>&1;;put)local f="${2:?file required}" b="${3:?bucket required}";[ -f "$f" ]||{ err "File không tồn tại: $f";exit 1;};podman cp "$f" "minio:/tmp/upload"&&_mc cp /tmp/upload "local/$b/$(basename "$f")" 2>&1&&podman exec minio rm /tmp/upload&&ok "Uploaded";;get)_mc cp "local/${2:?key required}" "/tmp/dl" 2>&1&&podman cp "minio:/tmp/dl" "${3:?local path required}" 2>&1&&podman exec minio rm /tmp/dl&&ok "Downloaded → ${3}";;creds)grep -E "MINIO_ROOT_(USER|PASSWORD)" /opt/minio/docker-compose.yml 2>/dev/null||warn "MinIO chưa deploy";;*)echo "Usage: visota-ctl minio <ls|mb NAME|size|put FILE BUCKET|get KEY LOCAL|creds>";;esac;;
+help|--help|-h)echo "visota-ctl v4 — Menu: sudo visota-ctl | CLI: sudo visota-ctl <cmd>";echo "Commands: install deploy update status containers logs restart backup shell security cleanup minio";;
 *)err "Unknown: $1";exit 1;;esac;}
 
-[ $# -gt 0 ] && cmd_cli "$@" || menu_main
+[ $# -gt 0 ] && { cmd_cli "$@"; exit $?; } || menu_main
