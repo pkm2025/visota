@@ -29,13 +29,14 @@ python manage.py migrate --noinput
 echo "Seeding permissions..."
 python manage.py seed_permissions 2>/dev/null || true
 
-# Collect static (WhiteNoise — compress + manifest)
+# Collect static (WhiteNoise — compressed)
 echo "Collecting static files (WhiteNoise compressed)..."
 python manage.py collectstatic --noinput --clear
 
-# Create superuser
-echo "Ensuring superuser..."
-python manage.py shell -c "
+# Create superuser (web only — skip for worker)
+if [ "${VISOTA_ROLE:-web}" = "web" ]; then
+    echo "Ensuring superuser..."
+    python manage.py shell -c "
 from django.contrib.auth import get_user_model
 import os
 User = get_user_model()
@@ -49,18 +50,7 @@ if not User.objects.filter(is_superuser=True).exists():
 else:
     print('  Superuser exists')
 " 2>/dev/null
+fi
 
-echo "=== Starting Gunicorn ===
-exec gunicorn \
-    --bind 0.0.0.0:8900 \
-    --workers ${GUNICORN_WORKERS:-4} \
-    --threads ${GUNICORN_THREADS:-2} \
-    --timeout ${GUNICORN_TIMEOUT:-120} \
-    --graceful-timeout 30 \
-    --keep-alive 5 \
-    --max-requests 1000 \
-    --max-requests-jitter 50 \
-    --access-logfile - \
-    --error-logfile - \
-    --worker-tmp-dir /dev/shm \
-    config.wsgi:application
+echo "=== Starting: $* ==="
+exec "$@"

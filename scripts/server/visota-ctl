@@ -1,5 +1,6 @@
 #!/bin/bash
-# visota-ctl v3 — Server Control Panel (CrowdSec + Beszel + WhiteNoise)
+# visota-ctl v4 — Server Control Panel (Podman + Cockpit + CrowdSec)
+# AlmaLinux 10: dùng Podman sẵn, Cockpit làm monitor, CrowdSec làm IPS
 # Menu: sudo visota-ctl | CLI: sudo visota-ctl <cmd>
 set -euo pipefail
 
@@ -9,19 +10,22 @@ info(){ echo -e "${BLUE}ℹ${NC}  $1";};ok(){ echo -e "${GREEN}✓${NC}  $1";};w
 pause(){ echo "";read -rp "${DIM}Enter...${NC}";};title(){ echo -e "\n${BOLD}${CYAN}══════ $1 ══════${NC}\n";}
 check_root(){ [ "$EUID" -ne 0 ]&&err "Cần sudo"&&exit 1;}
 
-show_header(){ clear;echo -e "${CYAN}${BOLD}  Visota Control Panel${NC}";echo "";
-local ip=$(hostname -I 2>/dev/null|awk '{print $1}');local cpu=$(nproc 2>/dev/null);local ram=$(free -h 2>/dev/null|awk '/Mem:/{printf "%s/%s",$3,$2}');local disk=$(df -h / 2>/dev/null|awk 'NR==2{printf "%s(%s)",$3,$5}');local cont=$(docker ps -q 2>/dev/null|wc -l);
+# Podman + compose — AlmaLinux 10 có sẵn podman, chỉ cần thêm compose
+dk(){ podman compose "$@"; }
+
+show_header(){ clear;echo -e "${CYAN}${BOLD}  Visota Control Panel v4${NC}";echo "";
+local ip=$(hostname -I 2>/dev/null|awk '{print $1}');local cpu=$(nproc 2>/dev/null);local ram=$(free -h 2>/dev/null|awk '/Mem:/{printf "%s/%s",$3,$2}');local disk=$(df -h / 2>/dev/null|awk 'NR==2{printf "%s(%s)",$3,$5}');local cont=$(podman ps -q 2>/dev/null|wc -l);
 echo -e "${DIM}┌──────────────────────────────────────┐${NC}"
 printf "${DIM}│${NC} IP:%-12s OS:%-14s ${DIM}│${NC}\n" "$ip" "$(cat /etc/os-release 2>/dev/null|grep PRETTY_NAME|cut -d'\"' -f2|head -c14)"
 printf "${DIM}│${NC} CPU:%-10s RAM:%-12s Disk:%-7s${DIM}│${NC}\n" "$cpu cores" "$ram" "$disk"
-printf "${DIM}│${NC} Containers:%-3s Docker:%-7s ${DIM}│${NC}\n" "$cont" "$(systemctl is-active docker 2>/dev/null)"
+printf "${DIM}│${NC} Containers:%-3s Podman:%-6s ${DIM}│${NC}\n" "$cont" "$(systemctl is-active podman 2>/dev/null||echo 'socket')"
 echo -e "${DIM}└──────────────────────────────────────┘${NC}";echo "";}
 
 menu_main(){ while true;do show_header;echo -e "${BOLD}MAIN MENU${NC} (q=thoát)";echo ""
-echo -e "  ${CYAN}1${NC}) 📦 Install       ${DIM}Docker+Traefik+CrowdSec${NC}"
-echo -e "  ${CYAN}2${NC}) 🚀 Deploy        ${DIM}Visota/Observability/Apps${NC}"
-echo -e "  ${CYAN}3${NC}) 📊 Status        ${DIM}CPU/RAM/Disk/Docker${NC}"
-echo -e "  ${CYAN}4${NC}) 📋 Containers    ${DIM}Docker ps+stats${NC}"
+echo -e "  ${CYAN}1${NC}) 📦 Install       ${DIM}Podman+Traefik+Cockpit+CrowdSec${NC}"
+echo -e "  ${CYAN}2${NC}) 🚀 Deploy        ${DIM}Visota/Apps${NC}"
+echo -e "  ${CYAN}3${NC}) 📊 Status        ${DIM}CPU/RAM/Disk/Containers${NC}"
+echo -e "  ${CYAN}4${NC}) 📋 Containers    ${DIM}podman ps+stats${NC}"
 echo -e "  ${CYAN}5${NC}) 📜 Logs          ${DIM}web/worker/db/traefik/crowdsec${NC}"
 echo -e "  ${CYAN}6${NC}) 🔄 Restart       ${DIM}1 hoặc tất cả${NC}"
 echo -e "  ${CYAN}7${NC}) 💾 Backup        ${DIM}DB+media${NC}"
@@ -29,91 +33,80 @@ echo -e "  ${CYAN}8${NC}) ♻️ Restore        ${DIM}Restore DB${NC}"
 echo -e "  ${CYAN}9${NC}) ⬆️ Update         ${DIM}Pull+rebuild+migrate${NC}"
 echo -e "  ${CYAN}10${NC}) 🔧 Django      ${DIM}shell/superuser/migrate${NC}"
 echo -e "  ${CYAN}11${NC}) 🔒 Security    ${DIM}CrowdSec/Firewall/Audit${NC}"
-echo -e "  ${CYAN}12${NC}) 🗄️ Cleanup      ${DIM}Docker prune${NC}"
+echo -e "  ${CYAN}12${NC}) 🗄️ Cleanup      ${DIM}Podman prune${NC}"
 echo -e "  ${CYAN}13${NC}) 🎌 Shell       ${DIM}Bash container${NC}"
-echo -e "  ${CYAN}14${NC}) ⚙️ Config       ${DIM}.env/Traefik/mon-auth${NC}"
+echo -e "  ${CYAN}14${NC}) ⚙️ Config       ${DIM}.env/Traefik/Cockpit${NC}"
 echo "";echo -e "  ${YELLOW}q${NC}) Thoát";echo ""
 read -rp "${BOLD}Chọn [1-14/q]:${NC} " c
-case "$c" in 1)menu_install;;2)menu_deploy;;3)cmd_status;pause;;4)cmd_containers;pause;;5)menu_logs;;6)menu_restart;;7)cmd_backup;pause;;8)menu_restore;;9)cmd_update;pause;;10)menu_manage;;11)menu_security;;12)cmd_cleanup;pause;;13)menu_shell;;14)menu_config;;q|Q)echo "${GREEN}👋${NC}";exit 0;;*)warn "Sai";sleep 1;;esac;done;}
+case "$c" in 1)menu_install;;2)menu_deploy;;3)cmd_status;pause;;4)cmd_containers;pause;;5)menu_logs;;6)menu_restart;;7)cmd_backup;pause;;8)menu_restore;;9)cmd_update;pause;;10)menu_manage;;11)menu_security;;12)cmd_cleanup;pause;;13)menu_shell;;14)menu_config;;q|Q)echo -e "${GREEN}👋${NC}";exit 0;;*)warn "Sai";sleep 1;;esac;done;}
 
 menu_install(){ check_root;show_header;title "INSTALL"
-warn "Cài: Docker CE, Traefik v3, firewalld, CrowdSec bouncer, auto-updates"
+warn "Cài: podman-compose, Traefik v3, Cockpit, CrowdSec, firewalld, auto-updates"
 echo "";read -p "Email Let's Encrypt: " le;read -p "Xác nhận? (yes/no): " cf;[ "$cf" != "yes" ]&&return
-info "System...";dnf update -y;dnf remove -y podman buildah runc 2>/dev/null||true
-info "Docker...";dnf install -y dnf-utils;dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin;systemctl enable --now docker;ok "Docker"
-info "Firewall...";systemctl enable --now firewalld;firewall-cmd --permanent --add-service={ssh,http,https};firewall-cmd --reload;ok "Firewall"
-docker network create web 2>/dev/null||true;ok "Network 'web'"
-info "Traefik...";mkdir -p /opt/traefik/letsencrypt;_wt "$le";cd /opt/traefik&&docker compose up -d;ok "Traefik :8080"
+info "System...";dnf update -y
+info "Podman compose...";dnf install -y podman-compose 2>/dev/null||pip3 install podman-compose 2>/dev/null||true
+info "Cockpit...";dnf install -y cockpit cockpit-podman 2>/dev/null||true;systemctl enable --now cockpit.socket;ok "Cockpit :9090"
+info "Firewall...";systemctl enable --now firewalld;firewall-cmd --permanent --add-service={ssh,http,https,cockpit};firewall-cmd --reload;ok "Firewall"
+podman network create web 2>/dev/null||true;ok "Network 'web'"
+info "Traefik...";mkdir -p /opt/traefik/letsencrypt;_wt "$le";cd /opt/traefik&&dk up -d;ok "Traefik :8080"
 info "Security...";curl -s https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.rpm.sh|bash 2>/dev/null||true;dnf install -y crowdsec-firewall-bouncer 2>/dev/null||true;dnf install -y dnf-automatic 2>/dev/null||true;systemctl enable --now dnf-automatic.timer 2>/dev/null||true;ok "CrowdSec+bouncer+auto-patch"
-usermod -aG docker "${SUDO_USER:-$USER}";ok "Done → Menu 2 Deploy";pause;}
+ok "Done → Menu 2 Deploy";pause;}
 
 menu_deploy(){ while true;do show_header;echo -e "${BOLD}DEPLOY${NC}\n"
 echo -e "  ${CYAN}1${NC}) 🧮 Visota ERP     ${DIM}kế toán+CRM+HĐĐT${NC}"
-echo -e "  ${CYAN}2${NC}) 📊 Observability  ${DIM}CrowdSec+Beszel+Homepage${NC}"
-echo -e "  ${CYAN}3${NC}) 🐳 Portainer      ${DIM}Docker UI${NC}"
-echo -e "  ${CYAN}4${NC}) 📈 Metabase       ${DIM}Analytics${NC}"
-echo -e "  ${CYAN}5${NC}) 🔗 n8n            ${DIM}Workflow${NC}"
-echo "";echo -e "  ${YELLOW}0${NC}) ← Quay lại\n";read -rp "${BOLD}[0-5]:${NC} " c
-case "$c" in 1)read -p "Domain(visota.net):" d;_dv "${d:-visota.net}";pause;;2)_dobs;pause;;3)read -p "Domain:" d;_dp "${d:-docker.visota.net}";pause;;4)read -p "Domain:" d;_dm "${d:-analytics.visota.net}";pause;;5)read -p "Domain:" d;_dn "${d:-flow.visota.net}";pause;;0)break;;esac;done;}
-
-_dobs(){ title "OBSERVABILITY";[ ! -d "$APP_DIR" ]&&{ err "Cần Visota trước";return;};cd "$APP_DIR/docker/observability"
-source "$APP_DIR/.env" 2>/dev/null;export DOMAIN="${ALLOWED_HOSTS:-visota.net%%,*}"
-info "CrowdSec+Beszel+Homepage → mon.visota.net (~100MB RAM)";docker compose -f docker-compose.observability.yml up -d
-ok "Done: mon.visota.net (admin/visota2026)";echo "";warn "Đổi pass: Menu 14→3";}
+echo -e "  ${CYAN}2${NC}) 📈 Metabase       ${DIM}Analytics${NC}"
+echo -e "  ${CYAN}3${NC}) 🔗 n8n            ${DIM}Workflow${NC}"
+echo "";echo -e "  ${YELLOW}0${NC}) ← Quay lại\n";read -rp "${BOLD}[0-3]:${NC} " c
+case "$c" in 1)read -p "Domain(visota.net):" d;_dv "${d:-visota.net}";pause;;2)read -p "Domain:" d;_dm "${d:-analytics.visota.net}";pause;;3)read -p "Domain:" d;_dn "${d:-flow.visota.net}";pause;;0)break;;esac;done;}
 
 menu_logs(){ show_header;echo -e "${BOLD}LOGS${NC}\n"
-echo -e "  ${CYAN}1${NC})🌐 Web  ${CYAN}2${NC})⚙️ Worker  ${CYAN}3${NC})🗄️ DB  ${CYAN}4${NC})🔀 Traefik  ${CYAN}5${NC})🛡️ CrowdSec  ${CYAN}6${NC})📊 Beszel"
-echo "";echo -e "  ${YELLOW}0${NC})← Quay lại\n";read -rp "${BOLD}[0-6]:${NC} " c
-case "$c" in 1)cd "$APP_DIR" 2>/dev/null&&docker compose logs -f --tail=50 web;;2)cd "$APP_DIR" 2>/dev/null&&docker compose logs -f --tail=50 worker;;3)cd "$APP_DIR" 2>/dev/null&&docker compose logs -f --tail=50 db;;4)cd "$TRAEFIK_DIR" 2>/dev/null&&docker compose logs -f --tail=50 traefik;;5)docker logs -f --tail=50 crowdsec 2>/dev/null;;6)docker logs -f --tail=50 beszel 2>/dev/null;;0)return;;esac;pause;}
+echo -e "  ${CYAN}1${NC})🌐 Web  ${CYAN}2${NC})⚙️ Worker  ${CYAN}3${NC})🗄️ DB  ${CYAN}4${NC})🔀 Traefik  ${CYAN}5${NC})🛡️ CrowdSec"
+echo "";echo -e "  ${YELLOW}0${NC})← Quay lại\n";read -rp "${BOLD}[0-5]:${NC} " c
+case "$c" in 1)cd "$APP_DIR" 2>/dev/null&&dk logs -f --tail=50 web;;2)cd "$APP_DIR" 2>/dev/null&&dk logs -f --tail=50 worker;;3)cd "$APP_DIR" 2>/dev/null&&dk logs -f --tail=50 db;;4)cd "$TRAEFIK_DIR" 2>/dev/null&&dk logs -f --tail=50 traefik;;5)podman logs -f --tail=50 crowdsec 2>/dev/null;;0)return;;esac;pause;}
 
 menu_restart(){ show_header;echo -e "${BOLD}RESTART${NC}\n"
 echo -e "  ${CYAN}1${NC})🌐Web  ${CYAN}2${NC})⚙️Worker  ${CYAN}3${NC})🗄️DB  ${CYAN}4${NC})🔀Traefik  ${CYAN}5${NC})🛡️CrowdSec  ${CYAN}6${NC})💥Tất cả"
 echo "";echo -e "  ${YELLOW}0${NC})← Quay lại\n";read -rp "${BOLD}[0-6]:${NC} " c
-case "$c" in 1)cd "$APP_DIR" 2>/dev/null&&docker compose restart web&&ok "Web";;2)cd "$APP_DIR" 2>/dev/null&&docker compose restart worker&&ok "Worker";;3)cd "$APP_DIR" 2>/dev/null&&docker compose restart db&&ok "DB";;4)cd "$TRAEFIK_DIR" 2>/dev/null&&docker compose restart traefik&&ok "Traefik";;5)docker restart crowdsec 2>/dev/null&&ok "CrowdSec";;6)cd "$APP_DIR" 2>/dev/null&&docker compose restart&&ok "All";;0)return;;esac;pause;}
+case "$c" in 1)cd "$APP_DIR" 2>/dev/null&&dk restart web&&ok "Web";;2)cd "$APP_DIR" 2>/dev/null&&dk restart worker&&ok "Worker";;3)cd "$APP_DIR" 2>/dev/null&&dk restart db&&ok "DB";;4)cd "$TRAEFIK_DIR" 2>/dev/null&&dk restart traefik&&ok "Traefik";;5)podman restart crowdsec 2>/dev/null&&ok "CrowdSec";;6)cd "$APP_DIR" 2>/dev/null&&dk restart&&ok "All";;0)return;;esac;pause;}
 
 menu_restore(){ show_header;title "RESTORE";[ ! -d "$BACKUP_DIR" ]||[ -z "$(ls -A "$BACKUP_DIR" 2>/dev/null)" ]&&{ warn "Chưa có backup";pause;return;}
 local i=1;declare -a f;for x in "$BACKUP_DIR"/*.sql.gz;do [ -f "$x" ]||continue;f[$i]="$x";printf "  %s) %s (%s)\n" "$i" "$(basename "$x")" "$(du -h "$x"|awk '{print $1}')";((i++));done
 echo "";echo -e "  ${YELLOW}0${NC})←Quay lại\n";read -rp "${BOLD}[0-$((i-1))]:${NC} " c;[ "$c" = "0" ]&&return
 warn "OVERWRITE!";read -p "'RESTORE': " cf;[ "$cf" != "RESTORE" ]&&return
-source "$APP_DIR/.env" 2>/dev/null;cd "$APP_DIR";gunzip<"${f[$c]}"|docker compose exec -T db mysql -u root -p"${DB_ROOT_PASSWORD}" "${DB_NAME:-visota}" 2>/dev/null;docker compose restart web worker;ok "Done";pause;}
+source "$APP_DIR/.env" 2>/dev/null;cd "$APP_DIR";gunzip<"${f[$c]}"|dk exec -T db mariadb -u root -p"${DB_ROOT_PASSWORD}" "${DB_NAME:-visota}" 2>/dev/null;dk restart web worker;ok "Done";pause;}
 
 menu_manage(){ while true;do show_header;echo -e "${BOLD}DJANGO${NC}\n"
 echo -e "  ${CYAN}1${NC})🐍Shell  ${CYAN}2${NC})👤Superuser  ${CYAN}3${NC})🔄Migrate  ${CYAN}4${NC})📁CollectStatic  ${CYAN}5${NC})🌱Seed  ${CYAN}6${NC})💣Flush"
-echo "";echo -e "  ${YELLOW}0${NC})←Quay lại\n";read -rp "${BOLD}[0-6]:${NC} " c
-case "$c" in 1)cd "$APP_DIR"&&docker compose exec web python manage.py shell;;2)cd "$APP_DIR"&&docker compose exec -it web python manage.py createsuperuser;;3)cd "$APP_DIR"&&docker compose exec web python manage.py migrate&&ok "Done";;4)cd "$APP_DIR"&&docker compose exec web python manage.py collectstatic --noinput&&ok "Static(WhiteNoise)";;5)cd "$APP_DIR"&&docker compose exec web python manage.py seed_permissions&&ok "Seeded";;6)warn "XÓA!";read -p "'DELETE': " x;[ "$x" = "DELETE" ]&&cd "$APP_DIR"&&docker compose exec web python manage.py flush --noinput&&ok "Flushed";;0)break;;esac;[ "$c" != "1" ]&&pause;done;}
+echo "";echo -e "  ${YELLOW}0${NC})← Quay lại\n";read -rp "${BOLD}[0-6]:${NC} " c
+case "$c" in 1)cd "$APP_DIR"&&dk exec web python manage.py shell;;2)cd "$APP_DIR"&&dk exec -it web python manage.py createsuperuser;;3)cd "$APP_DIR"&&dk exec web python manage.py migrate&&ok "Done";;4)cd "$APP_DIR"&&dk exec web python manage.py collectstatic --noinput&&ok "Static(WhiteNoise)";;5)cd "$APP_DIR"&&dk exec web python manage.py seed_permissions&&ok "Seeded";;6)warn "XÓA!";read -p "'DELETE': " x;[ "$x" = "DELETE" ]&&cd "$APP_DIR"&&dk exec web python manage.py flush --noinput&&ok "Flushed";;0)break;;esac;[ "$c" != "1" ]&&pause;done;}
 
 menu_security(){ while true;do show_header;echo -e "${BOLD}SECURITY${NC}\n"
 echo -e "${BOLD}Status:${NC}";systemctl is-active --quiet firewalld 2>/dev/null&&ok "Firewalld"||warn "Firewalld OFF"
-docker ps --format '{{.Names}}' 2>/dev/null|grep -q crowdsec&&ok "CrowdSec"||warn "CrowdSec OFF"
+podman ps --format '{{.Names}}' 2>/dev/null|grep -q crowdsec&&ok "CrowdSec"||warn "CrowdSec OFF"
 systemctl is-active --quiet crowdsec-firewall-bouncer 2>/dev/null&&ok "Bouncer"||warn "Bouncer OFF"
 systemctl is-active --quiet dnf-automatic.timer 2>/dev/null&&ok "Auto-patch"||warn "Auto-patch OFF";echo ""
 echo -e "  ${CYAN}1${NC})🛡️CrowdSec status  ${CYAN}2${NC})📋Full audit  ${CYAN}3${NC})🔑SSH harden  ${CYAN}4${NC})🔄Update blocklist  ${CYAN}5${NC})🚫Block IP"
-echo "";echo -e "  ${YELLOW}0${NC})←Quay lại\n";read -rp "${BOLD}[0-5]:${NC} " c
-case "$c" in 1)title "CROWDSEC";docker exec crowdsec cscli decisions list 2>/dev/null;echo "";docker exec crowdsec cscli metrics 2>/dev/null|head -20;echo "";systemctl status crowdsec-firewall-bouncer 2>/dev/null|grep Active;pause;;2)cmd_security;pause;;3)_ssh;pause;;4)docker exec crowdsec cscli hub update&&docker exec crowdsec cscli hub upgrade&&ok "Updated"||warn "CrowdSec off";pause;;5)read -p "IP: " ip;docker exec crowdsec cscli decisions add "$ip"&&ok "Blocked";pause;;0)break;;esac;done;}
+echo "";echo -e "  ${YELLOW}0${NC})← Quay lại\n";read -rp "${BOLD}[0-5]:${NC} " c
+case "$c" in 1)title "CROWDSEC";podman exec crowdsec cscli decisions list 2>/dev/null;echo "";podman exec crowdsec cscli metrics 2>/dev/null|head -20;echo "";systemctl status crowdsec-firewall-bouncer 2>/dev/null|grep Active;pause;;2)cmd_security;pause;;3)_ssh;pause;;4)podman exec crowdsec cscli hub update&&podman exec crowdsec cscli hub upgrade&&ok "Updated"||warn "CrowdSec off";pause;;5)read -p "IP: " ip;podman exec crowdsec cscli decisions add "$ip"&&ok "Blocked";pause;;0)break;;esac;done;}
 
 _ssh(){ title "SSH HARDEN";info "Current: $(grep -i PasswordAuthentication /etc/ssh/sshd_config 2>/dev/null|tail -1|awk '{print $2}')";read -p "Tắt password auth? (yes/no): " cf;[ "$cf" = "yes" ]&&{ sed -i 's/PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config 2>/dev/null||echo "PasswordAuthentication no">>/etc/ssh/sshd_config;systemctl restart sshd;ok "Key-only";warn "Đảm bảo SSH key đã setup!";};}
 
 menu_shell(){ show_header;echo -e "${BOLD}SHELL${NC}\n"
 echo -e "  ${CYAN}1${NC})🌐Web  ${CYAN}2${NC})⚙️Worker  ${CYAN}3${NC})🗄️DB  ${CYAN}4${NC})🛡️CrowdSec"
-echo "";echo -e "  ${YELLOW}0${NC})←Quay lại\n";read -rp "${BOLD}[0-4]:${NC} " c
-case "$c" in 1)cd "$APP_DIR"&&docker compose exec web bash;;2)cd "$APP_DIR"&&docker compose exec worker bash;;3)source "$APP_DIR/.env" 2>/dev/null;docker exec -it visota-db mariadb -u root -p"${DB_ROOT_PASSWORD}";;4)docker exec -it crowdsec bash;;0)return;;esac;}
+echo "";echo -e "  ${YELLOW}0${NC})← Quay lại\n";read -rp "${BOLD}[0-4]:${NC} " c
+case "$c" in 1)cd "$APP_DIR"&&dk exec web bash;;2)cd "$APP_DIR"&&dk exec worker bash;;3)source "$APP_DIR/.env" 2>/dev/null;podman exec -it visota-db mariadb -u root -p"${DB_ROOT_PASSWORD}";;4)podman exec -it crowdsec bash;;0)return;;esac;}
 
 menu_config(){ while true;do show_header;echo -e "${BOLD}CONFIG${NC}\n"
-echo -e "  ${CYAN}1${NC})✏️.env  ${CYAN}2${NC})✏️Traefik  ${CYAN}3${NC})🔑Đổi pass mon  ${CYAN}4${NC})📋Show .env(masked)"
-echo "";echo -e "  ${YELLOW}0${NC})←Quay lại\n";read -rp "${BOLD}[0-4]:${NC} " c
-case "$c" in 1)${EDITOR:-nano}"$APP_DIR/.env";;2)${EDITOR:-nano}"$TRAEFIK_DIR/traefik.yml";;3)_chpw;;4)sed -E 's/(PASSWORD=).+/\1*****/;s/(SECRET_KEY=).+/\1*****/'"$APP_DIR/.env"||warn "Not found";;0)break;;esac;pause;done;}
+echo -e "  ${CYAN}1${NC})✏️.env  ${CYAN}2${NC})✏️Traefik  ${CYAN}3${NC})📋Show .env(masked)"
+echo "";echo -e "  ${YELLOW}0${NC})← Quay lại\n";read -rp "${BOLD}[0-3]:${NC} " c
+case "$c" in 1)${EDITOR:-nano} "$APP_DIR/.env";;2)${EDITOR:-nano} "$TRAEFIK_DIR/traefik.yml";;3)sed -E 's/(PASSWORD=).+/\1*****/;s/(SECRET_KEY=).+/\1*****/' "$APP_DIR/.env"||warn "Not found";;0)break;;esac;pause;done;}
 
-_chpw(){ title "ĐỔI PASS mon.visota.net";read -p "User(admin): " u;u="${u:-admin}";read -s -p "Pass mới: " p;echo "";[ -z "$p" ]&&return
-local h=$(htpasswd -nbB "$u" "$p" 2>/dev/null|sed 's/\$/\$\$/g');[ -z "$h" ]&&{ warn "Cần httpd-tools: dnf install -y httpd-tools";return;}
-local cm="$APP_DIR/docker/observability/docker-compose.observability.yml";[ -f "$cm" ]&&{ sed -i "s|basicauth.users=.*|basicauth.users=$h\"|" "$cm";cd "$APP_DIR/docker/observability"&&docker compose restart homepage;ok "Changed: $u";}||warn "Compose not found";}
-
-cmd_status(){ title "STATUS";info "IP:$(hostname -I 2>/dev/null|awk '{print $1}') CPU:$(nproc) RAM:$(free -h|awk '/Mem:/{print $3"/"$2}') Disk:$(df -h /|awk 'NR==2{print $3"/"$2"("$5")"}')";command -v docker&>/dev/null&&{ echo "";docker ps --format "table {{.Names}}\t{{.Status}}" 2>/dev/null;echo "";docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" 2>/dev/null;};}
-cmd_containers(){ title "CONTAINERS";docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null||warn "Docker off";}
-cmd_backup(){ check_root;title "BACKUP";mkdir -p "$BACKUP_DIR";local ts=$(date "+%Y%m%d_%H%M%S");[ -f "$APP_DIR/.env" ]&&{ source "$APP_DIR/.env";cd "$APP_DIR";info "DB...";docker compose exec -T db mysqldump -u root -p"${DB_ROOT_PASSWORD}" "${DB_NAME:-visota}" 2>/dev/null|gzip>"$BACKUP_DIR/visota_db_${ts}.sql.gz";ok "DB:$(du -h "$BACKUP_DIR/visota_db_${ts}.sql.gz"|awk '{print $1}')";docker run --rm -v visota_media_files:/data:ro -v "$BACKUP_DIR:/backup" alpine tar czf "/backup/visota_media_${ts}.tar.gz" /data 2>/dev/null;ok "Media";find "$BACKUP_DIR" -name "*.gz" -mtime +30 -delete;}||warn "Visota chưa deploy";}
-cmd_update(){ check_root;title "UPDATE";cd "$APP_DIR";info "Pull...";git pull origin main;info "Build...";docker compose up -d --build;info "Migrate...";docker compose exec -T web python manage.py migrate --noinput;info "Static(WhiteNoise)...";docker compose exec -T web python manage.py collectstatic --noinput;info "Seed...";docker compose exec -T web python manage.py seed_permissions 2>/dev/null||true;ok "Updated";}
-cmd_security(){ title "AUDIT";local n=0;systemctl is-active --quiet firewalld 2>/dev/null&&ok "Firewalld"||{ warn "⚠Firewalld";((n++));};docker ps --format '{{.Names}}' 2>/dev/null|grep -q crowdsec&&ok "CrowdSec"||{ warn "⚠CrowdSec";((n++));};systemctl is-active --quiet dnf-automatic.timer 2>/dev/null&&ok "Auto-patch"||{ warn "⚠Auto-patch";((n++));};local d=$(df /|awk 'NR==2{gsub(/%/,"");print $5}');[ "$d" -gt 85 ]&&{ err "🚨Disk $d%";((n++));}||ok "Disk:$d%";echo "";[ "$n" -eq 0 ]&&ok "✓OK"||warn "$n vấn đề";}
-cmd_cleanup(){ check_root;title "CLEANUP";docker image prune -f 2>/dev/null;docker volume prune -f 2>/dev/null;docker container prune -f 2>/dev/null;docker builder prune -f 2>/dev/null;journalctl --vacuum-time=7d 2>/dev/null||true;ok "Done";}
+cmd_status(){ title "STATUS";info "IP:$(hostname -I 2>/dev/null|awk '{print $1}') CPU:$(nproc) RAM:$(free -h|awk '/Mem:/{print $3"/"$2}') Disk:$(df -h /|awk 'NR==2{print $3"/"$2"("$5")"}')";command -v podman&>/dev/null&&{ echo "";podman ps --format "table {{.Names}}\t{{.Status}}" 2>/dev/null;echo "";podman stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" 2>/dev/null;};}
+cmd_containers(){ title "CONTAINERS";podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null||warn "Podman off";}
+cmd_backup(){ check_root;title "BACKUP";mkdir -p "$BACKUP_DIR";local ts=$(date "+%Y%m%d_%H%M%S");[ -f "$APP_DIR/.env" ]&&{ source "$APP_DIR/.env";cd "$APP_DIR";info "DB...";dk exec -T db mysqldump -u root -p"${DB_ROOT_PASSWORD}" "${DB_NAME:-visota}" 2>/dev/null|gzip>"$BACKUP_DIR/visota_db_${ts}.sql.gz";ok "DB:$(du -h "$BACKUP_DIR/visota_db_${ts}.sql.gz"|awk '{print $1}')";podman run --rm -v visota_media_files:/data:ro -v "$BACKUP_DIR:/backup" alpine tar czf "/backup/visota_media_${ts}.tar.gz" /data 2>/dev/null;ok "Media";find "$BACKUP_DIR" -name "*.gz" -mtime +30 -delete;}||warn "Visota chưa deploy";}
+cmd_update(){ check_root;title "UPDATE";cd "$APP_DIR";info "Pull...";git pull origin main;info "Build...";dk up -d --build;info "Migrate...";dk exec -T web python manage.py migrate --noinput;info "Static(WhiteNoise)...";dk exec -T web python manage.py collectstatic --noinput;info "Seed...";dk exec -T web python manage.py seed_permissions 2>/dev/null||true;ok "Updated";}
+cmd_security(){ title "AUDIT";local n=0;systemctl is-active --quiet firewalld 2>/dev/null&&ok "Firewalld"||{ warn "⚠Firewalld";((n++));};podman ps --format '{{.Names}}' 2>/dev/null|grep -q crowdsec&&ok "CrowdSec"||{ warn "⚠CrowdSec";((n++));};systemctl is-active --quiet dnf-automatic.timer 2>/dev/null&&ok "Auto-patch"||{ warn "⚠Auto-patch";((n++));};local d=$(df /|awk 'NR==2{gsub(/%/,"");print $5}');[ "$d" -gt 85 ]&&{ err "🚨Disk $d%";((n++));}||ok "Disk:$d%";echo "";[ "$n" -eq 0 ]&&ok "✓OK"||warn "$n vấn đề";}
+cmd_cleanup(){ check_root;title "CLEANUP";podman image prune -f 2>/dev/null;podman volume prune -f 2>/dev/null;podman container prune -f 2>/dev/null;journalctl --vacuum-time=7d 2>/dev/null||true;ok "Done";}
 
 _wt(){ local e="$1";cat>/opt/traefik/docker-compose.yml<<'EOF'
 services:
@@ -122,7 +115,7 @@ services:
     container_name: traefik
     restart: unless-stopped
     ports: ["80:80","443:443","8080:8080"]
-    volumes: [/var/run/docker.sock:/var/run/docker.sock:ro,./letsencrypt:/letsencrypt,./traefik.yml:/etc/traefik/traefik.yml:ro]
+    volumes: [/var/run/podman/podman.sock:/var/run/docker.sock:ro,./letsencrypt:/letsencrypt,./traefik.yml:/etc/traefik/traefik.yml:ro]
     networks: [web]
 networks: {web: {external: true}}
 EOF
@@ -141,7 +134,7 @@ TEOF
 _dv(){ local d="$1";title "DEPLOY VISOTA($d)";mkdir -p "$APP_DIR";cd "$APP_DIR";[ -d .git ]&&{ info "Update...";git pull origin main;}||{ info "Clone...";git clone https://github.com/pkm2025/visota.git .;}
 [ ! -f ".env" ]&&{ info "Gen .env...";local s dp ap;s=$(openssl rand -hex 32);dp=$(openssl rand -hex 16);ap=$(openssl rand -base64 12)
 printf 'DJANGO_SETTINGS_MODULE=config.settings.prod\nSECRET_KEY=%s\nDB_ROOT_PASSWORD=%s\nDB_NAME=visota\nDB_USER=visota\nDB_PASSWORD=%s\nSUPERUSER_EMAIL=admin@%s\nSUPERUSER_PASSWORD=%s\nALLOWED_HOSTS=%s,www.%s,localhost\nGUNICORN_WORKERS=4\n' "$s" "$dp" "$dp" "$d" "$ap" "$d" "$d">.env
-echo "";echo -e "${GREEN}${BOLD}═══ LOGIN ═══${NC}";echo -e "  URL:${CYAN}https://$d/${NC}  Admin:${CYAN}admin${NC}  Pass:${YELLOW}$ap${NC}";echo -e "${RED}Lưu lại!${NC}";echo "";};_wvc "$d";info "Build(3-5m)...";docker compose up -d --build;ok "https://$d/";}
+echo "";echo -e "${GREEN}${BOLD}═══ LOGIN ═══${NC}";echo -e "  URL:${CYAN}https://$d/${NC}  Admin:${CYAN}admin${NC}  Pass:${YELLOW}$ap${NC}";echo -e "${RED}Lưu lại!${NC}";echo "";};_wvc "$d";info "Build(3-5m)...";dk up -d --build;ok "https://$d/";}
 
 _wvc(){ local d="$1";cat>"$APP_DIR/docker-compose.yml"<<VEOF
 services:
@@ -150,7 +143,7 @@ services:
     container_name: visota-web
     restart: unless-stopped
     env_file: .env
-    environment: {DJANGO_SETTINGS_MODULE: config.settings.prod, DB_HOST: db, DB_PORT: 3306}
+    environment: {DJANGO_SETTINGS_MODULE: config.settings.prod, DB_HOST: db, DB_PORT: 3306, VISOTA_ROLE: web}
     volumes: [static_files:/app/staticfiles, media_files:/app/media]
     depends_on: {db: {condition: service_healthy}}
     labels:
@@ -166,7 +159,7 @@ services:
     restart: unless-stopped
     command: python manage.py qcluster
     env_file: .env
-    environment: {DJANGO_SETTINGS_MODULE: config.settings.prod, DB_HOST: db, DB_PORT: 3306}
+    environment: {DJANGO_SETTINGS_MODULE: config.settings.prod, DB_HOST: db, DB_PORT: 3306, VISOTA_ROLE: worker}
     volumes: [media_files:/app/media]
     depends_on: {db: {condition: service_healthy}}
     networks: [visota-net]
@@ -183,22 +176,13 @@ networks: {web: {external: true}, visota-net: {driver: bridge}}
 VEOF
 }
 
-_dp(){ local d="$1";title "PORTAINER($d)";mkdir -p /opt/portainer;cd /opt/portainer
-cat>docker-compose.yml<<PEOF
-services:
-  portainer: {image: portainer/portainer-ce:latest, container_name: portainer, restart: unless-stopped, volumes: [/var/run/docker.sock:/var/run/docker.sock, portainer_data:/data], labels: ["traefik.enable=true","traefik.http.routers.portainer.rule=Host(\`$d\`)","traefik.http.routers.portainer.entrypoints=websecure","traefik.http.routers.portainer.tls.certresolver=letsencrypt","traefik.http.services.portainer.loadbalancer.server.port=9000"], networks: [web]}
-volumes: {portainer_data: }
-networks: {web: {external: true}}
-PEOF
-docker compose up -d;ok "https://$d/";}
-
 _dm(){ local d="$1";title "METABASE($d)";mkdir -p /opt/metabase;cd /opt/metabase
 cat>docker-compose.yml<<'MEOF'
 services:
   metabase: {image: metabase/metabase:latest, container_name: metabase, restart: unless-stopped, labels: ["traefik.enable=true","traefik.http.routers.metabase.rule=Host(`DOMAIN`)","traefik.http.routers.metabase.entrypoints=websecure","traefik.http.routers.metabase.tls.certresolver=letsencrypt","traefik.http.services.metabase.loadbalancer.server.port=3000"], networks: [web]}
 networks: {web: {external: true}}
 MEOF
-sed -i "s|DOMAIN|$d|g" docker-compose.yml;docker compose up -d;ok "https://$d/";}
+sed -i "s|DOMAIN|$d|g" docker-compose.yml;dk up -d;ok "https://$d/";}
 
 _dn(){ local d="$1";title "n8n($d)";mkdir -p /opt/n8n;cd /opt/n8n
 cat>docker-compose.yml<<'NEOF'
@@ -207,17 +191,17 @@ services:
 volumes: {n8n_data: }
 networks: {web: {external: true}}
 NEOF
-sed -i "s|DOMAIN|$d|g" docker-compose.yml;docker compose up -d;ok "https://$d/";}
+sed -i "s|DOMAIN|$d|g" docker-compose.yml;dk up -d;ok "https://$d/";}
 
-_fi(){ local e="$1";show_header;title "INSTALL";dnf update -y;dnf remove -y podman buildah runc 2>/dev/null||true;dnf install -y dnf-utils;dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo;dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin;systemctl enable --now docker;systemctl enable --now firewalld;firewall-cmd --permanent --add-service={ssh,http,https};firewall-cmd --reload;docker network create web 2>/dev/null||true;mkdir -p /opt/traefik/letsencrypt;_wt "$e";cd /opt/traefik&&docker compose up -d;curl -s https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.rpm.sh|bash 2>/dev/null||true;dnf install -y crowdsec-firewall-bouncer dnf-automatic 2>/dev/null||true;systemctl enable --now dnf-automatic.timer 2>/dev/null||true;usermod -aG docker "${SUDO_USER:-$USER}";ok "Done";}
+_fi(){ local e="$1";show_header;title "INSTALL";dnf update -y;dnf install -y podman-compose 2>/dev/null||pip3 install podman-compose 2>/dev/null||true;dnf install -y cockpit cockpit-podman 2>/dev/null||true;systemctl enable --now cockpit.socket;systemctl enable --now firewalld;firewall-cmd --permanent --add-service={ssh,http,https,cockpit};firewall-cmd --reload;podman network create web 2>/dev/null||true;mkdir -p /opt/traefik/letsencrypt;_wt "$e";cd /opt/traefik&&dk up -d;curl -s https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.rpm.sh|bash 2>/dev/null||true;dnf install -y crowdsec-firewall-bouncer dnf-automatic 2>/dev/null||true;systemctl enable --now dnf-automatic.timer 2>/dev/null||true;ok "Done";}
 
 cmd_cli(){ case "${1:-help}" in
 install)check_root;_fi "${2:-admin@visota.net}";;
-deploy)check_root;shift;case "${1:-}" in visota)_dv "${2:-visota.net}";;observability)_dobs;;portainer)_dp "${2:-docker.visota.net}";;metabase)_dm "${2:-analytics.visota.net}";;n8n)_dn "${2:-flow.visota.net}";;*)err "Apps: visota/observability/portainer/metabase/n8n";;esac;;
+deploy)check_root;shift;case "${1:-}" in visota)_dv "${2:-visota.net}";;metabase)_dm "${2:-analytics.visota.net}";;n8n)_dn "${2:-flow.visota.net}";;*)err "Apps: visota/metabase/n8n";;esac;;
 update)check_root;cmd_update;;status)cmd_status;;apps|containers)cmd_containers;;
-logs)local s="${2:-web}";case "$s" in traefik)cd "$TRAEFIK_DIR" 2>/dev/null&&docker compose logs -f --tail=50 traefik;;crowdsec)docker logs -f --tail=50 crowdsec 2>/dev/null;;*)cd "$APP_DIR" 2>/dev/null&&docker compose logs -f --tail=50 "$s";;esac;;
-restart)check_root;cd "$APP_DIR" 2>/dev/null&&docker compose restart "${2:-}";;backup)check_root;cmd_backup;;shell)cd "$APP_DIR" 2>/dev/null&&docker compose exec "${2:-web}" bash;;security)cmd_security;;cleanup)check_root;cmd_cleanup;;
-help|--help|-h)echo "visota-ctl v3 — Menu: sudo visota-ctl | CLI: sudo visota-ctl <cmd>";echo "Commands: install deploy update status containers logs restart backup shell security cleanup";;
+logs)local s="${2:-web}";case "$s" in traefik)cd "$TRAEFIK_DIR" 2>/dev/null&&dk logs -f --tail=50 traefik;;crowdsec)podman logs -f --tail=50 crowdsec 2>/dev/null;;*)cd "$APP_DIR" 2>/dev/null&&dk logs -f --tail=50 "$s";;esac;;
+restart)check_root;cd "$APP_DIR" 2>/dev/null&&dk restart "${2:-}";;backup)check_root;cmd_backup;;shell)cd "$APP_DIR" 2>/dev/null&&dk exec "${2:-web}" bash;;security)cmd_security;;cleanup)check_root;cmd_cleanup;;
+help|--help|-h)echo "visota-ctl v4 — Menu: sudo visota-ctl | CLI: sudo visota-ctl <cmd>";echo "Commands: install deploy update status containers logs restart backup shell security cleanup";;
 *)err "Unknown: $1";exit 1;;esac;}
 
 [ $# -gt 0 ] && cmd_cli "$@" || menu_main
