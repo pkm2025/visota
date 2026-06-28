@@ -162,7 +162,7 @@ services:
     depends_on: {db: {condition: service_healthy}}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.visota.rule=Host(\`$d\`,\`www.$d\`)"
+      - "traefik.http.routers.visota.rule=Host(\`$d\`) || Host(\`www.$d\`)"
       - "traefik.http.routers.visota.entrypoints=websecure"
       - "traefik.http.routers.visota.tls.certresolver=letsencrypt"
       - "traefik.http.services.visota.loadbalancer.server.port=8900"
