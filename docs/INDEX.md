@@ -64,6 +64,7 @@ Tài liệu cho người dùng cuối — kế toán viên, sales, purchaser, HR
 | R5 | [Quy trình phát hành HĐĐT](runbook/05-einvoice-flow.md) | Hàng ngày |
 | R6 | [Tính lương & nộp BHXH](runbook/06-payroll-bhxh-flow.md) | Hàng tháng |
 | R7 | [Khôi phục sự cố](runbook/07-troubleshooting.md) | Khi cần |
+| R8 | [Deploy lên VPS AlmaLinux 10](runbook/deploy-vps.md) | Lần đầu + khi đổi server |
 
 ### 🔄 Workflow nghiệp vụ
 
