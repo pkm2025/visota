@@ -116,6 +116,7 @@ services:
     image: docker.io/library/traefik:v3.2
     container_name: traefik
     restart: unless-stopped
+    userns_mode: keep-id
     ports: ["80:80","443:443","8080:8080"]
     volumes:
       - /var/run/podman/podman.sock:/var/run/docker.sock:z
