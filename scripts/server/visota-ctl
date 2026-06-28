@@ -113,7 +113,7 @@ cmd_cleanup(){ check_root;title "CLEANUP";podman image prune -f 2>/dev/null;podm
 _wt(){ local e="$1";cat>/opt/traefik/docker-compose.yml<<'EOF'
 services:
   traefik:
-    image: traefik:v3.2
+    image: docker.io/library/traefik:v3.2
     container_name: traefik
     restart: unless-stopped
     ports: ["80:80","443:443","8080:8080"]
@@ -167,7 +167,7 @@ services:
     healthcheck: {test: ["NONE"]}
     networks: [visota-net]
   db:
-    image: mariadb:11.4
+    image: docker.io/library/mariadb:11.4
     container_name: visota-db
     restart: unless-stopped
     environment: {MYSQL_ROOT_PASSWORD: "\${DB_ROOT_PASSWORD}", MYSQL_DATABASE: "\${DB_NAME:-visota}", MYSQL_USER: "\${DB_USER:-visota}", MYSQL_PASSWORD: "\${DB_PASSWORD}"}
@@ -182,7 +182,7 @@ VEOF
 _dm(){ local d="$1";title "METABASE($d)";mkdir -p /opt/metabase;cd /opt/metabase
 cat>docker-compose.yml<<'MEOF'
 services:
-  metabase: {image: metabase/metabase:latest, container_name: metabase, restart: unless-stopped, labels: ["traefik.enable=true","traefik.http.routers.metabase.rule=Host(`DOMAIN`)","traefik.http.routers.metabase.entrypoints=websecure","traefik.http.routers.metabase.tls.certresolver=letsencrypt","traefik.http.services.metabase.loadbalancer.server.port=3000"], networks: [web]}
+  metabase: {image: docker.io/metabase/metabase:latest, container_name: metabase, restart: unless-stopped, labels: ["traefik.enable=true","traefik.http.routers.metabase.rule=Host(`DOMAIN`)","traefik.http.routers.metabase.entrypoints=websecure","traefik.http.routers.metabase.tls.certresolver=letsencrypt","traefik.http.services.metabase.loadbalancer.server.port=3000"], networks: [web]}
 networks: {web: {external: true}}
 MEOF
 sed -i "s|DOMAIN|$d|g" docker-compose.yml;dk up -d;ok "https://$d/";}
@@ -190,7 +190,7 @@ sed -i "s|DOMAIN|$d|g" docker-compose.yml;dk up -d;ok "https://$d/";}
 _dn(){ local d="$1";title "n8n($d)";mkdir -p /opt/n8n;cd /opt/n8n
 cat>docker-compose.yml<<'NEOF'
 services:
-  n8n: {image: n8nio/n8n:latest, container_name: n8n, restart: unless-stopped, environment: {N8N_HOST: DOMAIN, N8N_PROTOCOL: https, WEBHOOK_URL: "https://DOMAIN/", GENERIC_TIMEZONE: Asia/Ho_Chi_Minh}, volumes: [n8n_data:/home/node/.n8n], labels: ["traefik.enable=true","traefik.http.routers.n8n.rule=Host(`DOMAIN`)","traefik.http.routers.n8n.entrypoints=websecure","traefik.http.routers.n8n.tls.certresolver=letsencrypt","traefik.http.services.n8n.loadbalancer.server.port=5678"], networks: [web]}
+  n8n: {image: docker.io/n8nio/n8n:latest, container_name: n8n, restart: unless-stopped, environment: {N8N_HOST: DOMAIN, N8N_PROTOCOL: https, WEBHOOK_URL: "https://DOMAIN/", GENERIC_TIMEZONE: Asia/Ho_Chi_Minh}, volumes: [n8n_data:/home/node/.n8n], labels: ["traefik.enable=true","traefik.http.routers.n8n.rule=Host(`DOMAIN`)","traefik.http.routers.n8n.entrypoints=websecure","traefik.http.routers.n8n.tls.certresolver=letsencrypt","traefik.http.services.n8n.loadbalancer.server.port=5678"], networks: [web]}
 volumes: {n8n_data: }
 networks: {web: {external: true}}
 NEOF
@@ -246,7 +246,7 @@ case "$c" in
 6)title "CREDENTIALS";local ak sk;ak=$(grep MINIO_ROOT_USER /opt/minio/docker-compose.yml 2>/dev/null|head -1|sed 's/.*: "//;s/"//');sk=$(grep MINIO_ROOT_PASSWORD /opt/minio/docker-compose.yml 2>/dev/null|head -1|sed 's/.*: "//;s/"//');[ -n "$ak" ]&&{ echo "  Access Key: $ak";echo "  Secret Key: $sk";}||warn "MinIO chưa deploy";pause;;
 0)break;;esac;done;}
 
-_fi(){ local e="$1";show_header;title "INSTALL";dnf update -y;dnf install -y git podman-compose 2>/dev/null||pip3 install podman-compose 2>/dev/null||true;dnf install -y cockpit cockpit-podman 2>/dev/null||true;systemctl enable --now cockpit.socket;systemctl enable --now firewalld;firewall-cmd --permanent --add-service={ssh,http,https,cockpit};firewall-cmd --reload;podman network create web 2>/dev/null||true;mkdir -p /opt/traefik/letsencrypt;_wt "$e";cd /opt/traefik&&dk up -d;curl -s https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.rpm.sh|bash 2>/dev/null||true;dnf install -y crowdsec-firewall-bouncer dnf-automatic 2>/dev/null||true;systemctl enable --now dnf-automatic.timer 2>/dev/null||true;_git_setup;ok "Done";}
+_fi(){ local e="$1";show_header;title "INSTALL";dnf update -y;dnf install -y git;dnf install -y podman-compose 2>/dev/null||pip3 install podman-compose 2>/dev/null||true;dnf install -y cockpit cockpit-podman 2>/dev/null||true;systemctl enable --now cockpit.socket;systemctl enable --now firewalld;firewall-cmd --permanent --add-service={ssh,http,https,cockpit};firewall-cmd --reload;podman network create web 2>/dev/null||true;mkdir -p /opt/traefik/letsencrypt;_wt "$e";cd /opt/traefik&&dk up -d;curl -s https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.rpm.sh|bash 2>/dev/null||true;dnf install -y crowdsec-firewall-bouncer dnf-automatic 2>/dev/null||true;systemctl enable --now dnf-automatic.timer 2>/dev/null||true;_git_setup;ok "Done";}
 
 _git_setup(){ title "GIT SSH SETUP (private repo)"
 mkdir -p /root/.ssh && chmod 700 /root/.ssh
