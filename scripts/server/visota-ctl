@@ -215,6 +215,7 @@ services:
     volumes: [minio_data:/data]
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=web"
       - "traefik.http.routers.minio.rule=Host(\`$d\`)"
       - "traefik.http.routers.minio.entrypoints=websecure"
       - "traefik.http.routers.minio.tls.certresolver=letsencrypt"
