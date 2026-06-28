@@ -54,4 +54,12 @@ else:
 fi
 
 echo "=== Starting: $* ==="
+# Validate gunicorn env vars (defense against tampered .env)
+for v in GUNICORN_WORKERS GUNICORN_THREADS GUNICORN_TIMEOUT; do
+  val="${!v:-}"
+  if [ -n "$val" ] && ! [[ "$val" =~ ^[0-9]+$ ]]; then
+    echo "FATAL: $v='$val' is not numeric. Refusing to start." >&2
+    exit 1
+  fi
+done
 exec "$@"
