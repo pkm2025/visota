@@ -117,6 +117,7 @@ services:
     container_name: traefik
     restart: unless-stopped
     userns_mode: host
+    privileged: true
     ports: ["80:80","443:443","8080:8080"]
     volumes:
       - /var/run/podman/podman.sock:/var/run/docker.sock:z
