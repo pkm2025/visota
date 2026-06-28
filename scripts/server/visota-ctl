@@ -250,9 +250,18 @@ _fi(){ local e="$1";show_header;title "INSTALL";dnf update -y;dnf install -y git
 
 _git_setup(){ title "GIT SSH SETUP (private repo)"
 mkdir -p /root/.ssh && chmod 700 /root/.ssh
+# ponytail: passphrase-less — server automation (cron backup, auto-update) needs no-prompt key.
+# Mitigations: chmod 600 default, single-repo scope (deploy key), VPS disk encryption, exclude from backup.
 [ -f /root/.ssh/id_ed25519 ]||ssh-keygen -t ed25519 -N "" -C "visota-deploy@$(hostname)" -f /root/.ssh/id_ed25519
+chmod 600 /root/.ssh/id_ed25519
+# Pin GitHub's published ed25519 host key — verified against GitHub's SHA256 fingerprint
+# +DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU
+# (https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints)
+# If GitHub rotates, deploy fails loudly here instead of accepting a MITM'd key.
 ssh-keygen -R github.com 2>/dev/null||true
-ssh-keyscan -t ed25519 github.com >>/root/.ssh/known_hosts 2>/dev/null
+cat >>/root/.ssh/known_hosts <<'GK'
+github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+GK
 chmod 600 /root/.ssh/known_hosts
 echo -e "${BOLD}═══ DEPLOY KEY — thêm vào GitHub ═══${NC}"
 echo -e "${DIM}Repo → Settings → Deploy keys → Add deploy key${NC}"
