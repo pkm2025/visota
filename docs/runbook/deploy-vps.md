@@ -140,11 +140,34 @@ dnf update -y
 # chạy 2-5 phút lần đầu
 ```
 
-### 3.3. Tải script visota-ctl
+### 3.3. Copy script visota-ctl lên VPS
+
+Repo private nên không curl trực tiếp được. Có 2 cách:
+
+**Cách A — scp từ máy bạn** (đơn giản nhất)
+
+Trên máy dev (đã clone repo):
 
 ```bash
-curl -fsSL -o /usr/local/bin/visota-ctl \
-  https://raw.githubusercontent.com/pkm2025/visota/main/scripts/server/visota-ctl
+scp /Users/bạn/path/to/visota/scripts/server/visota-ctl \
+    root@123.45.67.89:/usr/local/bin/visota-ctl
+```
+
+Rồi trên VPS:
+
+```bash
+chmod +x /usr/local/bin/visota-ctl
+```
+
+**Cách B — copy-paste qua SSH session**
+
+Nếu không có repo trên máy, mở file trên GitHub (đã login), copy toàn bộ nội dung, rồi:
+
+```bash
+ssh root@123.45.67.89
+cat > /usr/local/bin/visota-ctl <<'VISOTA-CTL'
+# paste nội dung script vào đây
+VISOTA-CTL
 chmod +x /usr/local/bin/visota-ctl
 ```
 
@@ -154,7 +177,7 @@ Test:
 visota-ctl help
 # in ra:
 # visota-ctl v4 — Menu: sudo visota-ctl | CLI: sudo visota-ctl <cmd>
-# Commands: install deploy update status containers logs restart backup shell security cleanup
+# Commands: install deploy update status containers logs restart backup shell security cleanup minio
 ```
 
 ### 3.4. Chạy install — cài Podman, Traefik, Cockpit, CrowdSec
@@ -361,17 +384,19 @@ Mỗi app một domain riêng, Traefik route tự động.
 ## TL;DR — cheat sheet
 
 ```bash
+# 0. Trên máy bạn — scp script lên VPS (repo private, không curl được)
+scp scripts/server/visota-ctl root@IP_VPS:/usr/local/bin/
+
 # 1. SSH vào VPS
 ssh root@IP_VPS
-
-# 2. Update + tải script
-dnf update -y
-curl -fsSL -o /usr/local/bin/visota-ctl \
-  https://raw.githubusercontent.com/pkm2025/visota/main/scripts/server/visota-ctl
 chmod +x /usr/local/bin/visota-ctl
 
-# 3. Cài deps (Podman/Traefik/Cockpit/CrowdSec)
+# 2. Update OS
+dnf update -y
+
+# 3. Cài deps (Podman/Traefik/Cockpit/CrowdSec/Git/SSH key)
 visota-ctl install
+# → in ra SSH deploy key, dán vào github.com/pkm2025/visota/settings/keys
 
 # 4. Deploy (DNS phải đã trỏ domain)
 visota-ctl deploy visota visota.net
