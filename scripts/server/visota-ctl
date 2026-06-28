@@ -117,7 +117,7 @@ services:
     container_name: traefik
     restart: unless-stopped
     ports: ["80:80","443:443","8080:8080"]
-    volumes: [/var/run/podman/podman.sock:/var/run/docker.sock:ro,./letsencrypt:/letsencrypt,./traefik.yml:/etc/traefik/traefik.yml:ro]
+    volumes: [/var/run/podman/podman.sock:/var/run/docker.sock:z,./letsencrypt:/letsencrypt:z,./traefik.yml:/etc/traefik/traefik.yml:ro:z]
     networks: [web]
 networks: {web: {external: true}}
 EOF
