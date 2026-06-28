@@ -30,8 +30,10 @@ COPY . .
 # Ensure entrypoint is executable
 RUN chmod +x docker/entrypoint.sh
 
-# Create non-root user
-RUN useradd -m -u 1000 visota && chown -R visota:visota /app
+# Create non-root user + ensure volume mount points are writable
+RUN useradd -m -u 1000 visota \
+    && mkdir -p /app/staticfiles /app/media \
+    && chown -R visota:visota /app
 USER visota
 
 EXPOSE 8900

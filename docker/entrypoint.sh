@@ -24,6 +24,7 @@ echo "✓ Database ready"
 # Migrate
 echo "Running migrations..."
 python manage.py migrate --noinput
+python manage.py createcachetable 2>/dev/null || true
 
 # Seed
 echo "Seeding permissions..."

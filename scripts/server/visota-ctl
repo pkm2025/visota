@@ -162,6 +162,7 @@ services:
     environment: {DJANGO_SETTINGS_MODULE: config.settings.prod, DB_HOST: db, DB_PORT: 3306, VISOTA_ROLE: worker}
     volumes: [media_files:/app/media]
     depends_on: {db: {condition: service_healthy}}
+    healthcheck: {test: ["NONE"]}
     networks: [visota-net]
   db:
     image: mariadb:11.4
