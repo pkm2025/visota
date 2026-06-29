@@ -84,3 +84,42 @@ def test_generate_pdf_returns_bytes_starting_with_pdf_magic(einvoice_for_pdf):
     assert isinstance(pdf_bytes, bytes)
     assert len(pdf_bytes) > 1000
     assert pdf_bytes.startswith(b"%PDF")
+
+
+def test_get_or_generate_caches_to_pdf_file(einvoice_for_pdf):
+    """First call generates + saves to pdf_file."""
+    service = EInvoicePDFService()
+    assert not einvoice_for_pdf.pdf_file  # empty initially
+
+    pdf_bytes = service.get_or_generate(einvoice_for_pdf)
+
+    assert isinstance(pdf_bytes, bytes)
+    einvoice_for_pdf.refresh_from_db()
+    assert einvoice_for_pdf.pdf_file.name  # saved
+    assert einvoice_for_pdf.pdf_file.size > 1000
+
+
+def test_get_or_generate_returns_cache_when_exists(einvoice_for_pdf):
+    """If pdf_file already populated, return cached bytes without regenerating."""
+    from django.core.files.base import ContentFile
+    einvoice_for_pdf.pdf_file.save(
+        "cached.pdf", ContentFile(b"%PDF-1.4 cached content"), save=True
+    )
+    einvoice_for_pdf.refresh_from_db()
+
+    pdf_bytes = EInvoicePDFService().get_or_generate(einvoice_for_pdf)
+
+    assert pdf_bytes == b"%PDF-1.4 cached content"
+
+
+def test_get_or_generate_force_regenerates(einvoice_for_pdf):
+    """force=True regenerates even if cache exists."""
+    from django.core.files.base import ContentFile
+    einvoice_for_pdf.pdf_file.save(
+        "cached.pdf", ContentFile(b"%PDF-1.4 old"), save=True
+    )
+
+    pdf_bytes = EInvoicePDFService().get_or_generate(einvoice_for_pdf, force=True)
+
+    assert pdf_bytes != b"%PDF-1.4 old"
+    assert pdf_bytes.startswith(b"%PDF")

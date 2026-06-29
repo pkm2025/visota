@@ -60,3 +60,26 @@ class EInvoicePDFService:
             "amount_in_words": amount_text,
             "today": timezone.now().date(),
         }
+
+    def get_or_generate(self, einvoice: EInvoice, force: bool = False) -> bytes:
+        """Return cached pdf_file if exists, else generate + cache.
+
+        Pass force=True to regenerate.
+        """
+        if not force and einvoice.pdf_file:
+            try:
+                return einvoice.pdf_file.read()
+            except Exception:
+                # File missing from storage; fall through to regenerate
+                pass
+        pdf_bytes = self.generate_pdf(einvoice)
+        self._save_to_einvoice(einvoice, pdf_bytes)
+        return pdf_bytes
+
+    def _save_to_einvoice(self, einvoice: EInvoice, pdf_bytes: bytes) -> None:
+        """Save bytes to einvoice.pdf_file with deterministic filename."""
+        identifier = einvoice.invoice_no or f"pk-{einvoice.pk}"
+        safe_name = identifier.replace("/", "-").replace("\\", "-")
+        filename = f"einvoice_{safe_name}.pdf"
+        einvoice.pdf_file.save(filename, ContentFile(pdf_bytes), save=True)
+
