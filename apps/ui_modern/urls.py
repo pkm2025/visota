@@ -21,6 +21,7 @@ from .views import (
     EInvoicePublishView,
     EInvoiceReportView,
     EInvoiceXmlDownloadView,
+    EinvoicePDFView,
     # Banking + guarantees + loans (P1)
     BankAccountListView,
     BankReconciliationRunView,
@@ -287,6 +288,11 @@ urlpatterns = [
         "einvoices/<int:pk>/download/json/",
         login_required(EInvoiceJsonDownloadView.as_view()),
         name="einvoice_download_json",
+    ),
+    path(
+        "einvoices/<int:pk>/download/pdf/",
+        login_required(EinvoicePDFView.as_view()),
+        name="einvoice_download_pdf",
     ),
     path(
         "einvoices/reports/generate/",

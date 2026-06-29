@@ -11,6 +11,7 @@ from .attachment_views import (
     AttachmentDownloadView,
     AttachmentUploadView,
 )
+from .einvoice_pdf_view import EinvoicePDFView
 from .auth_views import PMKetoanLoginView, PMKetoanLogoutView
 from .company_views import CompanyProfileView
 from apps.public.views import ContactListAdminView
@@ -217,6 +218,7 @@ __all__ = [
     "EInvoiceXmlDownloadView",
     "EInvoiceJsonDownloadView",
     "EInvoiceReportView",
+    "EinvoicePDFView",
     "BankAccountListView",
     "BankStatementImportListView",
     "BankStatementUploadView",

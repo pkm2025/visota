@@ -123,3 +123,81 @@ def test_get_or_generate_force_regenerates(einvoice_for_pdf):
 
     assert pdf_bytes != b"%PDF-1.4 old"
     assert pdf_bytes.startswith(b"%PDF")
+
+
+# --- View tests (Task 4) ---
+# ponytail: brief said `request.user.company` but User model has no company FK;
+# codebase uses session-driven `request.current_company`. Test sets
+# session["current_company_id"] to drive scoping; view mirrors EInvoiceListView.
+
+from django.test import Client
+from django.urls import reverse
+
+
+@pytest.fixture
+def admin_user(db, company):
+    """Superuser whose default company matches the einvoice's company."""
+    User = get_user_model()
+    u = User.objects.create_superuser(
+        username="pdf_admin", password="Secret123!", email="p@test.local"
+    )
+    return u
+
+
+@pytest.fixture
+def auth_client(admin_user, company):
+    c = Client()
+    c.force_login(admin_user)
+    # Bind the session's current company to the einvoice's company
+    session = c.session
+    session["current_company_id"] = company.id
+    session.save()
+    return c
+
+
+def test_pdf_view_returns_pdf_content_type(auth_client, einvoice_for_pdf):
+    """GET /pdf/ returns 200 + application/pdf."""
+    url = reverse("ui_modern:einvoice_download_pdf", kwargs={"pk": einvoice_for_pdf.pk})
+    response = auth_client.get(url)
+
+    assert response.status_code == 200
+    assert response["Content-Type"] == "application/pdf"
+    assert response.content.startswith(b"%PDF")
+
+
+def test_pdf_view_requires_login(einvoice_for_pdf):
+    """Anonymous user → redirect to login."""
+    url = reverse("ui_modern:einvoice_download_pdf", kwargs={"pk": einvoice_for_pdf.pk})
+    response = Client().get(url)
+    assert response.status_code in (302, 403)
+
+
+def test_pdf_view_force_query_regenerates(auth_client, einvoice_for_pdf):
+    """?force=1 regenerates."""
+    url = reverse("ui_modern:einvoice_download_pdf", kwargs={"pk": einvoice_for_pdf.pk})
+    auth_client.get(url)  # populate cache
+    response = auth_client.get(url + "?force=1")
+    assert response.status_code == 200
+    assert response.content.startswith(b"%PDF")
+
+
+def test_pdf_view_404_other_company(admin_user, einvoice_for_pdf, db):
+    """current_company pointing elsewhere → 404 (company scoping)."""
+    from apps.core.models import Company
+
+    other_company = Company.objects.create(
+        code="OTHER",
+        name="Other Co",
+        tax_code="9999999999",
+        accounting_regime="tt133",
+    )
+
+    c = Client()
+    c.force_login(admin_user)
+    session = c.session
+    session["current_company_id"] = other_company.id
+    session.save()
+
+    url = reverse("ui_modern:einvoice_download_pdf", kwargs={"pk": einvoice_for_pdf.pk})
+    response = c.get(url)
+    assert response.status_code == 404
