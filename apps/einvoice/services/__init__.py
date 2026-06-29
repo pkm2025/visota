@@ -181,6 +181,16 @@ class EInvoiceService:
             )
         except Exception:
             pass
+
+        # Auto-generate human-readable PDF for download/email (best-effort)
+        try:
+            from apps.einvoice.services.einvoice_pdf_service import EInvoicePDFService
+            EInvoicePDFService().get_or_generate(einvoice, force=True)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).warning(
+                "PDF auto-gen failed for einvoice %s", einvoice.pk, exc_info=True
+            )
         return einvoice
 
     @classmethod

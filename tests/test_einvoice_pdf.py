@@ -64,7 +64,7 @@ def einvoice_for_pdf(db, company, sales_invoice):
         pattern="1C26T",
         serial="AA/26E",
         invoice_no="AA/26E-0000001",
-        status="published",
+        status="issued",
         buyer_name=sales_invoice.customer.name,
         buyer_tax_code=sales_invoice.customer.tax_code,
         buyer_address=sales_invoice.customer.address,
@@ -201,3 +201,25 @@ def test_pdf_view_404_other_company(admin_user, einvoice_for_pdf, db):
     url = reverse("ui_modern:einvoice_download_pdf", kwargs={"pk": einvoice_for_pdf.pk})
     response = c.get(url)
     assert response.status_code == 404
+
+
+def test_publish_auto_generates_pdf(company, customer, product, sales_invoice):
+    """After EInvoiceService.publish, pdf_file should be populated (best-effort)."""
+    from apps.einvoice.services import EInvoiceService
+
+    ei = EInvoice.objects.create(
+        company=company, sales_invoice=sales_invoice,
+        pattern="1C26T", serial="AA/26E",
+        status=EInvoice.Status.DRAFT,
+        subtotal=Decimal("1000000"), vat_rate=Decimal("0.10"),
+        vat_amount=Decimal("100000"), total_amount=Decimal("1100000"),
+    )
+    assert not ei.pdf_file
+
+    EInvoiceService.publish(ei, invoice_no="AA/26E-0000002")
+    ei.refresh_from_db()
+
+    assert ei.status == EInvoice.Status.ISSUED
+    assert ei.invoice_no == "AA/26E-0000002"
+    assert ei.pdf_file.name  # auto-gen populated
+    assert ei.pdf_file.size > 1000
