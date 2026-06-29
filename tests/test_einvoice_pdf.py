@@ -223,3 +223,21 @@ def test_publish_auto_generates_pdf(company, customer, product, sales_invoice):
     assert ei.invoice_no == "AA/26E-0000002"
     assert ei.pdf_file.name  # auto-gen populated
     assert ei.pdf_file.size > 1000
+
+
+def test_pdf_view_sanitizes_filename_in_content_disposition(auth_client, einvoice_for_pdf):
+    """Header injection attempt: invoice_no with CRLF + quote must not leak into Content-Disposition."""
+    # Set invoice_no to a malicious value
+    einvoice_for_pdf.invoice_no = 'AA/26E-0001"\r\nX-Inject: yes'
+    einvoice_for_pdf.save()
+
+    url = reverse("ui_modern:einvoice_download_pdf", kwargs={"pk": einvoice_for_pdf.pk})
+    response = auth_client.get(url + "?force=1")  # force regen with new invoice_no
+
+    assert response.status_code == 200
+    cd = response["Content-Disposition"]
+    # Critical: no CRLF injection
+    assert "\r" not in cd and "\n" not in cd, f"CRLF leaked into Content-Disposition: {cd!r}"
+    # No unescaped quote that breaks out of filename="..."
+    # The outer quotes are part of the format, so check for the injection pattern specifically
+    assert "X-Inject" not in cd, f"Header injection succeeded: {cd!r}"

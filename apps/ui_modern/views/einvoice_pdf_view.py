@@ -47,9 +47,14 @@ class EinvoicePDFView(LoginRequiredMixin, View):
                 content_type="text/plain",
             )
 
-        # ponytail: strip CR/LF + path separators — header injection guard.
+        # ponytail: truncate at first CR/LF, then allowlist filename chars — header injection guard.
+        # CRLF is the real injection vector; truncate before it so the injected header token
+        # never reaches the response. Then drop quotes/separators from the surviving prefix.
+        import re
         raw = einvoice.invoice_no or str(einvoice.pk)
-        safe_invoice_no = raw.replace('"', "").replace("/", "-").replace("\\", "-").replace("\r", "").replace("\n", "")
+        raw = re.split(r"[\r\n]", raw, maxsplit=1)[0]  # drop injected payload after CRLF
+        raw = raw.replace('"', "").replace("/", "-").replace("\\", "-")
+        safe_invoice_no = re.sub(r"[^A-Za-z0-9._-]", "", raw)
         filename = f"einvoice_{safe_invoice_no}.pdf"
         response = HttpResponse(pdf_bytes, content_type="application/pdf")
         response["Content-Disposition"] = f'inline; filename="{filename}"'
