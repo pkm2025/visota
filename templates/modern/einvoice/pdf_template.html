@@ -50,10 +50,10 @@
     {% if company.phone %}<p>Điện thoại: {{ company.phone }}</p>{% endif %}
   </div>
   <div class="invoice-meta">
-    <h3>Hóa đơn đơn tử</h3>
-    <p>({{ einvoice.form_symbol }})</p>
+    <h3>Hóa đơn điện tử</h3>
+    <p>({{ einvoice.pattern }})</p>
     <table>
-      <tr><td>Ký hiệu mẫu</td><td>{{ einvoice.form_symbol }}</td></tr>
+      <tr><td>Ký hiệu mẫu</td><td>{{ einvoice.pattern }}</td></tr>
       <tr><td>Ký hiệu serial</td><td>{{ einvoice.serial }}</td></tr>
       <tr><td>Số hóa đơn</td><td><strong>{{ einvoice.invoice_no }}</strong></td></tr>
       <tr><td>Ngày lập</td><td>{{ einvoice.issue_date|date:"d/m/Y H:i" }}</td></tr>
@@ -94,7 +94,7 @@
       <td class="center">{{ line.product.unit_id|default:"" }}</td>
       <td class="num">{{ line.quantity|floatformat:0 }}</td>
       <td class="num">{{ line.unit_price|floatformat:0|intcomma }}</td>
-      <td class="num">{{ line.line_total|floatformat:0|intcomma }}</td>
+      <td class="num">{{ line.amount|floatformat:0|intcomma }}</td>
     </tr>
     {% empty %}
     <tr><td colspan="6" class="center">Không có chi tiết</td></tr>
