@@ -1,0 +1,132 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Hóa đơn điện tử {{ einvoice.invoice_no }}</title>
+<style>
+  @page { size: A4; margin: 15mm; }
+  * { font-family: 'DejaVu Sans', sans-serif; }
+  body { font-size: 11pt; color: #000; }
+  .header { display: flex; justify-content: space-between; margin-bottom: 8mm; }
+  .seller-block { width: 60%; }
+  .seller-block .logo { max-height: 20mm; max-width: 40mm; }
+  .seller-block h2 { font-size: 12pt; margin: 2mm 0 1mm; }
+  .seller-block p { margin: 0; font-size: 9pt; }
+  .invoice-meta { text-align: center; width: 40%; }
+  .invoice-meta h3 { font-size: 13pt; margin: 0 0 2mm; text-transform: uppercase; }
+  .invoice-meta table { width: 100%; font-size: 9pt; }
+  .parties { display: flex; gap: 8mm; margin-bottom: 6mm; font-size: 10pt; }
+  .parties div { flex: 1; }
+  .parties strong { font-size: 10pt; }
+  table.items { width: 100%; border-collapse: collapse; margin-bottom: 4mm; }
+  table.items th, table.items td { border: 1px solid #000; padding: 2mm 3mm; font-size: 10pt; text-align: left; }
+  table.items th { background: #f5f5f5; text-align: center; }
+  table.items td.num { text-align: right; }
+  table.items td.center { text-align: center; }
+  .totals { width: 60%; margin-left: 40%; font-size: 10pt; }
+  .totals td { padding: 1mm 3mm; }
+  .totals td:last-child { text-align: right; font-weight: bold; }
+  .totals .grand { border-top: 1px solid #000; padding-top: 2mm; font-size: 11pt; }
+  .amount-words { margin: 4mm 0; font-size: 10pt; font-style: italic; }
+  .signature-row { display: flex; justify-content: space-between; margin-top: 12mm; }
+  .signature-block { width: 35%; text-align: center; font-size: 10pt; }
+  .signature-block .label { font-weight: bold; }
+  .signature-block .name { margin-top: 18mm; font-style: italic; }
+  .signature-block .stamp { max-width: 35mm; max-height: 35mm; margin-top: -25mm; opacity: 0.9; }
+  .footer-note { margin-top: 8mm; font-size: 8pt; color: #555; text-align: center; border-top: 1px solid #ccc; padding-top: 2mm; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="seller-block">
+    {% if company.brand_logo %}
+      <img src="{{ company.brand_logo.url }}" class="logo" alt="logo">
+    {% endif %}
+    <h2>{{ company.name }}</h2>
+    <p>Địa chỉ: {{ company.address }}</p>
+    <p>MST: {{ company.tax_code }}</p>
+    {% if company.phone %}<p>Điện thoại: {{ company.phone }}</p>{% endif %}
+  </div>
+  <div class="invoice-meta">
+    <h3>Hóa đơn đơn tử</h3>
+    <p>({{ einvoice.form_symbol }})</p>
+    <table>
+      <tr><td>Ký hiệu mẫu</td><td>{{ einvoice.form_symbol }}</td></tr>
+      <tr><td>Ký hiệu serial</td><td>{{ einvoice.serial }}</td></tr>
+      <tr><td>Số hóa đơn</td><td><strong>{{ einvoice.invoice_no }}</strong></td></tr>
+      <tr><td>Ngày lập</td><td>{{ einvoice.issue_date|date:"d/m/Y H:i" }}</td></tr>
+      <tr><td>Nơi lập</td><td>{{ company.address|truncatechars:50 }}</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="parties">
+  <div>
+    <p><strong>Bên bán:</strong> {{ company.name }}</p>
+    <p>MST: {{ company.tax_code }}</p>
+    <p>Địa chỉ: {{ company.address }}</p>
+  </div>
+  <div>
+    <p><strong>Bên mua:</strong> {{ einvoice.buyer_name|default:sales_invoice.customer.name }}</p>
+    <p>MST: {{ einvoice.buyer_tax_code|default:sales_invoice.customer.tax_code }}</p>
+    <p>Địa chỉ: {{ einvoice.buyer_address|default:sales_invoice.customer.address }}</p>
+  </div>
+</div>
+
+<table class="items">
+  <thead>
+    <tr>
+      <th style="width: 8%">STT</th>
+      <th style="width: 38%">Tên hàng hóa, dịch vụ</th>
+      <th style="width: 10%">ĐVT</th>
+      <th style="width: 12%">Số lượng</th>
+      <th style="width: 16%">Đơn giá</th>
+      <th style="width: 16%">Thành tiền</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line in items %}
+    <tr>
+      <td class="center">{{ line.line_no }}</td>
+      <td>{{ line.description }}</td>
+      <td class="center">{{ line.product.unit_id|default:"" }}</td>
+      <td class="num">{{ line.quantity|floatformat:0 }}</td>
+      <td class="num">{{ line.unit_price|floatformat:0|intcomma }}</td>
+      <td class="num">{{ line.line_total|floatformat:0|intcomma }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6" class="center">Không có chi tiết</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<table class="totals">
+  <tr><td>Cộng tiền hàng:</td><td>{{ subtotal|floatformat:0|intcomma }}</td></tr>
+  <tr><td>Thuế GTGT ({{ vat_rate|floatformat:0 }}%):</td><td>{{ vat_amount|floatformat:0|intcomma }}</td></tr>
+  <tr class="grand"><td>Tổng cộng thanh toán:</td><td>{{ total|floatformat:0|intcomma }}</td></tr>
+</table>
+
+<p class="amount-words"><em>Số tiền viết bằng chữ: {{ amount_in_words }}</em></p>
+
+<div class="signature-row">
+  <div class="signature-block">
+    <div class="label">Người mua hàng</div>
+    <p class="name">(Ký, ghi rõ họ tên)</p>
+  </div>
+  <div class="signature-block">
+    <div class="label">Người bán hàng</div>
+    <p class="name">{{ company.legal_representative }}</p>
+    {% if company.company_stamp %}
+      <img src="{{ company.company_stamp.url }}" class="stamp" alt="stamp">
+    {% endif %}
+  </div>
+</div>
+
+<div class="footer-note">
+  Hóa đơn điện tử lập bằng phương tiện điện tử — giá trị pháp lý theo TT78/2021/TT-BTC.
+</div>
+
+</body>
+</html>
