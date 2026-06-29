@@ -23,6 +23,8 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # WhiteNoise serves static files directly from Gunicorn — no Nginx needed
 STATIC_ROOT = os.environ.get('STATIC_ROOT', '/app/staticfiles/')
 MEDIA_ROOT = os.environ.get('MEDIA_ROOT', '/app/media/')
+# Base URL for WeasyPrint to resolve relative image URLs (logos, stamps) when rendering PDFs
+BASE_URL = os.environ.get('BASE_URL', 'https://visota.net')
 
 # WhiteNoise caching headers (immutable + max-age)
 WHITENOISE_MAX_AGE = 31536000  # 1 year
