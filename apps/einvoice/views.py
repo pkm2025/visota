@@ -102,7 +102,11 @@ class EInvoiceXmlDownloadView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get(self, request, pk, *args, **kwargs):
-        ei = get_object_or_404(EInvoice, pk=pk)
+        # ponytail: scope by current_company — same IDOR guard as PDF view.
+        company = (
+            getattr(request, "current_company", None) or Company.objects.first()
+        )
+        ei = get_object_or_404(EInvoice, pk=pk, company=company)
         if not ei.xml_file:
             return HttpResponse("No XML", status=404)
         response = HttpResponse(ei.xml_file.read(), content_type="application/xml")
@@ -116,7 +120,11 @@ class EInvoiceJsonDownloadView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get(self, request, pk, *args, **kwargs):
-        ei = get_object_or_404(EInvoice, pk=pk)
+        # ponytail: scope by current_company — same IDOR guard as PDF view.
+        company = (
+            getattr(request, "current_company", None) or Company.objects.first()
+        )
+        ei = get_object_or_404(EInvoice, pk=pk, company=company)
         if not ei.json_file:
             return HttpResponse("No JSON", status=404)
         response = HttpResponse(ei.json_file.read(), content_type="application/json")

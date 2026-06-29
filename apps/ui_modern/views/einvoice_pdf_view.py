@@ -1,5 +1,7 @@
 """EInvoice PDF download view."""
 
+import logging
+
 from django.http import Http404, HttpResponse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
@@ -10,6 +12,8 @@ from apps.einvoice.services.einvoice_pdf_service import (
     EInvoicePDFError,
     EInvoicePDFService,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class EinvoicePDFView(LoginRequiredMixin, View):
@@ -36,11 +40,17 @@ class EinvoicePDFView(LoginRequiredMixin, View):
         try:
             pdf_bytes = EInvoicePDFService().get_or_generate(einvoice, force=force)
         except EInvoicePDFError as exc:
+            logger.exception("PDF generation failed for einvoice pk=%s", pk)
             return HttpResponse(
-                f"Lỗi tạo PDF: {exc}", status=500, content_type="text/plain"
+                "Lỗi tạo PDF. Vui lòng thử lại hoặc liên hệ quản trị viên.",
+                status=500,
+                content_type="text/plain",
             )
 
-        filename = f"einvoice_{einvoice.invoice_no or einvoice.pk}.pdf"
+        # ponytail: strip CR/LF + path separators — header injection guard.
+        raw = einvoice.invoice_no or str(einvoice.pk)
+        safe_invoice_no = raw.replace("/", "-").replace("\\", "-").replace("\r", "").replace("\n", "")
+        filename = f"einvoice_{safe_invoice_no}.pdf"
         response = HttpResponse(pdf_bytes, content_type="application/pdf")
         response["Content-Disposition"] = f'inline; filename="{filename}"'
         return response
