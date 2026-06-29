@@ -3,47 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Visota — Phần mềm kế toán ERP cho doanh nghiệp Việt Nam. Tuân thủ TT133/2016, TT200/2014, TT78/2021. Hóa đơn điện tử, BHXH, PIT 2026, CRM, quản lý dự án.">
-    <meta name="keywords" content="phần mềm kế toán, ERP, hóa đơn điện tử, TT133, TT200, PIT 2026, BHXH, visota">
-    <meta property="og:title" content="Visota — Phần mềm kế toán ERP Việt Nam">
-    <meta property="og:description" content="ERP kế toán đa công ty, tuân thủ pháp luật VN. HĐĐT, lương, ngân hàng, CRM.">
+    <meta name="description" content="Visota — Nền tảng ERP toàn diện cho doanh nghiệp Việt Nam. Kế toán, HĐĐT, CRM, HR, dự án, ngân hàng — 31 module trên 1 hệ thống, tuân thủ TT133/200/78.">
+    <meta name="keywords" content="ERP, phần mềm ERP, ERP Việt Nam, doanh nghiệp, Visota, HĐĐT, CRM, HR, TT133, TT200">
+    <meta property="og:title" content="Visota — ERP cho doanh nghiệp Việt Nam">
+    <meta property="og:description" content="Nền tảng ERP đa công ty, tuân thủ pháp luật VN. 31 module tích hợp — vận hành 1 chỗ.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://visota.net">
-    <title>Visota — Phần mềm kế toán ERP cho doanh nghiệp Việt Nam</title>
+    <title>Visota — ERP toàn diện cho doanh nghiệp Việt Nam</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #6366f1; --accent: #10b981; --dark: #0f172a; }
-        * { box-sizing: border-box; }
-        body { font-family: 'Be Vietnam Pro', sans-serif; color: var(--dark); scroll-behavior: smooth; }
-        .hero { background: linear-gradient(135deg, #312e81 0%, #6366f1 50%, #8b5cf6 100%); color: white; padding: 100px 0 120px; }
-        .hero h1 { font-size: 3rem; font-weight: 800; line-height: 1.15; }
-        .hero .lead { font-size: 1.2rem; opacity: 0.9; max-width: 580px; }
-        .feature-card { border: 1px solid #e2e8f0; border-radius: 16px; padding: 28px; transition: all 0.3s; height: 100%; background: white; }
-        .feature-card:hover { box-shadow: 0 12px 32px rgba(99,102,241,0.1); transform: translateY(-2px); }
-        .feature-icon { width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 16px; }
-        .section { padding: 80px 0; }
-        .section-title { font-size: 2rem; font-weight: 800; }
-        .pricing-card { border: 2px solid #e2e8f0; border-radius: 16px; padding: 32px; background: white; }
-        .pricing-card.popular { border-color: var(--primary); position: relative; transform: scale(1.03); }
-        .pricing-card.popular::before { content: "PHỔ BIẾN"; position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: var(--primary); color: white; padding: 4px 16px; border-radius: 12px; font-size: 11px; font-weight: 700; }
-        .contact-form { background: white; border-radius: 20px; padding: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.12); }
-        .alert-ok { background: #ecfdf5; border: 1px solid #10b981; color: #065f46; border-radius: 12px; padding: 16px; }
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #3730a3;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --dark: #0f172a;
+            --muted: #64748b;
+            --bg: #fafbfc;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+        body { font-family: 'Be Vietnam Pro', sans-serif; color: var(--dark); background: var(--bg); scroll-behavior: smooth; }
+        .display-font { font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+
+        /* Nav */
+        .navbar { backdrop-filter: saturate(180%) blur(12px); background: rgba(255,255,255,0.85) !important; padding: 14px 0; border-bottom: 1px solid var(--border); }
+        .navbar-brand { font-weight: 800; font-size: 1.5rem; letter-spacing: -0.02em; }
+        .nav-link { font-weight: 500; color: var(--dark) !important; padding: 8px 16px !important; border-radius: 8px; transition: background .2s; }
+        .nav-link:hover { background: #f1f5f9; }
+        .btn-primary { background: var(--primary); border-color: var(--primary); font-weight: 600; padding: 10px 22px; border-radius: 10px; transition: all .2s; }
+        .btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(79,70,229,0.3); }
+        .btn-outline-primary { color: var(--primary); border-color: var(--primary); font-weight: 600; padding: 10px 22px; border-radius: 10px; }
+        .btn-outline-primary:hover { background: var(--primary); border-color: var(--primary); }
+
+        /* Hero */
+        .hero { background: linear-gradient(135deg, #0f172a 0%, #312e81 40%, #4f46e5 100%); color: white; padding: 140px 0 120px; position: relative; overflow: hidden; }
+        .hero::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(circle at 20% 30%, rgba(99,102,241,0.25) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(6,182,212,0.18) 0%, transparent 50%); }
+        .hero .container { position: relative; z-index: 1; }
+        .hero h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); }
+        .hero .lead { font-size: 1.15rem; opacity: 0.85; max-width: 580px; }
+        .hero-badge { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.15); padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; }
+        .hero-stats { display: flex; gap: 32px; margin-top: 36px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.15); }
+        .hero-stat-num { font-size: 1.8rem; font-weight: 800; color: #c7d2fe; }
+        .hero-stat-lbl { font-size: 12px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.08em; }
+
+        /* Trust strip */
+        .trust-strip { background: white; padding: 32px 0; border-bottom: 1px solid var(--border); }
+        .trust-item { text-align: center; padding: 12px; }
+        .trust-num { font-size: 1.7rem; font-weight: 800; background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1; }
+        .trust-lbl { font-size: 13px; color: var(--muted); margin-top: 4px; font-weight: 500; }
+
+        /* Sections */
+        .section { padding: 96px 0; }
+        .section-eyebrow { color: var(--primary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; font-size: 13px; }
+        .section-title { font-size: clamp(1.8rem, 3.5vw, 2.6rem); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; line-height: 1.15; }
+        .section-sub { color: var(--muted); font-size: 1.05rem; margin-top: 16px; }
+
+        /* Module cards */
+        .module-card { background: white; border: 1px solid var(--border); border-radius: 16px; padding: 28px; height: 100%; transition: all .25s; }
+        .module-card:hover { box-shadow: 0 20px 40px -10px rgba(15,23,42,0.1); border-color: transparent; transform: translateY(-2px); }
+        .module-icon { width: 48px; height: 48px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 16px; }
+        .module-card h5 { font-weight: 700; margin-bottom: 8px; }
+        .module-card p { color: var(--muted); font-size: 14px; margin: 0; line-height: 1.55; }
+
+        /* Department grid */
+        .dept-tab { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 14px 20px; cursor: pointer; transition: all .2s; font-weight: 600; }
+        .dept-tab.active, .dept-tab:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* Persona */
+        .persona-card { background: white; border-radius: 20px; padding: 32px; height: 100%; border: 1px solid var(--border); position: relative; }
+        .persona-quote { font-size: 1.05rem; line-height: 1.6; color: var(--dark); }
+        .persona-author { display: flex; align-items: center; gap: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+        .persona-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; }
+
+        /* Pricing */
+        .pricing-card { background: white; border: 1px solid var(--border); border-radius: 20px; padding: 36px 32px; height: 100%; position: relative; transition: all .25s; }
+        .pricing-card:hover { box-shadow: 0 20px 40px -10px rgba(15,23,42,0.1); }
+        .pricing-card.popular { border: 2px solid var(--primary); transform: scale(1.03); }
+        .pricing-card.popular::before { content: "PHỔ BIẾN NHẤT"; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--primary); color: white; padding: 6px 16px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; }
+        .price-num { font-size: 2.5rem; font-weight: 800; letter-spacing: -0.02em; }
+        .pricing-card ul li { padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+        .pricing-card ul li:last-child { border-bottom: 0; }
+
+        /* CTA banner */
+        .cta-banner { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); border-radius: 24px; padding: 60px 48px; position: relative; overflow: hidden; }
+        .cta-banner::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(circle at 70% 30%, rgba(255,255,255,0.15) 0%, transparent 50%); }
+
+        /* Contact form */
+        .contact-form { background: white; border-radius: 20px; padding: 40px; box-shadow: 0 20px 60px rgba(15,23,42,0.08); border: 1px solid var(--border); }
+        .form-control, .form-select { border-radius: 10px; padding: 12px 16px; border: 1px solid var(--border); }
+        .form-control:focus, .form-select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(79,70,229,0.1); }
+        .alert-ok { background: #ecfdf5; border: 1px solid var(--success); color: #065f46; border-radius: 12px; padding: 16px; }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+<nav class="navbar navbar-expand-lg navbar-light sticky-top">
     <div class="container">
-        <a class="navbar-brand fw-bold fs-4" href="/"><span style="color: var(--primary)">V</span>isota</a>
+        <a class="navbar-brand" href="/"><span style="color: var(--primary)">V</span>isota</a>
         <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
         <div class="collapse navbar-collapse" id="nav">
             <ul class="navbar-nav mx-auto">
-                <li class="nav-item"><a class="nav-link" href="#features">Tính năng</a></li>
+                <li class="nav-item"><a class="nav-link" href="#modules">Tính năng</a></li>
+                <li class="nav-item"><a class="nav-link" href="#personas">Ai dùng</a></li>
                 <li class="nav-item"><a class="nav-link" href="#pricing">Bảng giá</a></li>
                 <li class="nav-item"><a class="nav-link" href="/blog/">Blog</a></li>
-                <li class="nav-item"><a class="nav-link" href="/signup/">Liên hệ</a></li>
             </ul>
             <a href="/auth/login/" class="btn btn-outline-primary me-2">Đăng nhập</a>
             <a href="/signup/" class="btn btn-primary">Dùng thử miễn phí</a>
@@ -62,28 +128,34 @@
     <div class="container">
         <div class="row align-items-center">
             <div class="col-lg-7">
-                <span class="badge bg-light text-dark mb-3 px-3 py-2"><i class="bi bi-shield-check text-success"></i> TT133 · TT200 · TT78/2021 · Luật KT 2015</span>
-                <h1>Phần mềm kế toán<br><span style="color:#c7d2fe">ERP toàn diện</span><br>cho doanh nghiệp VN</h1>
-                <p class="lead mt-3">Hóa đơn điện tử, BHXH, PIT 2026, CRM, dự án, ngân hàng — 31 module trong 1 nền tảng. Đa công ty, phân quyền RBAC, PWA mobile.</p>
+                <span class="hero-badge"><i class="bi bi-shield-check text-success"></i> Tuân thủ TT133 · TT200 · TT78/2021 · Luật Kế toán 2015</span>
+                <h1 class="display-font mt-4">Vận hành doanh nghiệp,<br><span style="background:linear-gradient(135deg,#a5b4fc,#67e8f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent">một hệ thống duy nhất</span></h1>
+                <p class="lead mt-4">Visota là nền tảng ERP toàn diện cho SME Việt Nam — kế toán, hóa đơn điện tử, CRM, HR, dự án, ngân hàng — vận hành trên 1 hệ thống, dữ liệu thông nhất theo thời gian thực.</p>
                 <div class="d-flex gap-3 mt-4 flex-wrap">
-                    <a href="/signup/" class="btn btn-light btn-lg fw-semibold"><i class="bi bi-rocket-takeoff"></i> Bắt đầu dùng thử</a>
-                    <a href="#features" class="btn btn-outline-light btn-lg">Xem tính năng</a>
+                    <a href="/signup/" class="btn btn-light btn-lg fw-semibold"><i class="bi bi-rocket-takeoff me-2"></i>Bắt đầu dùng thử</a>
+                    <a href="#modules" class="btn btn-outline-light btn-lg">Khám phá tính năng</a>
                 </div>
-                <div class="d-flex gap-3 mt-3 opacity-75 small">
-                    <span><i class="bi bi-check-circle"></i> Không cần thẻ tín dụng</span>
-                    <span><i class="bi bi-check-circle"></i> Setup 5 phút</span>
+                <div class="hero-stats">
+                    <div><div class="hero-stat-num">31</div><div class="hero-stat-lbl">Module</div></div>
+                    <div><div class="hero-stat-num">8</div><div class="hero-stat-lbl">Phòng ban</div></div>
+                    <div><div class="hero-stat-num">100%</div><div class="hero-stat-lbl">Tuân thủ VN</div></div>
+                    <div><div class="hero-stat-num">PWA</div><div class="hero-stat-lbl">Mobile-first</div></div>
                 </div>
             </div>
             <div class="col-lg-5 d-none d-lg-block">
-                <div class="card shadow-lg" style="border-radius:16px;transform:rotate(3deg)">
-                    <div class="card-body p-4">
-                        <div class="d-flex justify-content-between mb-3"><strong>Dashboard</strong><span class="badge bg-success">Live</span></div>
-                        <div class="row g-2 text-center">
-                            <div class="col-6"><div class="bg-light rounded p-3"><div class="text-muted small">Chứng từ</div><div class="h4 mb-0 text-primary">128</div></div></div>
-                            <div class="col-6"><div class="bg-light rounded p-3"><div class="text-muted small">Công nợ</div><div class="h4 mb-0 text-danger">2.1B</div></div></div>
-                            <div class="col-6"><div class="bg-light rounded p-3"><div class="text-muted small">HĐĐT</div><div class="h4 mb-0 text-success">42</div></div></div>
-                            <div class="col-6"><div class="bg-light rounded p-3"><div class="text-muted small">Dự án</div><div class="h4 mb-0 text-info">7</div></div></div>
-                        </div>
+                <div style="background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px;transform:perspective(1000px) rotateY(-8deg) rotateX(3deg)">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div><strong style="font-size:14px">Dashboard CEO</strong><div style="font-size:11px;opacity:0.6">Cập nhật vừa xong</div></div>
+                        <span class="badge bg-success bg-opacity-25 text-success border border-success">Live</span>
+                    </div>
+                    <div class="row g-2 text-center">
+                        <div class="col-6"><div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:14px"><div style="font-size:10px;opacity:0.6;text-transform:uppercase;letter-spacing:0.05em">Tiền mặt</div><div style="font-size:1.5rem;font-weight:700;color:#a5b4fc">4.2B</div></div></div>
+                        <div class="col-6"><div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:14px"><div style="font-size:10px;opacity:0.6;text-transform:uppercase;letter-spacing:0.05em">Công nợ</div><div style="font-size:1.5rem;font-weight:700;color:#fbbf24">1.8B</div></div></div>
+                        <div class="col-6"><div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:14px"><div style="font-size:10px;opacity:0.6;text-transform:uppercase;letter-spacing:0.05em">HĐĐT tháng</div><div style="font-size:1.5rem;font-weight:700;color:#67e8f9">142</div></div></div>
+                        <div class="col-6"><div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:14px"><div style="font-size:10px;opacity:0.6;text-transform:uppercase;letter-spacing:0.05em">Dự án active</div><div style="font-size:1.5rem;font-weight:700;color:#10b981">7</div></div></div>
+                    </div>
+                    <div style="margin-top:16px;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:12px">
+                        <div class="d-flex justify-content-between"><span>Tỷ lệ hoàn thành Q3</span><strong style="color:#10b981">+18%</strong></div>
                     </div>
                 </div>
             </div>
@@ -91,107 +163,177 @@
     </div>
 </section>
 
-<section class="bg-light py-5">
-    <div class="container"><div class="row text-center">
-        <div class="col-6 col-md-3"><div style="font-size:2.4rem;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">31</div><p class="text-muted">Module</p></div>
-        <div class="col-6 col-md-3"><div style="font-size:2.4rem;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">25</div><p class="text-muted">Quyền</p></div>
-        <div class="col-6 col-md-3"><div style="font-size:2.4rem;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">622+</div><p class="text-muted">Tests</p></div>
-        <div class="col-6 col-md-3"><div style="font-size:2.4rem;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">100%</div><p class="text-muted">Tuân thủ VN</p></div>
+<section class="trust-strip">
+    <div class="container"><div class="row align-items-center">
+        <div class="col-md-3 col-6"><div class="trust-item"><div class="trust-num">31+</div><div class="trust-lbl">Module nghiệp vụ</div></div></div>
+        <div class="col-md-3 col-6"><div class="trust-item"><div class="trust-num">5 phút</div><div class="trust-lbl">Setup đến go-live</div></div></div>
+        <div class="col-md-3 col-6"><div class="trust-item"><div class="trust-num">25</div><div class="trust-lbl">Vai trò phân quyền</div></div></div>
+        <div class="col-md-3 col-6"><div class="trust-item"><div class="trust-num">712</div><div class="trust-lbl">Tests tự động</div></div></div>
     </div></div>
 </section>
 
-<section class="section" id="features">
+<section class="section" id="modules">
     <div class="container">
-        <h2 class="section-title text-center mb-4">Mọi thứ doanh nghiệp cần</h2>
-        <p class="text-center text-muted mb-5">31 module tích hợp — từ kế toán đến CRM</p>
+        <div class="text-center mb-5">
+            <div class="section-eyebrow">Tính năng</div>
+            <h2 class="section-title">Một hệ thống. Toàn bộ quy trình.</h2>
+            <p class="section-sub mx-auto" style="max-width:680px">Kế toán, bán hàng, mua hàng, kho, HR, dự án, ngân hàng — kết nối dữ liệu tự nhiên, không cần tích hợp ngoài.</p>
+        </div>
         <div class="row g-4">
-            <div class="col-lg-4 col-md-6"><div class="feature-card">
-                <div class="feature-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-receipt"></i></div>
-                <h5>Kế toán tổng hợp</h5><p class="text-muted small">Phiếu kế toán, sổ cái, BCĐTK, BCTC B01/B02, kết chuyển kỳ — TT133 & TT200.</p>
+            <div class="col-lg-4 col-md-6"><div class="module-card">
+                <div class="module-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-bank2"></i></div>
+                <h5>Tài chính — Kế toán</h5>
+                <p>Phiếu thu/chi, sổ cái, BCĐTK, BCTC B01/DN. Tuân thủ TT133 & TT200. Kết chuyển kỳ tự động, đa công ty.</p>
             </div></div>
-            <div class="col-lg-4 col-md-6"><div class="feature-card">
-                <div class="feature-icon bg-success bg-opacity-10 text-success"><i class="bi bi-receipt-cutoff"></i></div>
-                <h5>Hóa đơn điện tử</h5><p class="text-muted small">TT78/2021 — XML/JSON, BC01/BC26, tích hợp MISA/VNPT/eHoadon/BKAV.</p>
+            <div class="col-lg-4 col-md-6"><div class="module-card">
+                <div class="module-icon bg-success bg-opacity-10 text-success"><i class="bi bi-receipt-cutoff"></i></div>
+                <h5>Hóa đơn điện tử</h5>
+                <p>TT78/2021 chuẩn XML/JSON, BC01/BC26. Tích hợp MISA/VNPT/eHoadon/BKAV — phát hành theo click.</p>
             </div></div>
-            <div class="col-lg-4 col-md-6"><div class="feature-card">
-                <div class="feature-icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-cash-stack"></i></div>
-                <h5>Tính lương + PIT 2026</h5><p class="text-muted small">BHXH 29%, PIT 7 bậc (13.2M giảm trừ), D62, BC TNCN hàng tháng.</p>
+            <div class="col-lg-4 col-md-6"><div class="module-card">
+                <div class="module-icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-wallet2"></i></div>
+                <h5>Lương & PIT 2026</h5>
+                <p>Tính lương BHXH 29%, PIT 7 bậc (giảm trừ 13.2M), D62, BC TNCN. In payslip PDF từng nhân viên.</p>
             </div></div>
-            <div class="col-lg-4 col-md-6"><div class="feature-card">
-                <div class="feature-icon bg-info bg-opacity-10 text-info"><i class="bi bi-bank"></i></div>
-                <h5>Ngân hàng & Đối soát</h5><p class="text-muted small">Import sao kê CSV, auto-match giao dịch với phiếu thu/chi ±3 ngày.</p>
+            <div class="col-lg-4 col-md-6"><div class="module-card">
+                <div class="module-icon bg-info bg-opacity-10 text-info"><i class="bi bi-people"></i></div>
+                <h5>CRM & Bán hàng</h5>
+                <p>Lead → Opportunity → Won → Contract → Invoice → Payment. Pipeline realtime, forecast tự động.</p>
             </div></div>
-            <div class="col-lg-4 col-md-6"><div class="feature-card">
-                <div class="feature-icon bg-danger bg-opacity-10 text-danger"><i class="bi bi-file-earmark-text"></i></div>
-                <h5>Hợp đồng + Biên bản</h5><p class="text-muted small">21 mẫu sẵn — HĐLĐ, mua bán, dịch vụ, biên bản, QĐ. Logo + con dấu tự động.</p>
+            <div class="col-lg-4 col-md-6"><div class="module-card">
+                <div class="module-icon bg-danger bg-opacity-10 text-danger"><i class="bi bi-box-seam"></i></div>
+                <h5>Mua hàng & Kho</h5>
+                <p>PO, nhập-xuất-tồn, đa kho, barcode. Tự động tính FIFO/cao bình. Đối soát nhà cung cấp.</p>
             </div></div>
-            <div class="col-lg-4 col-md-6"><div class="feature-card">
-                <div class="feature-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-people"></i></div>
-                <h5>CRM + Dự án</h5><p class="text-muted small">Lead → Opportunity → Won → Contract → Project → Invoice.</p>
+            <div class="col-lg-4 col-md-6"><div class="module-card">
+                <div class="module-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-kanban"></i></div>
+                <h5>Dự án & Công việc</h5>
+                <p>Gantt, Kanban, timesheet, billable hours. Link dự án với HĐ + hóa đơn + chi phí.</p>
+            </div></div>
+            <div class="col-lg-4 col-md-6"><div class="module-card">
+                <div class="module-icon bg-success bg-opacity-10 text-success"><i class="bi bi-bank"></i></div>
+                <h5>Ngân hàng & Đối soát</h5>
+                <p>Import sao kê CSV từ 30+ ngân hàng VN. Auto-match giao dịch với phiếu thu/chi ±3 ngày.</p>
+            </div></div>
+            <div class="col-lg-4 col-md-6"><div class="module-card">
+                <div class="module-icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-file-earmark-text"></i></div>
+                <h5>Hợp đồng & Biên bản</h5>
+                <p>21 mẫu sẵn — HĐLĐ, mua bán, dịch vụ, biên bản, quyết định. Logo + con dấu tự động, export PDF.</p>
+            </div></div>
+            <div class="col-lg-4 col-md-6"><div class="module-card">
+                <div class="module-icon bg-info bg-opacity-10 text-info"><i class="bi bi-graph-up-arrow"></i></div>
+                <h5>Báo cáo & Dashboard</h5>
+                <p>BI realtime theo vai trò — CEO/CFO/Manager/Kế toán. Mobile-first, export Excel/PDF một chạm.</p>
+            </div></div>
+        </div>
+        <div class="text-center mt-5"><a href="/signup/" class="btn btn-outline-primary">Xem đầy đủ 31 module →</a></div>
+    </div>
+</section>
+
+<section class="section" id="personas" style="background: white; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+        <div class="text-center mb-5">
+            <div class="section-eyebrow">Ai dùng Visota</div>
+            <h2 class="section-title">Mỗi vai trò, một góc nhìn</h2>
+            <p class="section-sub mx-auto" style="max-width:680px">Hệ thống phục vụ 8 phòng ban — mỗi người thấy đúng dữ liệu mình cần, không thừa, không thiếu.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-3 col-md-6"><div class="persona-card">
+                <div style="font-size:24px;color:var(--primary)" class="mb-3"><i class="bi bi-briefcase"></i></div>
+                <h6 class="fw-bold">CEO / Owner</h6>
+                <p class="text-muted small mb-0">Dashboard tổng quan — dòng tiền, công nợ, P&L realtime. Ra quyết định nhanh, không đợi báo cáo cuối tháng.</p>
+            </div></div>
+            <div class="col-lg-3 col-md-6"><div class="persona-card">
+                <div style="font-size:24px;color:var(--success)" class="mb-3"><i class="bi bi-calculator"></i></div>
+                <h6 class="fw-bold">Kế toán trưởng</h6>
+                <p class="text-muted small mb-0">Phiếu kế toán, kết chuyển kỳ, BCTC TT133/TT200. Phê duyệt workflow, audit trail đầy đủ.</p>
+            </div></div>
+            <div class="col-lg-3 col-md-6"><div class="persona-card">
+                <div style="font-size:24px;color:var(--accent)" class="mb-3"><i class="bi bi-headset"></i></div>
+                <h6 class="fw-bold">Sales / Account</h6>
+                <p class="text-muted small mb-0">Pipeline CRM, forecast, hợp đồng, hóa đơn. Theo dõi công nợ khách hàng, nhắc nợ tự động.</p>
+            </div></div>
+            <div class="col-lg-3 col-md-6"><div class="persona-card">
+                <div style="font-size:24px;color:var(--warning)" class="mb-3"><i class="bi bi-person-badge"></i></div>
+                <h6 class="fw-bold">HR / Người quản lý</h6>
+                <p class="text-muted small mb-0">Chấm công, tính lương, BHXH, PIT. Nhân viên自助 xem payslip, nghỉ phép, khai sinh.</p>
             </div></div>
         </div>
     </div>
 </section>
 
-<section class="section bg-light" id="pricing">
+<section class="section" id="pricing">
     <div class="container">
-        <h2 class="section-title text-center mb-4">Bảng giá</h2>
-        <p class="text-center text-muted mb-5">Bắt đầu miễn phí — nâng cấp khi cần</p>
-        <div class="row g-4 justify-content-center">
-            <div class="col-lg-4 col-md-6"><div class="pricing-card text-center h-100">
-                <h5 class="text-muted">Khởi đầu</h5>
-                <div class="my-3"><span style="font-size:2.2rem;font-weight:800">299K</span><span class="text-muted">/tháng</span></div>
-                <ul class="list-unstyled text-start mb-4">
-                    <li><i class="bi bi-check-circle text-success"></i> 3 người dùng</li>
-                    <li><i class="bi bi-check-circle text-success"></i> 1 công ty</li>
-                    <li><i class="bi bi-check-circle text-success"></i> Kế toán + Bán/Mua</li>
-                    <li><i class="bi bi-check-circle text-success"></i> Hóa đơn điện tử</li>
+        <div class="text-center mb-5">
+            <div class="section-eyebrow">Bảng giá</div>
+            <h2 class="section-title">Bắt đầu miễn phí. Nâng cấp khi cần.</h2>
+            <p class="section-sub mx-auto" style="max-width:680px">Không phí ẩn, không lock-in. Hủy bất cứ lúc nào.</p>
+        </div>
+        <div class="row g-4 justify-content-center" style="max-width:1100px;margin:0 auto">
+            <div class="col-lg-4 col-md-6"><div class="pricing-card">
+                <h6 class="text-muted fw-bold text-uppercase" style="letter-spacing:0.05em;font-size:12px">Khởi đầu</h6>
+                <div class="my-3"><span class="price-num">299K</span><span class="text-muted">/tháng</span></div>
+                <p class="text-muted small">Cho doanh nghiệp nhỏ mới khởi sự</p>
+                <ul class="list-unstyled mt-4">
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>3 người dùng</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>1 công ty</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>Tài chính + Bán/Mua + Kho</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>Hóa đơn điện tử</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>Hỗ trợ email</li>
                 </ul>
-                <a href="/signup/" class="btn btn-outline-primary w-100">Chọn gói</a>
+                <a href="/signup/" class="btn btn-outline-primary w-100 mt-3">Chọn gói</a>
             </div></div>
-            <div class="col-lg-4 col-md-6"><div class="pricing-card popular text-center h-100">
-                <h5 class="text-primary">Doanh nghiệp</h5>
-                <div class="my-3"><span style="font-size:2.2rem;font-weight:800">899K</span><span class="text-muted">/tháng</span></div>
-                <ul class="list-unstyled text-start mb-4">
-                    <li><i class="bi bi-check-circle text-success"></i> 20 người dùng</li>
-                    <li><i class="bi bi-check-circle text-success"></i> 3 công ty</li>
-                    <li><i class="bi bi-check-circle text-success"></i> Tất cả 31 module</li>
-                    <li><i class="bi bi-check-circle text-success"></i> CRM + Dự án + Ngân hàng</li>
-                    <li><i class="bi bi-check-circle text-success"></i> PWA Mobile</li>
+            <div class="col-lg-4 col-md-6"><div class="pricing-card popular">
+                <h6 class="text-primary fw-bold text-uppercase" style="letter-spacing:0.05em;font-size:12px">Doanh nghiệp</h6>
+                <div class="my-3"><span class="price-num text-primary">899K</span><span class="text-muted">/tháng</span></div>
+                <p class="text-muted small">Cho SME đang scale</p>
+                <ul class="list-unstyled mt-4">
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>20 người dùng</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>3 công ty</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>Đầy đủ 31 module</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>CRM + Dự án + Ngân hàng</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>PWA Mobile + API</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>Hỗ trợ ưu tiên (chat + phone)</li>
                 </ul>
-                <a href="/signup/" class="btn btn-primary w-100 fw-semibold">Chọn gói</a>
+                <a href="/signup/" class="btn btn-primary w-100 mt-3 fw-semibold">Chọn gói</a>
             </div></div>
-            <div class="col-lg-4 col-md-6"><div class="pricing-card text-center h-100">
-                <h5 class="text-muted">Enterprise</h5>
-                <div class="my-3"><span style="font-size:2.2rem;font-weight:800">Liên hệ</span></div>
-                <ul class="list-unstyled text-start mb-4">
-                    <li><i class="bi bi-check-circle text-success"></i> Không giới hạn</li>
-                    <li><i class="bi bi-check-circle text-success"></i> On-prem / Cloud</li>
-                    <li><i class="bi bi-check-circle text-success"></i> API + Webhook</li>
-                    <li><i class="bi bi-check-circle text-success"></i> SLA 99.9%</li>
+            <div class="col-lg-4 col-md-6"><div class="pricing-card">
+                <h6 class="text-muted fw-bold text-uppercase" style="letter-spacing:0.05em;font-size:12px">Enterprise</h6>
+                <div class="my-3"><span class="price-num">Liên hệ</span></div>
+                <p class="text-muted small">Cho tập đoàn / yêu cầu đặc biệt</p>
+                <ul class="list-unstyled mt-4">
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>Không giới hạn user</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>Đa công ty không giới hạn</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>On-prem hoặc Cloud riêng</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>API + Webhook không giới hạn</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>SLA 99.9%</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>Account manager riêng</li>
                 </ul>
-                <a href="/signup/" class="btn btn-outline-primary w-100">Liên hệ</a>
+                <a href="/signup/" class="btn btn-outline-primary w-100 mt-3">Liên hệ</a>
             </div></div>
         </div>
     </div>
 </section>
 
 {% if latest_articles %}
-<section class="section">
+<section class="section" style="background:white;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
     <div class="container">
-        <div class="d-flex justify-content-between align-items-end mb-4">
-            <div><h2 class="section-title mb-1">Blog mới nhất</h2><p class="text-muted">Mẹo kế toán, cập nhật thuế, hướng dẫn</p></div>
+        <div class="d-flex justify-content-between align-items-end mb-5">
+            <div>
+                <div class="section-eyebrow">Kiến thức</div>
+                <h2 class="section-title">Blog mới nhất</h2>
+            </div>
             <a href="/blog/" class="btn btn-outline-primary">Xem tất cả →</a>
         </div>
         <div class="row g-4">
             {% for a in latest_articles %}
             <div class="col-md-4"><a href="/blog/{{ a.slug }}/" class="text-decoration-none text-dark">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-img-top d-flex align-items-center justify-content-center bg-light" style="height:160px;"><i class="bi bi-journal-text text-muted" style="font-size:36px;"></i></div>
+                <div class="card h-100 border-0 shadow-sm" style="border-radius:16px;overflow:hidden">
+                    <div class="card-img-top d-flex align-items-center justify-content-center" style="height:180px;background:linear-gradient(135deg,#eef2ff,#dbeafe)"><i class="bi bi-journal-text" style="font-size:42px;color:var(--primary)"></i></div>
                     <div class="card-body">
                         {% if a.category %}<span class="badge mb-2" style="background:{{ a.category.color }}">{{ a.category.name }}</span>{% endif %}
-                        <h6 class="fw-semibold">{{ a.title|truncatechars:60 }}</h6>
-                        <p class="text-muted small">{{ a.excerpt|truncatechars:80 }}</p>
+                        <h6 class="fw-semibold mb-2">{{ a.title|truncatechars:60 }}</h6>
+                        <p class="text-muted small mb-0">{{ a.excerpt|truncatechars:90 }}</p>
                     </div>
                 </div></a>
             </div>
@@ -201,41 +343,58 @@
 </section>
 {% endif %}
 
-<section class="section bg-light" id="contact">
+<section class="section">
     <div class="container">
-        <div class="text-center mb-4">
-            <h2 class="section-title">Đăng ký dùng thử</h2>
-            <p class="text-muted">Để lại thông tin — Visota liên hệ trong 24h</p>
+        <div class="cta-banner text-white text-center">
+            <h2 class="display-font mb-3">Sẵn sàng vận hành chuyên nghiệp?</h2>
+            <p class="lead mb-4 opacity-75 mx-auto" style="max-width:600px">Tham gia cùng các doanh nghiệp đang chạy ERP Visota. Setup 5 phút — không cần thẻ tín dụng.</p>
+            <a href="/signup/" class="btn btn-light btn-lg fw-semibold me-2"><i class="bi bi-rocket-takeoff me-2"></i>Bắt đầu miễn phí</a>
+            <a href="#contact" class="btn btn-outline-light btn-lg">Tư vấn trực tiếp</a>
         </div>
-        <div class="row justify-content-center">
-            <div class="col-lg-8">
+    </div>
+</section>
+
+<section class="section" id="contact" style="background:white;border-top:1px solid var(--border)">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-5 mb-4 mb-lg-0">
+                <div class="section-eyebrow">Đăng ký tư vấn</div>
+                <h2 class="section-title">Để lại thông tin,<br>Visota liên hệ trong 24h</h2>
+                <p class="section-sub">Đội ngũ tư vấn sẽ demo trực tiếp theo quy mô và ngành nghề của doanh nghiệp bạn — không phải sales call chung chung.</p>
+                <div class="mt-4 small text-muted">
+                    <p class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Tư vấn miễn phí, không ràng buộc</p>
+                    <p class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Demo theo nghiệp vụ cụ thể</p>
+                    <p class="mb-0"><i class="bi bi-check-circle-fill text-success me-2"></i>Báo giá minh bạch, không phụ phí</p>
+                </div>
+            </div>
+            <div class="col-lg-7">
                 <div class="contact-form">
                     <form method="post" action="/contact/submit/">
                         {% csrf_token %}
                         <input type="hidden" name="source" value="landing">
                         <input type="hidden" name="referrer" value="{{ request.META.HTTP_REFERER|default:'' }}">
                         <div class="row g-3">
-                            <div class="col-md-6"><label class="form-label fw-semibold">Họ tên *</label><input type="text" name="full_name" class="form-control form-control-lg" required placeholder="Nguyễn Văn A"></div>
-                            <div class="col-md-6"><label class="form-label fw-semibold">Email *</label><input type="email" name="email" class="form-control form-control-lg" required placeholder="email@congty.vn"></div>
-                            <div class="col-md-6"><label class="form-label fw-semibold">Số điện thoại</label><input type="tel" name="phone" class="form-control form-control-lg" placeholder="0901 234 567"></div>
-                            <div class="col-md-6"><label class="form-label fw-semibold">Tên công ty</label><input type="text" name="company_name" class="form-control form-control-lg" placeholder="Công ty CP ABC"></div>
-                            <div class="col-md-6"><label class="form-label fw-semibold">Quy mô</label><select name="company_size" class="form-select form-select-lg"><option value="">— Chọn —</option><option>1-10 NV</option><option>11-50 NV</option><option>51-200 NV</option><option>200+ NV</option></select></div>
-                            <div class="col-md-6"><label class="form-label fw-semibold">Gói quan tâm</label><select class="form-select form-select-lg" onchange="document.querySelector('[name=message]').value='Quan tâm: '+this.value"><option value="">— Chọn —</option><option>Khởi đầu 299K</option><option>Doanh nghiệp 899K</option><option>Enterprise</option></select></div>
-                            <div class="col-12"><label class="form-label fw-semibold">Nội dung</label><textarea name="message" class="form-control" rows="3" placeholder="Tôi muốn tìm hiểu về..."></textarea></div>
-                            <div class="col-12"><button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-semibold"><i class="bi bi-send"></i> Gửi đăng ký</button></div>
+                            <div class="col-md-6"><label class="form-label fw-semibold small">Họ tên *</label><input type="text" name="full_name" class="form-control" required placeholder="Nguyễn Văn A"></div>
+                            <div class="col-md-6"><label class="form-label fw-semibold small">Email công việc *</label><input type="email" name="email" class="form-control" required placeholder="email@congty.vn"></div>
+                            <div class="col-md-6"><label class="form-label fw-semibold small">Điện thoại</label><input type="tel" name="phone" class="form-control" placeholder="0901 234 567"></div>
+                            <div class="col-md-6"><label class="form-label fw-semibold small">Công ty</label><input type="text" name="company_name" class="form-control" placeholder="Công ty CP ABC"></div>
+                            <div class="col-md-6"><label class="form-label fw-semibold small">Quy mô</label><select name="company_size" class="form-select"><option value="">— Chọn —</option><option>1-10 nhân viên</option><option>11-50 nhân viên</option><option>51-200 nhân viên</option><option>200+ nhân viên</option></select></div>
+                            <div class="col-md-6"><label class="form-label fw-semibold small">Gói quan tâm</label><select class="form-select" onchange="document.querySelector('[name=message]').value='Quan tâm: '+this.value"><option value="">— Chọn —</option><option>Khởi đầu 299K/tháng</option><option>Doanh nghiệp 899K/tháng</option><option>Enterprise</option></select></div>
+                            <div class="col-12"><label class="form-label fw-semibold small">Nội dung</label><textarea name="message" class="form-control" rows="3" placeholder="Tôi muốn tìm hiểu về..."></textarea></div>
+                            <div class="col-12"><button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-semibold"><i class="bi bi-send me-2"></i>Gửi đăng ký tư vấn</button></div>
                         </div>
                     </form>
-                    <p class="text-center text-muted small mt-3 mb-0"><i class="bi bi-shield-check"></i> Thông tin bảo mật. Không spam.</p>
+                    <p class="text-center text-muted small mt-3 mb-0"><i class="bi bi-shield-check me-1"></i>Thông tin bảo mật. Không spam. GDPR & Nghị định 13/2023.</p>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<section class="py-4" style="background:var(--primary)">
+<section class="py-4" style="background:var(--primary-dark)">
     <div class="container text-center text-white">
-        <p class="mb-2">Nhận tin kế toán + thuế mới nhất</p>
-        <form method="post" action="/newsletter/subscribe/" class="row g-2 justify-content-center" style="max-width:450px;margin:0 auto">
+        <p class="mb-2 opacity-75">Nhận tin ERP + thuế + quản trị mới nhất hàng tuần</p>
+        <form method="post" action="/newsletter/subscribe/" class="row g-2 justify-content-center" style="max-width:480px;margin:0 auto">
             {% csrf_token %}
             <div class="col-auto"><input type="email" name="email" class="form-control" placeholder="email@cua-ban.vn" required></div>
             <div class="col-auto"><button type="submit" class="btn btn-light fw-semibold">Đăng ký</button></div>
@@ -246,24 +405,27 @@
 <footer class="bg-dark text-light py-5">
     <div class="container">
         <div class="row g-4">
-            <div class="col-lg-4 col-md-6"><h5 class="fw-bold mb-3"><span style="color:#818cf8">V</span>isota</h5>
-                <p class="small" style="color:#94a3b8">Phần mềm kế toán ERP cho doanh nghiệp VN.<br>Tuân thủ TT133/2016, TT200/2014, TT78/2021.</p></div>
-            <div class="col-lg-2 col-md-3"><h6 class="mb-3">Sản phẩm</h6><ul class="list-unstyled">
-                <li><a href="#features" class="text-muted text-decoration-none small">Tính năng</a></li>
+            <div class="col-lg-4 col-md-6"><h5 class="fw-bold mb-3" style="font-size:1.5rem"><span style="color:#818cf8">V</span>isota</h5>
+                <p class="small" style="color:#94a3b8">Nền tảng ERP toàn diện cho doanh nghiệp Việt Nam.<br>Tuân thủ TT133/2016, TT200/2014, TT78/2021, Luật Kế toán 2015.</p></div>
+            <div class="col-lg-2 col-md-3"><h6 class="mb-3 fw-bold">Sản phẩm</h6><ul class="list-unstyled">
+                <li><a href="#modules" class="text-muted text-decoration-none small">Tính năng</a></li>
                 <li><a href="#pricing" class="text-muted text-decoration-none small">Bảng giá</a></li>
                 <li><a href="/blog/" class="text-muted text-decoration-none small">Blog</a></li>
+                <li><a href="/signup/" class="text-muted text-decoration-none small">Dùng thử</a></li>
             </ul></div>
-            <div class="col-lg-2 col-md-3"><h6 class="mb-3">Module</h6><ul class="list-unstyled">
-                <li><a href="#features" class="text-muted text-decoration-none small">Kế toán</a></li>
-                <li><a href="#features" class="text-muted text-decoration-none small">HĐĐT</a></li>
-                <li><a href="#features" class="text-muted text-decoration-none small">Lương</a></li>
-                <li><a href="#features" class="text-muted text-decoration-none small">CRM</a></li>
+            <div class="col-lg-2 col-md-3"><h6 class="mb-3 fw-bold">Module</h6><ul class="list-unstyled">
+                <li><a href="#modules" class="text-muted text-decoration-none small">Tài chính</a></li>
+                <li><a href="#modules" class="text-muted text-decoration-none small">HĐĐT</a></li>
+                <li><a href="#modules" class="text-muted text-decoration-none small">CRM</a></li>
+                <li><a href="#modules" class="text-muted text-decoration-none small">HR & Lương</a></li>
             </ul></div>
-            <div class="col-lg-4 col-md-6"><h6 class="mb-3">Liên hệ</h6><p class="small" style="color:#94a3b8">
-                <i class="bi bi-globe"></i> visota.net<br><i class="bi bi-envelope"></i> contact@visota.net<br>
-                <i class="bi bi-telephone"></i> 1900 xxxx<br><i class="bi bi-geo-alt"></i> Hà Nội, VN</p></div>
+            <div class="col-lg-4 col-md-6"><h6 class="mb-3 fw-bold">Liên hệ</h6><p class="small" style="color:#94a3b8">
+                <i class="bi bi-globe me-2"></i>visota.net<br>
+                <i class="bi bi-envelope me-2"></i>contact@visota.net<br>
+                <i class="bi bi-telephone me-2"></i>1900 xxxx<br>
+                <i class="bi bi-geo-alt me-2"></i>Hà Nội, Việt Nam</p></div>
         </div>
-        <hr class="border-secondary"><p class="text-center text-muted small mb-0">© 2026 Visota — visota.net</p>
+        <hr class="border-secondary"><p class="text-center text-muted small mb-0">© 2026 Visota — visota.net · <a href="/terms/" class="text-muted">Điều khoản</a> · <a href="/privacy/" class="text-muted">Bảo mật</a></p>
     </div>
 </footer>
 
