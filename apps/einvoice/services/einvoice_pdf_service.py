@@ -6,6 +6,7 @@ from typing import Optional
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.template.loader import render_to_string
+from django.utils.text import get_valid_filename
 from django.utils import timezone
 
 from apps.einvoice.models import EInvoice
@@ -77,9 +78,9 @@ class EInvoicePDFService:
         return pdf_bytes
 
     def _save_to_einvoice(self, einvoice: EInvoice, pdf_bytes: bytes) -> None:
-        """Save bytes to einvoice.pdf_file with deterministic filename."""
+        """Save bytes to einvoice.pdf_file with deterministic, safe filename."""
         identifier = einvoice.invoice_no or f"pk-{einvoice.pk}"
-        safe_name = identifier.replace("/", "-").replace("\\", "-")
+        safe_name = get_valid_filename(identifier)
         filename = f"einvoice_{safe_name}.pdf"
         einvoice.pdf_file.save(filename, ContentFile(pdf_bytes), save=True)
 
