@@ -49,7 +49,7 @@ class EinvoicePDFView(LoginRequiredMixin, View):
 
         # ponytail: strip CR/LF + path separators — header injection guard.
         raw = einvoice.invoice_no or str(einvoice.pk)
-        safe_invoice_no = raw.replace("/", "-").replace("\\", "-").replace("\r", "").replace("\n", "")
+        safe_invoice_no = raw.replace('"', "").replace("/", "-").replace("\\", "-").replace("\r", "").replace("\n", "")
         filename = f"einvoice_{safe_invoice_no}.pdf"
         response = HttpResponse(pdf_bytes, content_type="application/pdf")
         response["Content-Disposition"] = f'inline; filename="{filename}"'
