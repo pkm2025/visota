@@ -115,8 +115,14 @@
                     <a href="{% url 'ui_modern:einvoice_download_xml' einvoice.id %}" class="btn btn-outline-primary btn-sm w-100 mb-2">
                         <i class="bi bi-file-code"></i> XML (TT78 schema)
                     </a>
-                    <a href="{% url 'ui_modern:einvoice_download_json' einvoice.id %}" class="btn btn-outline-secondary btn-sm w-100">
+                    <a href="{% url 'ui_modern:einvoice_download_json' einvoice.id %}" class="btn btn-outline-secondary btn-sm w-100 mb-2">
                         <i class="bi bi-filetype-json"></i> JSON (provider payload)
+                    </a>
+                    <a href="{% url 'ui_modern:einvoice_download_pdf' einvoice.id %}" class="btn btn-outline-primary btn-sm w-100" target="_blank">
+                        <i class="bi bi-file-earmark-pdf"></i> Tải PDF
+                    </a>
+                    <a href="{% url 'ui_modern:einvoice_download_pdf' einvoice.id %}?force=1" class="btn btn-link btn-sm w-100" title="Tạo lại PDF mới nhất">
+                        <i class="bi bi-arrow-clockwise"></i> Tạo lại PDF
                     </a>
                     {% if einvoice.pdf_file %}
                     <a href="{{ einvoice.pdf_file.url }}" class="btn btn-outline-danger btn-sm w-100 mt-2">
