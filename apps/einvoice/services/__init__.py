@@ -15,7 +15,7 @@ from django.utils import timezone
 
 from apps.notifications.services import NotificationService
 
-from .models import EInvoice, EInvoiceConfig, EInvoiceProvider, EInvoiceReportBatch
+from apps.einvoice.models import EInvoice, EInvoiceConfig, EInvoiceProvider, EInvoiceReportBatch
 
 
 class EInvoiceIssueError(Exception):
