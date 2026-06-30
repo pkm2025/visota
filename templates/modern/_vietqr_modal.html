@@ -1,0 +1,121 @@
+{% load static %}
+<div class="modal fade" id="vietqrModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-qr-code"></i> QR thanh toán
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div id="qr-error" class="alert alert-danger d-none"></div>
+        <div id="qr-loading" class="text-muted py-4">
+          <div class="spinner-border"></div>
+          <p class="mt-2">Đang tạo QR...</p>
+        </div>
+        <div id="qr-content" class="d-none">
+          <img id="qr-img" src="" alt="VietQR" class="img-fluid mb-3"
+               style="max-width: 280px; border: 1px solid #eee; border-radius: 8px">
+          <table class="table table-sm text-start">
+            <tr><th style="width: 35%">Người thụ hưởng:</th><td id="qr-holder"></td></tr>
+            <tr><th>Số TK:</th><td>
+              <span id="qr-account"></span>
+              <button class="btn btn-sm btn-link py-0 px-1" onclick="vietqrCopy('account')" title="Copy số TK">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </td></tr>
+            <tr><th>Ngân hàng:</th><td id="qr-bank"></td></tr>
+            <tr><th>Số tiền:</th><td><strong id="qr-amount"></strong> VND</td></tr>
+            <tr><th>Nội dung CK:</th><td>
+              <span id="qr-memo"></span>
+              <button class="btn btn-sm btn-link py-0 px-1" onclick="vietqrCopy('memo')" title="Copy nội dung">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </td></tr>
+          </table>
+          <select id="qr-bank-select" class="form-select form-select-sm mt-2"
+                  onchange="vietqrSwitchBank(this.value)"></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+window.VietQR = (function() {
+  let currentInvoice = null;  // {type, pk}
+
+  async function open(invoiceType, pk) {
+    currentInvoice = { type: invoiceType, pk: pk };
+    const modal = new bootstrap.Modal(document.getElementById('vietqrModal'));
+    document.getElementById('qr-loading').classList.remove('d-none');
+    document.getElementById('qr-content').classList.add('d-none');
+    document.getElementById('qr-error').classList.add('d-none');
+    modal.show();
+    await load(invoiceType, pk, null);
+  }
+
+  async function load(invoiceType, pk, bankId) {
+    let url = `/modern/banking/vietqr/${invoiceType}/${pk}/`;
+    if (bankId) url += `?bank=${encodeURIComponent(bankId)}`;
+    try {
+      const r = await fetch(url);
+      const data = await r.json();
+      if (data.error) {
+        showError(data.error);
+        return;
+      }
+      document.getElementById('qr-img').src = data.qr_url;
+      document.getElementById('qr-holder').textContent = data.holder;
+      document.getElementById('qr-account').textContent = data.account_no;
+      document.getElementById('qr-bank').textContent = data.bank_name;
+      document.getElementById('qr-amount').textContent = Number(data.amount).toLocaleString('vi-VN');
+      document.getElementById('qr-memo').textContent = data.memo;
+      // Bank switcher
+      const sel = document.getElementById('qr-bank-select');
+      sel.innerHTML = data.bank_list.map(b =>
+        `<option value="${b.id}" ${b.id === data.selected_bank_id ? 'selected' : ''}>` +
+        `${b.bank_name} - ${b.account_number}</option>`
+      ).join('');
+      document.getElementById('qr-loading').classList.add('d-none');
+      document.getElementById('qr-content').classList.remove('d-none');
+    } catch (e) {
+      showError('Lỗi tải QR: ' + e.message);
+    }
+  }
+
+  async function switchBank(bankId) {
+    if (currentInvoice) {
+      await load(currentInvoice.type, currentInvoice.pk, bankId);
+    }
+  }
+
+  function copy(field) {
+    const text = document.getElementById(field === 'account' ? 'qr-account' : 'qr-memo').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      // Brief feedback
+      const btn = event.target.closest('button');
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<i class="bi bi-check"></i>';
+      setTimeout(() => { btn.innerHTML = orig; }, 1000);
+    });
+  }
+
+  function showError(msg) {
+    document.getElementById('qr-loading').classList.add('d-none');
+    document.getElementById('qr-content').classList.add('d-none');
+    const err = document.getElementById('qr-error');
+    err.textContent = msg;
+    err.classList.remove('d-none');
+  }
+
+  return { open, switchBank, copy };
+})();
+function vietqrOpen(type, pk) { return window.VietQR.open(type, pk); }
+function vietqrSwitchBank(id) { return window.VietQR.switchBank(id); }
+function vietqrCopy(f) { return window.VietQR.copy(f); }
+</script>
