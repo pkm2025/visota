@@ -47,6 +47,7 @@ from apps.banking.views import (
     BankStatementImportDetailView,
     BankStatementImportListView,
     BankStatementUploadView,
+    VietQRModalView,
 )
 from apps.guarantees.views import BankGuaranteeListView
 from apps.loans.views import BankLoanListView
@@ -225,6 +226,7 @@ __all__ = [
     "BankStatementImportDetailView",
     "BankReconciliationView",
     "BankReconciliationRunView",
+    "VietQRModalView",
     "BankGuaranteeListView",
     "BankLoanListView",
     "BidOpportunityListView",

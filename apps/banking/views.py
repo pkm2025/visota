@@ -2,6 +2,7 @@
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView
@@ -10,6 +11,7 @@ from apps.core.models import Company
 
 from .models import BankAccount, BankStatementImport, BankTransaction, ReconciliationMatch
 from .services import BankImportError, BankReconciliationService
+from .services.vietqr_service import VietQRService
 
 
 class BankAccountListView(LoginRequiredMixin, ListView):
@@ -172,3 +174,81 @@ class BankReconciliationRunView(LoginRequiredMixin, View):
         matched = BankReconciliationService.auto_reconcile(company)
         messages.success(request, f"Đã đối soát {matched} giao dịch.")
         return redirect("ui_modern:banking_reconcile")
+
+
+class VietQRModalView(LoginRequiredMixin, View):
+    """AJAX endpoint that returns JSON for the VietQR payment modal.
+
+    GET /modern/banking/vietqr/<invoice_type>/<pk>/?bank=<bank_id>
+
+    invoice_type: 'einvoice' or 'sales'.
+    """
+
+    def get(self, request, invoice_type, pk):
+        company = (
+            getattr(request, "current_company", None)
+            or Company.objects.first()
+        )
+        if not company:
+            return JsonResponse({"error": "No company"}, status=400)
+
+        # Load invoice — resolves (amount, invoice_no, customer_code)
+        try:
+            amount, invoice_no, customer_code = self._load_invoice(invoice_type, pk, company)
+        except Http404:
+            return JsonResponse({"error": "Invoice not found"}, status=404)
+
+        # Resolve bank account
+        bank_qs = BankAccount.objects.filter(company=company, is_active=True)
+        bank_id = request.GET.get("bank")
+        if bank_id:
+            bank_account = bank_qs.filter(pk=bank_id).first()
+        else:
+            bank_account = bank_qs.first()
+        if not bank_account:
+            return JsonResponse(
+                {"error": "Công ty chưa có tài khoản ngân hàng"},
+                status=404,
+            )
+
+        # Build QR
+        svc = VietQRService()
+        memo = svc.build_memo(invoice_no, customer_code)
+        try:
+            qr_url = svc.build_url(bank_account, amount, memo)
+        except VietQRService.UnsupportedBankError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
+
+        # ponytail: VND amounts are whole-number; strip Decimal places for display.
+        amount_display = str(int(amount)) if amount == int(amount) else str(amount)
+
+        bank_list = list(
+            bank_qs.values("id", "account_number", "bank_name", "account_holder")
+        )
+
+        return JsonResponse({
+            "qr_url": qr_url,
+            "account_no": bank_account.account_number,
+            "bank_name": bank_account.bank_name,
+            "holder": bank_account.account_holder,
+            "amount": amount_display,
+            "memo": memo,
+            "bank_list": bank_list,
+            "selected_bank_id": bank_account.id,
+        })
+
+    def _load_invoice(self, invoice_type, pk, company):
+        if invoice_type == "einvoice":
+            from apps.einvoice.models import EInvoice
+            ei = EInvoice.objects.filter(pk=pk, company=company).first()
+            if not ei:
+                raise Http404
+            return ei.total_amount, ei.invoice_no or f"PK-{ei.pk}", ""
+        elif invoice_type == "sales":
+            from apps.sales.models import SalesInvoice
+            si = SalesInvoice.objects.filter(pk=pk, company=company).first()
+            if not si:
+                raise Http404
+            customer_code = si.customer.code if si.customer_id else ""
+            return si.total_amount, si.invoice_no, customer_code
+        raise Http404(f"Unknown invoice type: {invoice_type}")

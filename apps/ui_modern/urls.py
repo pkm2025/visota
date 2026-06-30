@@ -26,6 +26,7 @@ from .views import (
     BankAccountListView,
     BankReconciliationRunView,
     BankReconciliationView,
+    VietQRModalView,
     CompanyProfileView,
     ContactListAdminView,
     MigrationUploadView,
@@ -329,6 +330,11 @@ urlpatterns = [
         "banking/reconcile/run/",
         login_required(BankReconciliationRunView.as_view()),
         name="banking_reconcile_run",
+    ),
+    path(
+        "banking/vietqr/<str:invoice_type>/<int:pk>/",
+        login_required(VietQRModalView.as_view()),
+        name="vietqr_modal",
     ),
     # Guarantees
     path(
