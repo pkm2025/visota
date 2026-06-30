@@ -34,6 +34,7 @@
                             <th class="text-end">VAT</th>
                             <th class="text-end">Tổng cộng</th>
                             <th>TT thanh toán</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -51,10 +52,15 @@
                                 {% elif inv.payment_status == 1 %}<span class="badge bg-info">TT một phần</span>
                                 {% else %}<span class="badge bg-success">Đã TT</span>{% endif %}
                             </td>
+                            <td>
+                                <button class="btn btn-success btn-sm" onclick="vietqrOpen('sales', {{ inv.pk }})">
+                                    <i class="bi bi-qr-code"></i> QR
+                                </button>
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center py-5">
+                            <td colspan="9" class="text-center py-5">
                                 <i class="bi bi-inbox text-muted" style="font-size:48px;"></i>
                                 <p class="text-muted mt-2 mb-1">Chưa có hóa đơn bán nào</p>
                                 <a href="{% url 'ui_modern:sales_invoice_create' %}" class="btn btn-outline-primary btn-sm">
@@ -83,4 +89,5 @@
         </div>
     </div>
 </div>
+{% include "modern/_vietqr_modal.html" %}
 {% endblock %}
