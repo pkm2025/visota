@@ -104,7 +104,7 @@
 
 <table class="totals">
   <tr><td>Cộng tiền hàng:</td><td>{{ subtotal|floatformat:0|intcomma }}</td></tr>
-  <tr><td>Thuế GTGT ({{ vat_rate|floatformat:0 }}%):</td><td>{{ vat_amount|floatformat:0|intcomma }}</td></tr>
+  <tr><td>Thuế GTGT ({% widthratio vat_rate 1 100 %}%):</td><td>{{ vat_amount|floatformat:0|intcomma }}</td></tr>
   <tr class="grand"><td>Tổng cộng thanh toán:</td><td>{{ total|floatformat:0|intcomma }}</td></tr>
 </table>
 
