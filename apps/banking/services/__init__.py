@@ -8,7 +8,7 @@ from decimal import Decimal
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 
-from .models import (
+from apps.banking.models import (
     BankAccount,
     BankStatementImport,
     BankTransaction,
