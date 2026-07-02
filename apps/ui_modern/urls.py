@@ -68,6 +68,8 @@ from .views import (
     ContractExportDocxView,
     ContractGenerateView,
     ContractWizardView,
+    HelpDetailView,
+    HelpIndexView,
     ContractListView,
     ContractTemplateListView,
     ContractTemplateCreateView,
@@ -944,5 +946,16 @@ urlpatterns = [
         "crm/campaigns/new/",
         login_required(CampaignCreateView.as_view()),
         name="crm_campaign_create",
+    ),
+    # Knowledge Base / Help
+    path(
+        "help/",
+        login_required(HelpIndexView.as_view()),
+        name="help_index",
+    ),
+    path(
+        "help/<slug:slug>/",
+        login_required(HelpDetailView.as_view()),
+        name="help_detail",
     ),
 ]

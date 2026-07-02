@@ -1,0 +1,50 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 800px">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:help_index' %}">Trợ giúp</a></li>
+            <li class="breadcrumb-item active">{{ article.title|truncatechars:40 }}</li>
+        </ol>
+    </nav>
+
+    <article>
+        <h1 class="h3 mb-2">{{ article.title }}</h1>
+        <p class="text-muted">{{ article.excerpt }}</p>
+        <hr>
+
+        <div class="article-content">
+            {{ article.content|safe }}
+        </div>
+
+        {% if article.tag_list %}
+        <div class="mt-4">
+            {% for tag in article.tag_list %}
+            <span class="badge bg-light text-muted me-1">{{ tag }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </article>
+
+    {% if related %}
+    <div class="card mt-4">
+        <div class="card-header"><strong>Bài viết liên quan</strong></div>
+        <div class="list-group list-group-flush">
+            {% for r in related %}
+            <a href="{% url 'ui_modern:help_detail' r.slug %}" class="list-group-item list-group-item-action">
+                {{ r.title }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="text-center mt-4">
+        <a href="{% url 'ui_modern:help_index' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Tất cả bài viết
+        </a>
+    </div>
+</div>
+{% endblock %}
