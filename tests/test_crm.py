@@ -139,9 +139,7 @@ def test_opportunity_with_lines_and_weighted_value(company, product):
 
 
 @pytest.mark.django_db
-def test_opportunity_converter_creates_customer_contract_project_invoice(
-    company, product
-):
+def test_opportunity_converter_creates_customer_contract_project_invoice(company, product):
     account = CRMAccount.objects.create(
         company=company,
         code="AC3",
@@ -211,9 +209,7 @@ def test_opportunity_converter_creates_customer_contract_project_invoice(
 @pytest.mark.django_db
 def test_opportunity_converter_rejects_non_won(company):
     account = CRMAccount.objects.create(company=company, code="AC4", name="X")
-    opp = Opportunity.objects.create(
-        company=company, code="OPP003", name="Y", account=account
-    )
+    opp = Opportunity.objects.create(company=company, code="OPP003", name="Y", account=account)
     with pytest.raises(ValueError, match="Only WON"):
         OpportunityConverter(company=company).convert(opp)
 
@@ -245,9 +241,7 @@ def test_opportunity_converter_reuses_existing_customer_by_tax_code(company):
 @pytest.mark.django_db
 def test_activity_linked_to_opportunity(company):
     account = CRMAccount.objects.create(company=company, code="AC6", name="Z")
-    opp = Opportunity.objects.create(
-        company=company, code="OPP005", name="D", account=account
-    )
+    opp = Opportunity.objects.create(company=company, code="OPP005", name="D", account=account)
     act = Activity.objects.create(
         company=company,
         activity_type=Activity.ActivityType.CALL,
@@ -295,3 +289,53 @@ def test_campaign_creation_with_member(company):
     )
     assert member in list(campaign.members.all())
     assert lead in [m.lead for m in campaign.members.all()]
+
+
+# ---------------------------------------------------------------------------
+# Simplified CRM mode (hide Ticket/Campaign for micro/small companies)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_simple_crm_hides_ticket_campaign_for_micro(db):
+    """Micro company sidebar should NOT show Chăm sóc KH or Chiến dịch."""
+    from django.test import Client
+    from apps.identity.models import User
+
+    company = Company.objects.create(
+        code="MICRO1", name="Micro Co", sme_size="micro", accounting_regime="tt133"
+    )
+    user = User.objects.create_superuser(
+        username="microadmin", password="Secret123", email="m@test.local"
+    )
+    client = Client()
+    client.force_login(user)
+    response = client.get("/modern/")
+    content = response.content.decode("utf-8")
+    assert "Chăm sóc KH" not in content
+    assert "Chiến dịch" not in content
+    # Lead + Opportunity should still be visible
+    assert "Khách tiềm năng" in content
+    assert "Cơ hội bán hàng" in content
+
+
+@pytest.mark.django_db
+def test_full_crm_shows_ticket_campaign_for_medium(db):
+    """Medium company sidebar should show all CRM items."""
+    from django.test import Client
+    from apps.identity.models import User
+
+    company = Company.objects.create(
+        code="MED1", name="Medium Co", sme_size="medium", accounting_regime="tt133"
+    )
+    user = User.objects.create_superuser(
+        username="medadmin", password="Secret123", email="med@test.local"
+    )
+    client = Client()
+    client.force_login(user)
+    response = client.get("/modern/")
+    content = response.content.decode("utf-8")
+    assert "Chăm sóc KH" in content
+    assert "Chiến dịch" in content
+    assert "Khách tiềm năng" in content
+    assert "Cơ hội bán hàng" in content

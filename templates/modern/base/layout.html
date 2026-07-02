@@ -288,12 +288,14 @@
                         <a href="{% url 'ui_modern:crm_opportunity_list' %}" class="nav-item">
                             <i class="bi bi-briefcase"></i> <span>Cơ hội bán hàng</span>
                         </a>
+                        {% if request.current_company and request.current_company.sme_size != "micro" and request.current_company.sme_size != "small" %}
                         <a href="{% url 'ui_modern:crm_ticket_list' %}" class="nav-item">
                             <i class="bi bi-life-preserver"></i> <span>Chăm sóc KH</span>
                         </a>
                         <a href="{% url 'ui_modern:crm_campaign_list' %}" class="nav-item">
                             <i class="bi bi-megaphone"></i> <span>Chiến dịch</span>
                         </a>
+                        {% endif %}
                         {% endif %}
                     </div>
                 </div>
