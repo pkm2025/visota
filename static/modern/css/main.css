@@ -291,6 +291,17 @@ body.right-collapsed .right-sidebar { display: none; }
     .topbar-center {
         display: none;
     }
+    .topbar-left {
+        width: auto;
+        padding-right: 8px;
+    }
+    .topbar-right {
+        gap: 4px;
+    }
+    .topbar-right .btn-sm {
+        padding: 4px 6px;
+        font-size: 13px;
+    }
     .main-content {
         width: 100%;
     }

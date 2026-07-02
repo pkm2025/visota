@@ -1,27 +1,26 @@
 """Tests for e-invoice module: issue from sales, publish, cancel, BC01."""
 
-from datetime import date
+from datetime import datetime
 from decimal import Decimal
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 from apps.core.models import Company
 from apps.einvoice.models import (
     EInvoice,
     EInvoiceConfig,
     EInvoiceProvider,
-    EInvoiceReportBatch,
 )
 from apps.einvoice.services import (
-    EInvoiceIssueError,
     EInvoiceReportService,
     EInvoiceService,
     amount_in_words,
 )
 from apps.master_data.models import Customer, Product
-from apps.sales.models import SalesInvoice, SalesInvoiceLine
 from apps.notifications.models import Notification
+from apps.sales.models import SalesInvoice, SalesInvoiceLine
 
 User = get_user_model()
 
@@ -29,15 +28,19 @@ User = get_user_model()
 @pytest.fixture
 def company(db):
     return Company.objects.create(
-        code="TESTEINV", name="Test EInvoice Co", tax_code="0101234567",
+        code="TESTEINV",
+        name="Test EInvoice Co",
+        tax_code="0101234567",
     )
 
 
 @pytest.fixture
 def customer(db, company):
     return Customer.objects.create(
-        company=company, code="CUST001",
-        name="Test Customer", tax_code="0109876543",
+        company=company,
+        code="CUST001",
+        name="Test Customer",
+        tax_code="0109876543",
         address="123 Test St",
     )
 
@@ -45,9 +48,12 @@ def customer(db, company):
 @pytest.fixture
 def product(db, company):
     return Product.objects.create(
-        company=company, code="PROD001", name="Test Product",
+        company=company,
+        code="PROD001",
+        name="Test Product",
         default_unit_price=Decimal("1000000"),
-        product_type="goods", unit_id="cai",
+        product_type="goods",
+        unit_id="cai",
         default_vat_rate=Decimal("10"),
     )
 
@@ -55,16 +61,29 @@ def product(db, company):
 @pytest.fixture
 def sales_invoice(db, company, customer, product):
     si = SalesInvoice.objects.create(
-        company=company, invoice_no="SI-001", invoice_date="2026-06-23",
-        customer=customer, currency_code="VND", exchange_rate=Decimal("1"),
-        subtotal=Decimal("1000000"), vat_amount=Decimal("100000"),
-        total_amount=Decimal("1100000"), status=2,
+        company=company,
+        invoice_no="SI-001",
+        invoice_date="2026-06-23",
+        customer=customer,
+        currency_code="VND",
+        exchange_rate=Decimal("1"),
+        subtotal=Decimal("1000000"),
+        vat_amount=Decimal("100000"),
+        total_amount=Decimal("1100000"),
+        status=2,
     )
     SalesInvoiceLine.objects.create(
-        invoice=si, line_no=1, product=product, description="Test",
-        quantity=Decimal("1"), unit_id="cai", unit_price=Decimal("1000000"),
-        amount_before_vat=Decimal("1000000"), vat_rate=Decimal("0.10"),
-        vat_amount=Decimal("100000"), amount=Decimal("1100000"),
+        invoice=si,
+        line_no=1,
+        product=product,
+        description="Test",
+        quantity=Decimal("1"),
+        unit_id="cai",
+        unit_price=Decimal("1000000"),
+        amount_before_vat=Decimal("1000000"),
+        vat_rate=Decimal("0.10"),
+        vat_amount=Decimal("100000"),
+        amount=Decimal("1100000"),
     )
     return si
 
@@ -77,6 +96,7 @@ def admin(db, company):
 
 
 # ---------- amount_in_words ----------
+
 
 def test_amount_in_words_zero():
     assert "Không" in amount_in_words(Decimal("0"))
@@ -94,6 +114,7 @@ def test_amount_in_words_million():
 
 # ---------- Config ----------
 
+
 @pytest.mark.django_db
 def test_get_config_auto_creates(company):
     config = EInvoiceService.get_config(company)
@@ -109,6 +130,7 @@ def test_get_config_returns_existing(company):
 
 
 # ---------- Issue from sales ----------
+
 
 @pytest.mark.django_db
 def test_issue_from_sales_creates_draft(company, customer, product, sales_invoice, admin):
@@ -141,6 +163,7 @@ def test_issue_from_sales_generates_json_file(company, customer, product, sales_
     ei = EInvoiceService.issue_from_sales_invoice(sales_invoice, issued_by=admin)
     assert ei.json_file.name.endswith(".json")
     import json
+
     data = json.loads(ei.json_file.read())
     assert data["seller"]["name"] == company.name
     assert data["buyer"]["name"] == customer.name
@@ -151,12 +174,14 @@ def test_issue_from_sales_generates_json_file(company, customer, product, sales_
 def test_issue_from_sales_includes_line_items(company, customer, product, sales_invoice, admin):
     ei = EInvoiceService.issue_from_sales_invoice(sales_invoice, issued_by=admin)
     import json
+
     data = json.loads(ei.json_file.read())
     assert len(data["items"]) == 1
     assert data["items"][0]["itemName"] == "Test"
 
 
 # ---------- Publish ----------
+
 
 @pytest.mark.django_db
 def test_publish_manual_mode_assigns_number(company, customer, product, sales_invoice, admin):
@@ -180,7 +205,6 @@ def test_publish_with_explicit_number(company, customer, product, sales_invoice,
 @pytest.mark.django_db
 def test_publish_fires_notification(company, db):
     """publish() should notify superusers."""
-    from apps.sales.services.invoice_service import SalesInvoiceService
 
     company = Company.objects.create(code="TESTPUB", name="Pub Co", tax_code="0109999999")
     User.objects.create_superuser(
@@ -188,20 +212,36 @@ def test_publish_fires_notification(company, db):
     )
     cust = Customer.objects.create(company=company, code="C1", name="C1")
     prod = Product.objects.create(
-        company=company, code="P1", name="P1",
-        default_unit_price=Decimal("100"), product_type="goods",
+        company=company,
+        code="P1",
+        name="P1",
+        default_unit_price=Decimal("100"),
+        product_type="goods",
     )
     si = SalesInvoice.objects.create(
-        company=company, invoice_no="SI-X", invoice_date="2026-06-23",
-        customer=cust, currency_code="VND", exchange_rate=Decimal("1"),
-        subtotal=Decimal("100"), vat_amount=Decimal("0"),
-        total_amount=Decimal("100"), status=2,
+        company=company,
+        invoice_no="SI-X",
+        invoice_date="2026-06-23",
+        customer=cust,
+        currency_code="VND",
+        exchange_rate=Decimal("1"),
+        subtotal=Decimal("100"),
+        vat_amount=Decimal("0"),
+        total_amount=Decimal("100"),
+        status=2,
     )
     SalesInvoiceLine.objects.create(
-        invoice=si, line_no=1, product=prod, description="x",
-        quantity=Decimal("1"), unit_id="cai", unit_price=Decimal("100"),
-        amount_before_vat=Decimal("100"), vat_rate=Decimal("0"),
-        vat_amount=Decimal("0"), amount=Decimal("100"),
+        invoice=si,
+        line_no=1,
+        product=prod,
+        description="x",
+        quantity=Decimal("1"),
+        unit_id="cai",
+        unit_price=Decimal("100"),
+        amount_before_vat=Decimal("100"),
+        vat_rate=Decimal("0"),
+        vat_amount=Decimal("0"),
+        amount=Decimal("100"),
     )
     ei = EInvoiceService.issue_from_sales_invoice(si)
     EInvoiceService.publish(ei)
@@ -209,6 +249,7 @@ def test_publish_fires_notification(company, db):
 
 
 # ---------- Cancel ----------
+
 
 @pytest.mark.django_db
 def test_cancel_marks_cancelled(company, customer, product, sales_invoice, admin):
@@ -221,6 +262,7 @@ def test_cancel_marks_cancelled(company, customer, product, sales_invoice, admin
 
 
 # ---------- Adjust ----------
+
 
 @pytest.mark.django_db
 def test_adjust_creates_negative_invoice(company, customer, product, sales_invoice, admin):
@@ -236,13 +278,15 @@ def test_adjust_creates_negative_invoice(company, customer, product, sales_invoi
 
 # ---------- BC01 Report ----------
 
+
 @pytest.mark.django_db
 def test_generate_bc01_returns_batch(company, customer, product, sales_invoice, admin):
     ei = EInvoiceService.issue_from_sales_invoice(sales_invoice, issued_by=admin)
     EInvoiceService.publish(ei)
-    batch = EInvoiceReportService.generate_bc01(
-        company, month=6, year=2026, submitted_by=admin
-    )
+    # Service sets issue_date=timezone.now(); force June 2026 to match BC01 period.
+    ei.issue_date = timezone.make_aware(datetime(2026, 6, 23))
+    ei.save()
+    batch = EInvoiceReportService.generate_bc01(company, month=6, year=2026, submitted_by=admin)
     assert batch.report_type == "bc01"
     assert batch.invoice_count == 1
     assert batch.total_amount == ei.total_amount

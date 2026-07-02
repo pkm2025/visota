@@ -17,7 +17,9 @@ def setup(db):
     # Tests assume the user can access reports — make them a superuser so the
     # new ModulePermissionMiddleware doesn't block them. Permission-aware
     # behaviour is covered in test_permissions.py.
-    user = User.objects.create_superuser(username="alice", password="Secret123", email="alice@test.local")
+    user = User.objects.create_superuser(
+        username="alice", password="Secret123", email="alice@test.local"
+    )
     return company, user
 
 
@@ -135,7 +137,9 @@ def test_general_ledger_shows_lines_for_specific_account(setup, auth_client):
         credit_vnd=Decimal("800000"),
     )
 
-    response = auth_client.get("/modern/reports/general-ledger/?account_code=131")
+    response = auth_client.get(
+        "/modern/reports/general-ledger/?account_code=131&fiscal_year=2026&period=6"
+    )
     assert response.status_code == 200
     content = response.content.decode("utf-8")
     # TK 131 bút toán phải có trong sổ cái

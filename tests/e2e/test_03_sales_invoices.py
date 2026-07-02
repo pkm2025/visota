@@ -8,7 +8,7 @@ from playwright.sync_api import expect
 def test_sales_invoice_list_loads(logged_in_page):
     logged_in_page.goto("http://127.0.0.1:8903/modern/sales-invoices/")
     expect(logged_in_page.locator("h1")).to_be_visible()
-    expect(logged_in_page.locator("table")).to_be_visible()
+    expect(logged_in_page.locator("table").first).to_be_visible()
 
 
 @pytest.mark.e2e
@@ -41,7 +41,7 @@ def test_sales_invoice_create_page_loads(logged_in_page):
     """Sales invoice create form loads."""
     logged_in_page.goto("http://127.0.0.1:8903/modern/sales-invoices/new/")
     # Form should be present (any form within main content)
-    form = logged_in_page.locator('main form, .container-fluid form').first
+    form = logged_in_page.locator("main form, .container-fluid form").first
     assert form.count() > 0
 
 
@@ -56,7 +56,9 @@ def test_customer_list_has_search(logged_in_page):
     """Customer list has its own search input (scoped to card)."""
     logged_in_page.goto("http://127.0.0.1:8903/modern/customers/")
     # Local search inside card-body, not topbar global search
-    search = logged_in_page.locator('.card input[name="search"], main form input[name="search"]').first
+    search = logged_in_page.locator(
+        '.card input[name="search"], main form input[name="search"]'
+    ).first
     assert search.count() > 0
 
 
@@ -74,7 +76,7 @@ def test_customer_export_excel(logged_in_page):
 def test_customer_create_page_loads(logged_in_page):
     """Customer create form loads."""
     logged_in_page.goto("http://127.0.0.1:8903/modern/customers/new/")
-    form = logged_in_page.locator('main form, .container-fluid form').first
+    form = logged_in_page.locator("main form, .container-fluid form").first
     assert form.count() > 0
 
 
