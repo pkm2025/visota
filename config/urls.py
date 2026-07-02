@@ -7,6 +7,7 @@ from apps.ui_modern.views import (
     health_simple, health_detailed,
 )
 from apps.ui_modern.views.company_switch import CompanySwitchView
+from apps.core.api import api
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -32,6 +33,8 @@ urlpatterns = [
     # App redirect
     path('app/', RedirectView.as_view(url='/modern/', permanent=False)),
     path('modern/', include('apps.ui_modern.urls')),
+    # REST API (django-ninja)
+    path('api/v1/', api.urls),
 ]
 
 if settings.DEBUG and 'debug_toolbar' in settings.INSTALLED_APPS:
