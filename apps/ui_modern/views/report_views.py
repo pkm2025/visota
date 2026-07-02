@@ -505,3 +505,81 @@ class PITMonthlyReportView(LoginRequiredMixin, TemplateView):
             }
         )
         return ctx
+
+
+class SubLedgerView(LoginRequiredMixin, TemplateView):
+    """Sổ chi tiết tài khoản — chi tiết công nợ KH (131) / NCC (331)."""
+
+    template_name = "modern/reporting/sub_ledger.html"
+    login_url = "/auth/login/"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        today = date.today()
+        try:
+            fiscal_year = int(self.request.GET.get("fiscal_year", today.year))
+        except (TypeError, ValueError):
+            fiscal_year = today.year
+        try:
+            period = int(self.request.GET.get("period", today.month))
+        except (TypeError, ValueError):
+            period = today.month
+        account_code = self.request.GET.get("account_code", "131").strip()
+
+        company = getattr(self.request, "current_company", None) or Company.objects.first()
+
+        # Build lines grouped by object_code (customer/vendor)
+        lines_qs = (
+            VoucherLine.objects.select_related("voucher")
+            .filter(
+                voucher__company=company,
+                account_code__startswith=account_code,
+                voucher__fiscal_year=fiscal_year,
+            )
+            .order_by("object_code", "voucher__voucher_date", "voucher__voucher_no")
+        )
+
+        # Group by object_code
+        from collections import OrderedDict
+
+        parties = OrderedDict()
+        totals = {"debit": Decimal("0"), "credit": Decimal("0")}
+        for line in lines_qs:
+            code = line.object_code or "(không rõ)"
+            if code not in parties:
+                parties[code] = {
+                    "name": line.object_name or code,
+                    "lines": [],
+                    "debit": Decimal("0"),
+                    "credit": Decimal("0"),
+                    "balance": Decimal("0"),
+                }
+            parties[code]["lines"].append(line)
+            debit = line.debit_vnd or Decimal("0")
+            credit = line.credit_vnd or Decimal("0")
+            parties[code]["debit"] += debit
+            parties[code]["credit"] += credit
+            totals["debit"] += debit
+            totals["credit"] += credit
+
+        # Compute running balance per party
+        for p in parties.values():
+            if account_code.startswith("1") or account_code.startswith("6"):
+                # Debit-natured: balance = debit - credit
+                p["balance"] = p["debit"] - p["credit"]
+            else:
+                # Credit-natured: balance = credit - debit
+                p["balance"] = p["credit"] - p["debit"]
+
+        ctx.update(
+            {
+                "page_title": f"Sổ chi tiết TK {account_code}",
+                "fiscal_year": fiscal_year,
+                "period": period,
+                "account_code": account_code,
+                "parties": parties,
+                "totals": totals,
+                **_common_period_choices(),
+            }
+        )
+        return ctx

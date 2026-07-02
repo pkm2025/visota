@@ -108,6 +108,7 @@ from .views import (
     PeriodClosingView,
     PITMonthlyReportView,
     PnLView,
+    SubLedgerView,
     ProductCreateView,
     ProductDeleteView,
     ProductDetailView,
@@ -848,6 +849,12 @@ urlpatterns = [
         "input-invoices/<int:pk>/process/",
         login_required(InputInvoiceProcessView.as_view()),
         name="input_invoice_process",
+    ),
+    # Sub-ledger (sổ chi tiết)
+    path(
+        "reports/sub-ledger/",
+        login_required(SubLedgerView.as_view()),
+        name="report_sub_ledger",
     ),
     # Recurring entries
     path(

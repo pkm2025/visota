@@ -168,6 +168,7 @@ from .report_views import (
     PITMonthlyReportView,
     PnLView,
     SalaryFundReportView,
+    SubLedgerView,
     TrialBalanceView,
     VATReturnView,
 )
