@@ -94,11 +94,14 @@ Tài liệu cho người dùng cuối — kế toán viên, sales, purchaser, HR
 
 | Hạng mục | Giá trị |
 |---|---|
-| **Phiên bản** | v3.0.0 |
+| **Phiên bản** | v3.1.0 |
 | **Stack** | Django 5.2 LTS + django-ninja + HTMX 2.x + Alpine 3.x + MariaDB 11.4 |
-| **Apps** | 31 Django apps |
+| **Apps** | 28 Django apps |
 | **Module permissions** | 25 |
-| **System roles** | 8 |
-| **URL endpoints** | ~120 |
-| **Tests** | 359 passing |
+| **System roles** | 8+ |
+| **URL endpoints** | 153 |
+| **Templates** | 120 |
+| **Migrations** | 53 |
+| **Unit tests** | 521 passing |
+| **E2E tests** | 164 passing (Playwright) |
 | **Tuân thủ pháp lý** | TT133/2016, TT200/2014, TT78/2021, Luật Kế toán 2015, Luật Đấu thầu 23/2023 |

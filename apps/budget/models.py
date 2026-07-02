@@ -19,9 +19,7 @@ class Budget(CompanyOwnedModel):
         ROLLING = "rolling", "Cuộn (rolling)"
 
     fiscal_year = models.PositiveSmallIntegerField()
-    scenario = models.CharField(
-        max_length=20, choices=Scenario.choices, default=Scenario.PLANNED
-    )
+    scenario = models.CharField(max_length=20, choices=Scenario.choices, default=Scenario.PLANNED)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
     total_revenue = models.DecimalField(max_digits=20, decimal_places=4, default=0)
@@ -30,7 +28,8 @@ class Budget(CompanyOwnedModel):
     approved_by = models.ForeignKey(
         "identity.User",
         on_delete=models.SET_NULL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         related_name="budgets_approved",
     )
     approved_at = models.DateTimeField(null=True, blank=True)
@@ -78,7 +77,7 @@ class BudgetLine(models.Model):
     def variance_pct(self):
         if not self.planned_amount:
             return 0
-        return (self.variance / self.planned_amount * 100)
+        return self.variance / self.planned_amount * 100
 
 
 class CashFlowProjection(CompanyOwnedModel):

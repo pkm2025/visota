@@ -15,10 +15,9 @@ class CompanySwitchView(LoginRequiredMixin, View):
         if company_id:
             # Verify user has access to this company
             from apps.identity.models import UserCompanyRole
+
             has_access = (
-                UserCompanyRole.objects.filter(
-                    user=request.user, company_id=company_id
-                ).exists()
+                UserCompanyRole.objects.filter(user=request.user, company_id=company_id).exists()
                 or request.user.is_superuser
             )
             if has_access:

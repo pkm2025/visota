@@ -8,7 +8,7 @@ from django.views.generic import DetailView, ListView
 
 from apps.core.models import Company
 
-from .models import BidOpportunity, BidResult
+from .models import BidOpportunity
 from .services import BidConverterService
 
 
@@ -19,9 +19,7 @@ class BidOpportunityListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        company = (
-            getattr(self.request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(self.request, "current_company", None) or Company.objects.first()
         qs = BidOpportunity.objects.filter(company=company)
         status = self.request.GET.get("status")
         if status:

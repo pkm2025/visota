@@ -64,25 +64,26 @@ class FxRevaluationBatch(CompanyOwnedModel):
     gl_voucher = models.ForeignKey(
         "ledger.AccountingVoucher",
         on_delete=models.SET_NULL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         related_name="fx_revaluations",
     )
     reversal_voucher = models.ForeignKey(
         "ledger.AccountingVoucher",
         on_delete=models.SET_NULL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         related_name="fx_reversals",
     )
 
-    status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.DRAFT
-    )
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     notes = models.TextField(blank=True, default="")
 
     posted_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
     )
     posted_at = models.DateTimeField(null=True, blank=True)
 

@@ -1,17 +1,15 @@
 """Migration tool — import Excel data from MISA/Fast/Excel into Visota."""
 
-import io
 from decimal import Decimal
-
-from openpyxl import load_workbook
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect, render
 from django.views import View
+from openpyxl import load_workbook
 
 from apps.core.models import Company
-from apps.master_data.models import Customer, Vendor, Product
+from apps.master_data.models import Customer, Product, Vendor
 
 
 class MigrationUploadView(LoginRequiredMixin, View):
@@ -102,8 +100,11 @@ class MigrationUploadView(LoginRequiredMixin, View):
                 _, created = Customer.objects.update_or_create(
                     code=code,
                     defaults={
-                        "company": company, "name": name,
-                        "tax_code": tax_code, "address": address, "phone": phone,
+                        "company": company,
+                        "name": name,
+                        "tax_code": tax_code,
+                        "address": address,
+                        "phone": phone,
                     },
                 )
                 if created:
@@ -127,8 +128,11 @@ class MigrationUploadView(LoginRequiredMixin, View):
                 _, created = Vendor.objects.update_or_create(
                     code=code,
                     defaults={
-                        "company": company, "name": name,
-                        "tax_code": tax_code, "address": address, "phone": phone,
+                        "company": company,
+                        "name": name,
+                        "tax_code": tax_code,
+                        "address": address,
+                        "phone": phone,
                     },
                 )
                 if created:
@@ -154,9 +158,12 @@ class MigrationUploadView(LoginRequiredMixin, View):
                 _, created = Product.objects.update_or_create(
                     code=code,
                     defaults={
-                        "company": company, "name": name,
-                        "default_unit_price": price, "unit_id": unit_id,
-                        "product_type": ptype, "default_vat_rate": Decimal("10"),
+                        "company": company,
+                        "name": name,
+                        "default_unit_price": price,
+                        "unit_id": unit_id,
+                        "product_type": ptype,
+                        "default_vat_rate": Decimal("10"),
                     },
                 )
                 if created:
@@ -172,8 +179,8 @@ class MigrationTemplateView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get(self, request, *args, **kwargs):
-        from openpyxl import Workbook
         from django.http import HttpResponse
+        from openpyxl import Workbook
 
         wb = Workbook()
 
@@ -186,7 +193,9 @@ class MigrationTemplateView(LoginRequiredMixin, View):
         # Vendors sheet
         ws2 = wb.create_sheet("Nhà cung cấp")
         ws2.append(["code", "name", "tax_code", "address", "phone"])
-        ws2.append(["VENDOR001", "Công ty XYZ", "0109876543", "456 Trần Hưng Đạo, HCM", "0909876543"])
+        ws2.append(
+            ["VENDOR001", "Công ty XYZ", "0109876543", "456 Trần Hưng Đạo, HCM", "0909876543"]
+        )
 
         # Products sheet
         ws3 = wb.create_sheet("Sản phẩm")

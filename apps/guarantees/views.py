@@ -14,9 +14,7 @@ class BankGuaranteeListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        company = (
-            getattr(self.request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(self.request, "current_company", None) or Company.objects.first()
         qs = BankGuarantee.objects.filter(company=company).select_related("contract")
         gt = self.request.GET.get("guarantee_type")
         if gt:

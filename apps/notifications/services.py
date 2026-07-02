@@ -5,11 +5,9 @@ based on channel. EmailService wraps Django's send_mail with logging.
 """
 
 from django.conf import settings
-from django.core.mail import get_connection, EmailMultiAlternatives
-from django.template.loader import render_to_string
+from django.core.mail import EmailMultiAlternatives, get_connection
 from django.utils import timezone
 
-from apps.core.models import Company
 from apps.identity.models import User
 
 from .models import EmailLog, Notification
@@ -159,9 +157,9 @@ class NotificationService:
         role = Role.objects.filter(code=role_code, company=company).first()
         if not role:
             return []
-        user_ids = UserCompanyRole.objects.filter(
-            role=role, company=company
-        ).values_list("user_id", flat=True)
+        user_ids = UserCompanyRole.objects.filter(role=role, company=company).values_list(
+            "user_id", flat=True
+        )
         notifs = []
         for uid in user_ids:
             u = User.objects.get(id=uid)

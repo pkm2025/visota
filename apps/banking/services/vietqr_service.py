@@ -64,11 +64,7 @@ class VietQRService:
         bin_code = self._resolve_bin(bank_account.bank_name)
         template = template or self.DEFAULT_TEMPLATE
         memo_safe = (memo or "")[:34]
-        params = (
-            f"?amount={int(amount)}"
-            f"&addInfo={quote(memo_safe)}"
-            f"&template={template}"
-        )
+        params = f"?amount={int(amount)}&addInfo={quote(memo_safe)}&template={template}"
         return f"{self.BASE}/{bin_code}/{bank_account.account_number}{params}"
 
     def _resolve_bin(self, bank_name: str) -> str:
@@ -96,10 +92,10 @@ class VietQRService:
         prefix = "INV "
         if customer_code:
             max_invoice_len = 34 - len(prefix) - 1 - len(customer_code)
-            invoice_trunc = (invoice_no or "")[:max(max_invoice_len, 1)]
+            invoice_trunc = (invoice_no or "")[: max(max_invoice_len, 1)]
             memo = f"{prefix}{invoice_trunc} {customer_code}"
         else:
             max_invoice_len = 34 - len(prefix)
-            invoice_trunc = (invoice_no or "")[:max(max_invoice_len, 1)]
+            invoice_trunc = (invoice_no or "")[: max(max_invoice_len, 1)]
             memo = f"{prefix}{invoice_trunc}"
         return memo[:34]

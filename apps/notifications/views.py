@@ -1,7 +1,7 @@
 """Notification UI views."""
 
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.views import View
 from django.views.generic import ListView

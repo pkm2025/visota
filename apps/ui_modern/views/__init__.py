@@ -1,44 +1,9 @@
-from .asset_views import (
-    AssetCreateView,
-    AssetDisposeView,
-    AssetListView,
-    AssetTransactionListView,
-    AssetTransferView,
-    DepreciationRunView,
-)
-from .attachment_views import (
-    AttachmentDeleteView,
-    AttachmentDownloadView,
-    AttachmentUploadView,
-)
-from .einvoice_pdf_view import EinvoicePDFView
-from .auth_views import PMKetoanLoginView, PMKetoanLogoutView
-from .company_views import CompanyProfileView
-from apps.public.views import ContactListAdminView
-from .migration_views import MigrationUploadView, MigrationTemplateView
-from .admin_views import (
-    AdminRoleEditView,
-    AdminRoleListView,
-    AdminUserAssignView,
-    AdminUserListView,
-    MyPermissionsView,
-)
 from apps.approvals.views import (
     ApprovalApproveView,
     ApprovalDetailView,
     ApprovalQueueView,
     ApprovalRejectView,
     ApprovalRuleListView,
-)
-from apps.einvoice.views import (
-    EInvoiceCancelView,
-    EInvoiceDetailView,
-    EInvoiceIssueFromSalesView,
-    EInvoiceJsonDownloadView,
-    EInvoiceListView,
-    EInvoicePublishView,
-    EInvoiceReportView,
-    EInvoiceXmlDownloadView,
 )
 from apps.banking.views import (
     BankAccountListView,
@@ -49,8 +14,6 @@ from apps.banking.views import (
     BankStatementUploadView,
     VietQRModalView,
 )
-from apps.guarantees.views import BankGuaranteeListView
-from apps.loans.views import BankLoanListView
 from apps.bidding.views import (
     BidConvertToContractView,
     BidOpportunityDetailView,
@@ -64,19 +27,55 @@ from apps.budget.views import (
     CashFlowGenerateView,
     CashFlowView,
 )
+from apps.einvoice.views import (
+    EInvoiceCancelView,
+    EInvoiceDetailView,
+    EInvoiceIssueFromSalesView,
+    EInvoiceJsonDownloadView,
+    EInvoiceListView,
+    EInvoicePublishView,
+    EInvoiceReportView,
+    EInvoiceXmlDownloadView,
+)
 from apps.fx.views import (
     ExchangeRateListView,
     FxRevaluationListView,
     FxRevaluationRunView,
 )
+from apps.guarantees.views import BankGuaranteeListView
+from apps.loans.views import BankLoanListView
+from apps.public.views import ContactListAdminView
+
+from .admin_views import (
+    AdminRoleEditView,
+    AdminRoleListView,
+    AdminUserAssignView,
+    AdminUserListView,
+    MyPermissionsView,
+)
+from .asset_views import (
+    AssetCreateView,
+    AssetDisposeView,
+    AssetListView,
+    AssetTransactionListView,
+    AssetTransferView,
+    DepreciationRunView,
+)
+from .attachment_views import (
+    AttachmentDeleteView,
+    AttachmentDownloadView,
+    AttachmentUploadView,
+)
+from .auth_views import PMKetoanLoginView, PMKetoanLogoutView
 from .chart_of_accounts_views import ChartOfAccountsListView
 from .closing_views import PeriodClosingView
+from .company_views import CompanyProfileView
 from .contract_template_views import (
     ContractGenerateView,
-    ContractTemplateListView,
     ContractTemplateCreateView,
-    ContractTemplateEditView,
     ContractTemplateDeleteView,
+    ContractTemplateEditView,
+    ContractTemplateListView,
     ContractTemplatePreviewRawView,
     ContractTemplatePreviewView,
     ContractWizardView,
@@ -114,6 +113,7 @@ from .document_views import (
     VoucherPrintView,
     VoucherUploadView,
 )
+from .einvoice_pdf_view import EinvoicePDFView
 from .health_views import health_detailed, health_simple
 from .hr_management_views import (
     DependentListView,
@@ -136,6 +136,7 @@ from .ledger_views import (
     VoucherGuidedView,
     VoucherListView,
 )
+from .migration_views import MigrationTemplateView, MigrationUploadView
 from .payroll_views import PayrollRunView
 from .product_views import (
     ProductCreateView,

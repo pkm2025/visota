@@ -1,12 +1,10 @@
 """Bidding services — convert WON bid to Contract automatically."""
 
 from datetime import date
-from decimal import Decimal
 
-from apps.core.models import Company
 from apps.contracts.models import Contract
 
-from .models import BidOpportunity, BidResult
+from .models import BidResult
 
 
 class BidConverterService:
@@ -22,7 +20,9 @@ class BidConverterService:
                 "outcome": BidResult.Outcome.WON,
                 "awarded_at": awarded_at or date.today(),
                 "final_contract_value": final_value or bid_opportunity.bid_package_price,
-                "winner_name": contractor_profile.name if contractor_profile else bid_opportunity.company.name,
+                "winner_name": contractor_profile.name
+                if contractor_profile
+                else bid_opportunity.company.name,
             },
         )
         bid_opportunity.status = "won"

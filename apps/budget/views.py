@@ -18,9 +18,7 @@ class BudgetListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        company = (
-            getattr(self.request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(self.request, "current_company", None) or Company.objects.first()
         return Budget.objects.filter(company=company)
 
     def get_context_data(self, **kwargs):
@@ -64,9 +62,7 @@ class BudgetGenerateView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, *args, **kwargs):
-        company = (
-            getattr(request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(request, "current_company", None) or Company.objects.first()
         year = int(request.POST.get("year", 2026))
         budget = BudgetVarianceService.generate_default_template(company, year)
         messages.success(request, f"Đã tạo ngân sách {year} ({budget.lines.count()} dòng).")
@@ -91,13 +87,11 @@ class CashFlowView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        company = (
-            getattr(self.request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(self.request, "current_company", None) or Company.objects.first()
         ctx["page_title"] = "Dự phóng dòng tiền"
-        ctx["projections"] = CashFlowProjection.objects.filter(
-            company=company
-        ).order_by("-period_year", "-period_month")[:12]
+        ctx["projections"] = CashFlowProjection.objects.filter(company=company).order_by(
+            "-period_year", "-period_month"
+        )[:12]
         return ctx
 
 
@@ -107,9 +101,7 @@ class CashFlowGenerateView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, *args, **kwargs):
-        company = (
-            getattr(request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(request, "current_company", None) or Company.objects.first()
         year = int(request.POST.get("year", 2026))
         month = int(request.POST.get("month", 6))
         proj = CashFlowService.generate_for_period(company, year, month)

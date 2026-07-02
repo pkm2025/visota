@@ -1,8 +1,8 @@
 """Approval UI views."""
 
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import get_object_or_404, redirect
 from django.views import View
 from django.views.generic import DetailView, ListView
 
@@ -22,9 +22,7 @@ class ApprovalQueueView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        company = (
-            getattr(self.request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(self.request, "current_company", None) or Company.objects.first()
         if not company:
             return ApprovalRequest.objects.none()
         return ApprovalService.pending_for_user(self.request.user, company)
@@ -35,8 +33,7 @@ class ApprovalQueueView(LoginRequiredMixin, ListView):
         ctx["user_role_codes"] = set(
             UserCompanyRole.objects.filter(
                 user=self.request.user,
-                company=getattr(self.request, "current_company", None)
-                or Company.objects.first(),
+                company=getattr(self.request, "current_company", None) or Company.objects.first(),
             ).values_list("role__code", flat=True)
         )
         return ctx
@@ -59,15 +56,13 @@ class ApprovalDetailView(LoginRequiredMixin, DetailView):
         ctx["page_title"] = f"Yêu cầu duyệt #{req.id}"
         company = req.company
         user_roles = set(
-            UserCompanyRole.objects.filter(
-                user=self.request.user, company=company
-            ).values_list("role__code", flat=True)
+            UserCompanyRole.objects.filter(user=self.request.user, company=company).values_list(
+                "role__code", flat=True
+            )
         )
         # Can this user act on the next step?
         next_step = (
-            req.steps.filter(status=ApprovalRequest.Status.PENDING)
-            .order_by("sequence")
-            .first()
+            req.steps.filter(status=ApprovalRequest.Status.PENDING).order_by("sequence").first()
         )
         ctx["next_step"] = next_step
         ctx["can_act"] = (
@@ -91,19 +86,15 @@ class ApprovalApproveView(LoginRequiredMixin, View):
         # Verify user has the required role
         company = req.company
         user_roles = set(
-            UserCompanyRole.objects.filter(
-                user=request.user, company=company
-            ).values_list("role__code", flat=True)
+            UserCompanyRole.objects.filter(user=request.user, company=company).values_list(
+                "role__code", flat=True
+            )
         )
         next_step = (
-            req.steps.filter(status=ApprovalRequest.Status.PENDING)
-            .order_by("sequence")
-            .first()
+            req.steps.filter(status=ApprovalRequest.Status.PENDING).order_by("sequence").first()
         )
         if not next_step or next_step.role_required not in user_roles:
-            messages.error(
-                request, "Bạn không có quyền phê duyệt bước này."
-            )
+            messages.error(request, "Bạn không có quyền phê duyệt bước này.")
             return redirect("ui_modern:approval_detail", pk=pk)
 
         note = request.POST.get("note", "")
@@ -139,12 +130,8 @@ class ApprovalRuleListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        company = (
-            getattr(self.request, "current_company", None) or Company.objects.first()
-        )
-        return ApprovalRule.objects.filter(company=company).order_by(
-            "voucher_type", "min_amount"
-        )
+        company = getattr(self.request, "current_company", None) or Company.objects.first()
+        return ApprovalRule.objects.filter(company=company).order_by("voucher_type", "min_amount")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

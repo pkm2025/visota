@@ -26,5 +26,9 @@ urlpatterns = [
     path("terms/", TemplateView.as_view(template_name="public/terms.html"), name="terms"),
     path("privacy/", TemplateView.as_view(template_name="public/privacy.html"), name="privacy"),
     path("admin/contacts/", ContactListAdminView.as_view(), name="admin_contact_list"),
-    path("admin/contacts/<int:pk>/status/", ContactUpdateStatusView.as_view(), name="admin_contact_status"),
+    path(
+        "admin/contacts/<int:pk>/status/",
+        ContactUpdateStatusView.as_view(),
+        name="admin_contact_status",
+    ),
 ]

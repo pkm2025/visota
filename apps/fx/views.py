@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
 from django.views import View
-from django.views.generic import ListView, TemplateView
+from django.views.generic import ListView
 
 from apps.core.models import Company
 
@@ -18,9 +18,7 @@ class ExchangeRateListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        company = (
-            getattr(self.request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(self.request, "current_company", None) or Company.objects.first()
         return ExchangeRate.objects.filter(company=company).order_by("-rate_date")
 
     def get_context_data(self, **kwargs):
@@ -36,9 +34,7 @@ class FxRevaluationListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        company = (
-            getattr(self.request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(self.request, "current_company", None) or Company.objects.first()
         return FxRevaluationBatch.objects.filter(company=company).order_by(
             "-period_year", "-period_month"
         )
@@ -55,9 +51,7 @@ class FxRevaluationRunView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, *args, **kwargs):
-        company = (
-            getattr(request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(request, "current_company", None) or Company.objects.first()
         year = int(request.POST.get("year", 2026))
         month = int(request.POST.get("month", 6))
         try:

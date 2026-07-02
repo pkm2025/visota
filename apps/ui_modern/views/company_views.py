@@ -4,7 +4,7 @@ import json
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
 from django.views import View
 
 from apps.core.models import Company
@@ -33,14 +33,31 @@ class CompanyProfileView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         company = self.get_company(request)
         SIMPLE_FIELDS = [
-            "name", "name_en", "short_name", "tax_code", "address",
-            "phone", "email", "fax", "website",
-            "legal_representative", "representative_position",
-            "representative_phone", "representative_email", "representative_id_no",
-            "chief_accountant", "chief_accountant_license", "chief_accountant_phone",
-            "business_license_no", "business_license_place",
-            "facebook", "linkedin", "zalo",
-            "brand_name", "brand_primary_color", "brand_accent_color",
+            "name",
+            "name_en",
+            "short_name",
+            "tax_code",
+            "address",
+            "phone",
+            "email",
+            "fax",
+            "website",
+            "legal_representative",
+            "representative_position",
+            "representative_phone",
+            "representative_email",
+            "representative_id_no",
+            "chief_accountant",
+            "chief_accountant_license",
+            "chief_accountant_phone",
+            "business_license_no",
+            "business_license_place",
+            "facebook",
+            "linkedin",
+            "zalo",
+            "brand_name",
+            "brand_primary_color",
+            "brand_accent_color",
         ]
         for field in SIMPLE_FIELDS:
             value = request.POST.get(field, "").strip()
@@ -52,6 +69,7 @@ class CompanyProfileView(LoginRequiredMixin, View):
             val = request.POST.get(date_field, "").strip()
             if val:
                 from datetime import date
+
                 try:
                     setattr(company, date_field, date.fromisoformat(val))
                 except ValueError:

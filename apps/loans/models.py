@@ -42,20 +42,20 @@ class BankLoan(CompanyOwnedModel):
     purpose = models.TextField(blank=True, default="")
     gl_account = models.CharField(max_length=20, default="343")  # 3431, 3432
     interest_account = models.CharField(max_length=20, default="635")
-    status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.DRAFT
-    )
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     contract = models.ForeignKey(
         "contracts.Contract",
         on_delete=models.SET_NULL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         related_name="loans",
     )
 
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -71,24 +71,21 @@ class BankLoan(CompanyOwnedModel):
 
     @property
     def outstanding_principal(self):
-        disbursed = sum(
-            (d.amount for d in self.disbursements.all()), 0
-        )
+        disbursed = sum((d.amount for d in self.disbursements.all()), 0)
         repaid = sum((r.principal for r in self.repayments.all()), 0)
         return disbursed - repaid
 
 
 class LoanDisbursement(models.Model):
-    loan = models.ForeignKey(
-        BankLoan, on_delete=models.CASCADE, related_name="disbursements"
-    )
+    loan = models.ForeignKey(BankLoan, on_delete=models.CASCADE, related_name="disbursements")
     disbursement_date = models.DateField()
     amount = models.DecimalField(max_digits=20, decimal_places=4)
     description = models.CharField(max_length=500, blank=True, default="")
     gl_voucher = models.ForeignKey(
         "ledger.AccountingVoucher",
         on_delete=models.SET_NULL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -97,9 +94,7 @@ class LoanDisbursement(models.Model):
 
 
 class LoanRepayment(models.Model):
-    loan = models.ForeignKey(
-        BankLoan, on_delete=models.CASCADE, related_name="repayments"
-    )
+    loan = models.ForeignKey(BankLoan, on_delete=models.CASCADE, related_name="repayments")
     payment_date = models.DateField()
     principal = models.DecimalField(max_digits=20, decimal_places=4, default=0)
     interest = models.DecimalField(max_digits=20, decimal_places=4, default=0)
@@ -107,7 +102,8 @@ class LoanRepayment(models.Model):
     gl_voucher = models.ForeignKey(
         "ledger.AccountingVoucher",
         on_delete=models.SET_NULL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -116,9 +112,7 @@ class LoanRepayment(models.Model):
 
 
 class LoanInterestAccrual(models.Model):
-    loan = models.ForeignKey(
-        BankLoan, on_delete=models.CASCADE, related_name="interest_accruals"
-    )
+    loan = models.ForeignKey(BankLoan, on_delete=models.CASCADE, related_name="interest_accruals")
     period_year = models.PositiveSmallIntegerField()
     period_month = models.PositiveSmallIntegerField()
     days = models.PositiveSmallIntegerField()  # days in period
@@ -128,7 +122,8 @@ class LoanInterestAccrual(models.Model):
     gl_voucher = models.ForeignKey(
         "ledger.AccountingVoucher",
         on_delete=models.SET_NULL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

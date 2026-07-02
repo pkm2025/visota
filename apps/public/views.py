@@ -1,42 +1,41 @@
 """Public views — landing + blog + contact + newsletter + signup."""
 
-from datetime import date
-from decimal import Decimal
-
 from django.contrib import messages
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import JsonResponse, HttpResponseRedirect
-from django.middleware.csrf import get_token
+from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic import DetailView, ListView
-from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 
 from apps.core.models import Company
-from apps.identity.models import User, Role, UserCompanyRole
+from apps.identity.models import Role, User, UserCompanyRole
 
 from .models import BlogArticle, BlogCategory, ContactRequest, NewsletterSubscriber
-from django.views import View
-from django.views.generic import DetailView, ListView
-
-from .models import BlogArticle, BlogCategory, ContactRequest, NewsletterSubscriber
-
 
 # ============ LANDING PAGE ============
 
+
 class LandingPageView(View):
     def get(self, request):
-        featured = BlogArticle.objects.filter(status="published", featured=True).order_by("-published_at")[:3]
+        featured = BlogArticle.objects.filter(status="published", featured=True).order_by(
+            "-published_at"
+        )[:3]
         latest = BlogArticle.objects.filter(status="published").order_by("-published_at")[:6]
-        return render(request, "public/landing.html", {
-            "featured_articles": featured,
-            "latest_articles": latest,
-        })
+        return render(
+            request,
+            "public/landing.html",
+            {
+                "featured_articles": featured,
+                "latest_articles": latest,
+            },
+        )
 
 
 # ============ BLOG ============
+
 
 class BlogListView(ListView):
     template_name = "public/blog_list.html"
@@ -79,13 +78,15 @@ class BlogDetailView(DetailView):
         article = self.object
         ctx["related"] = (
             BlogArticle.objects.filter(status="published", category=article.category)
-            .exclude(id=article.id).order_by("-published_at")[:3]
+            .exclude(id=article.id)
+            .order_by("-published_at")[:3]
         )
         ctx["categories"] = BlogCategory.objects.filter(is_active=True)
         return ctx
 
 
 # ============ CONTACT FORM ============
+
 
 class ContactSubmitView(View):
     """POST: handle contact form from landing/blog. Creates ContactRequest + notifies admin."""
@@ -107,8 +108,9 @@ class ContactSubmitView(View):
 
         # Fire notification to all superusers
         try:
-            from apps.notifications.services import NotificationService
             from apps.core.models import Company
+            from apps.notifications.services import NotificationService
+
             company = Company.objects.first()
             if company:
                 NotificationService.send_to_superusers(
@@ -130,10 +132,16 @@ class ContactSubmitView(View):
 
         # Also try email
         try:
-            from apps.notifications.services import EmailService
             from apps.core.models import Company
+            from apps.notifications.services import EmailService
+
             company = Company.objects.first()
-            admins = [u.email for u in __import__('apps.identity.models', fromlist=['User']).User.objects.filter(is_superuser=True, email__isnull=False).exclude(email="")]
+            admins = [
+                u.email
+                for u in __import__("apps.identity.models", fromlist=["User"])
+                .User.objects.filter(is_superuser=True, email__isnull=False)
+                .exclude(email="")
+            ]
             if admins and company:
                 EmailService.send(
                     to=admins,
@@ -165,6 +173,7 @@ class ContactSubmitView(View):
 
 
 # ============ NEWSLETTER ============
+
 
 class NewsletterSubscribeView(View):
     """POST: subscribe email to newsletter."""
@@ -205,9 +214,13 @@ class SignupView(View):
     def get(self, request):
         if request.user.is_authenticated:
             return redirect("/modern/")
-        return render(request, "public/signup.html", {
-            "industries": INDUSTRY_CONFIG,
-        })
+        return render(
+            request,
+            "public/signup.html",
+            {
+                "industries": INDUSTRY_CONFIG,
+            },
+        )
 
     def post(self, request):
         # Step data from wizard
@@ -234,10 +247,14 @@ class SignupView(View):
         if errors:
             for e in errors:
                 messages.error(request, e)
-            return render(request, "public/signup.html", {
-                "industries": INDUSTRY_CONFIG,
-                "form_data": request.POST,
-            })
+            return render(
+                request,
+                "public/signup.html",
+                {
+                    "industries": INDUSTRY_CONFIG,
+                    "form_data": request.POST,
+                },
+            )
 
         # Create user
         username = email.split("@")[0]
@@ -274,6 +291,7 @@ class SignupView(View):
         # Seed permissions + assign admin role
         try:
             from django.core.management import call_command
+
             call_command("seed_permissions", verbosity=0)
         except Exception:
             pass
@@ -281,14 +299,19 @@ class SignupView(View):
         admin_role = Role.objects.filter(code="admin", company=company).first()
         if not admin_role:
             admin_role = Role.objects.create(
-                company=company, code="admin",
-                name="Quản trị", description="Toàn quyền",
+                company=company,
+                code="admin",
+                name="Quản trị",
+                description="Toàn quyền",
             )
             from apps.identity.models import Permission
+
             admin_role.permissions.set(Permission.objects.all())
 
         UserCompanyRole.objects.create(
-            user=user, company=company, role=admin_role,
+            user=user,
+            company=company,
+            role=admin_role,
             is_default=True,
         )
 
@@ -298,6 +321,7 @@ class SignupView(View):
         # Auto-seed chart of accounts
         try:
             from django.core.management import call_command
+
             call_command("load_tt133", verbosity=0)
         except Exception:
             pass
@@ -305,7 +329,9 @@ class SignupView(View):
         # Login
         login(request, user, backend="django.contrib.auth.backends.ModelBackend")
 
-        messages.success(request, f"Chào mừng {full_name or username}! Tài khoản đã tạo thành công.")
+        messages.success(
+            request, f"Chào mừng {full_name or username}! Tài khoản đã tạo thành công."
+        )
         return redirect("/modern/?welcome=1")
 
 
@@ -350,5 +376,8 @@ class ContactUpdateStatusView(LoginRequiredMixin, View):
             cr.notes = request.POST.get("notes", cr.notes)
             cr.save()
         from django.contrib import messages
-        messages.success(request, f"Đã cập nhật trạng thái '{cr.get_status_display()}' cho {cr.full_name}.")
+
+        messages.success(
+            request, f"Đã cập nhật trạng thái '{cr.get_status_display()}' cho {cr.full_name}."
+        )
         return redirect("ui_modern:admin_contact_list")

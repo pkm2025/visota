@@ -244,9 +244,9 @@ class VoucherEmailView(LoginRequiredMixin, View):
         body = f"""
 Kính gửi Quý đối tác,
 
-Đính kèm là chứng từ kế toán số {voucher.voucher_no} ngày {voucher.voucher_date.strftime('%d/%m/%Y')}.
+Đính kèm là chứng từ kế toán số {voucher.voucher_no} ngày {voucher.voucher_date.strftime("%d/%m/%Y")}.
 
-Nội dung: {voucher.description or '—'}
+Nội dung: {voucher.description or "—"}
 Tổng số tiền: {voucher.total_vnd:,.0f} VNĐ
 
 Trân trọng,
@@ -256,12 +256,15 @@ Trân trọng,
         email_msg = EmailMessage(
             subject=subject,
             body=body,
-            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@visota.net'),
+            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@visota.net"),
             to=[to_email],
         )
         ext = "pdf" if pdf_bytes[:4] == b"%PDF" else "html"
-        email_msg.attach(f"{voucher.voucher_no}.{ext}", pdf_bytes,
-                        "application/pdf" if ext == "pdf" else "text/html")
+        email_msg.attach(
+            f"{voucher.voucher_no}.{ext}",
+            pdf_bytes,
+            "application/pdf" if ext == "pdf" else "text/html",
+        )
 
         try:
             email_msg.send(fail_silently=False)
@@ -299,14 +302,14 @@ class ContractEmailView(LoginRequiredMixin, View):
             except Exception:
                 pass
 
-        from django.core.mail import EmailMessage
         from django.conf import settings as dj_settings
+        from django.core.mail import EmailMessage
 
         subject = f"Hợp đồng {contract.contract_no} — {contract.company.name}"
         body = f"""
-Kính gửi {contract.party_name or 'Quý đối tác'},
+Kính gửi {contract.party_name or "Quý đối tác"},
 
-Đính kèm là hợp đồng số {contract.contract_no} ngày {contract.contract_date.strftime('%d/%m/%Y')}.
+Đính kèm là hợp đồng số {contract.contract_no} ngày {contract.contract_date.strftime("%d/%m/%Y")}.
 
 Giá trị: {contract.value:,.0f} {contract.currency_code}
 
@@ -317,7 +320,7 @@ Trân trọng,
         email_msg = EmailMessage(
             subject=subject,
             body=body,
-            from_email=getattr(dj_settings, 'DEFAULT_FROM_EMAIL', 'noreply@visota.net'),
+            from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", "noreply@visota.net"),
             to=[to_email],
         )
         if pdf_bytes:

@@ -5,7 +5,6 @@ from decimal import Decimal
 
 from django.utils import timezone
 
-from apps.core.models import Company
 from apps.ledger.models import AccountingVoucher, VoucherLine
 
 from .models import ExchangeRate, FxRevaluationBatch
@@ -22,8 +21,8 @@ class FxRevaluationService:
     FX_ACCOUNTS = [
         "1112",  # Foreign cash
         "1122",  # Foreign bank
-        "131",   # AR (foreign)
-        "331",   # AP (foreign)
+        "131",  # AR (foreign)
+        "331",  # AP (foreign)
         "3431",  # Foreign loan
     ]
 
@@ -50,11 +49,15 @@ class FxRevaluationService:
         from collections import defaultdict
 
         balances = defaultdict(lambda: defaultdict(lambda: Decimal("0")))
-        lines = VoucherLine.objects.filter(
-            voucher__company=company,
-            voucher__voucher_date__lte=valuation_date,
-            voucher__currency_code__isnull=False,
-        ).exclude(voucher__currency_code="VND").select_related("voucher")
+        lines = (
+            VoucherLine.objects.filter(
+                voucher__company=company,
+                voucher__voucher_date__lte=valuation_date,
+                voucher__currency_code__isnull=False,
+            )
+            .exclude(voucher__currency_code="VND")
+            .select_related("voucher")
+        )
 
         for line in lines:
             currency = line.voucher.currency_code

@@ -40,32 +40,34 @@ class BankGuarantee(CompanyOwnedModel):
     contract = models.ForeignKey(
         "contracts.Contract",
         on_delete=models.SET_NULL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         related_name="guarantees",
     )
     description = models.TextField(blank=True, default="")
-    status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.DRAFT
-    )
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     released_at = models.DateField(null=True, blank=True)
     margin_deposit_account = models.CharField(max_length=20, default="244")  # TK 244
     fee_amount = models.DecimalField(max_digits=20, decimal_places=4, default=0)
     gl_voucher = models.ForeignKey(
         "ledger.AccountingVoucher",
         on_delete=models.SET_NULL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         related_name="guarantees_issued",
     )
     release_voucher = models.ForeignKey(
         "ledger.AccountingVoucher",
         on_delete=models.SET_NULL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         related_name="guarantees_released",
     )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

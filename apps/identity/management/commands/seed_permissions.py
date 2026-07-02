@@ -11,7 +11,6 @@ from django.db import transaction
 from apps.core.models import Company
 from apps.identity.models import Permission, Role
 
-
 MODULE_PERMISSIONS = [
     ("master_data", "Danh mục hệ thống", "Hạng mục, sản phẩm, khách hàng, nhà cung cấp"),
     ("ledger", "Kế toán tổng hợp", "Phiếu kế toán, sổ cái, bút toán, khóa sổ"),
@@ -54,10 +53,25 @@ SYSTEM_ROLES = [
         "Kế toán viên",
         "Kế toán tổng hợp + mua/bán + báo cáo + HĐ + nhân sự + HĐĐT + ngân hàng + FX",
         [
-            "ledger", "sales", "purchasing", "reporting", "contracts",
-            "documents", "hr", "payroll", "recurring", "master_data",
-            "input_docs", "treasury", "einvoice", "approvals", "notifications",
-            "banking", "guarantees", "loans", "fx",
+            "ledger",
+            "sales",
+            "purchasing",
+            "reporting",
+            "contracts",
+            "documents",
+            "hr",
+            "payroll",
+            "recurring",
+            "master_data",
+            "input_docs",
+            "treasury",
+            "einvoice",
+            "approvals",
+            "notifications",
+            "banking",
+            "guarantees",
+            "loans",
+            "fx",
         ],
         True,
     ),
@@ -65,8 +79,17 @@ SYSTEM_ROLES = [
         "sales",
         "Nhân viên kinh doanh",
         "Bán hàng + CRM + khách hàng + hợp đồng + HĐĐT + đấu thầu",
-        ["sales", "crm", "contracts", "documents", "projects", "master_data",
-         "einvoice", "notifications", "bidding"],
+        [
+            "sales",
+            "crm",
+            "contracts",
+            "documents",
+            "projects",
+            "master_data",
+            "einvoice",
+            "notifications",
+            "bidding",
+        ],
         True,
     ),
     (
@@ -80,24 +103,21 @@ SYSTEM_ROLES = [
         "purchaser",
         "Nhân viên mua hàng",
         "Mua hàng + nhà cung cấp + kho + thông báo",
-        ["purchasing", "inventory", "documents", "master_data", "input_docs",
-         "notifications"],
+        ["purchasing", "inventory", "documents", "master_data", "input_docs", "notifications"],
         True,
     ),
     (
         "hr_officer",
         "Nhân sự",
         "Quản lý nhân sự + HĐLĐ + BHXH + thông báo",
-        ["hr", "payroll", "documents", "master_data", "reporting",
-         "notifications"],
+        ["hr", "payroll", "documents", "master_data", "reporting", "notifications"],
         True,
     ),
     (
         "project_manager",
         "Quản lý dự án",
         "Quản lý dự án + CRM + hợp đồng + báo cáo + thông báo",
-        ["projects", "crm", "contracts", "documents", "sales", "reporting",
-         "notifications"],
+        ["projects", "crm", "contracts", "documents", "sales", "reporting", "notifications"],
         True,
     ),
     (
@@ -173,6 +193,8 @@ class Command(BaseCommand):
             )
 
         self.stdout.write("")
-        self.stdout.write(self.style.SUCCESS(
-            f"Done: {len(MODULE_PERMISSIONS)} permissions, {len(SYSTEM_ROLES)} roles"
-        ))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Done: {len(MODULE_PERMISSIONS)} permissions, {len(SYSTEM_ROLES)} roles"
+            )
+        )

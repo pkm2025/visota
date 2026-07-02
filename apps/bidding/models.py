@@ -31,7 +31,8 @@ class ContractorProfile(CompanyOwnedModel):
     address = models.TextField(blank=True, default="")
 
     capability_level = models.CharField(
-        max_length=5, choices=CapabilityLevel.choices,
+        max_length=5,
+        choices=CapabilityLevel.choices,
         default=CapabilityLevel.UNRANKED,
     )
     fields_of_activity = models.TextField(blank=True, default="")  # Lĩnh vực HĐ
@@ -71,15 +72,19 @@ class BidOpportunity(CompanyOwnedModel):
     investor_tax_code = models.CharField(max_length=20, blank=True, default="")
 
     bid_method = models.CharField(
-        max_length=20, choices=BiddingMethod.choices,
+        max_length=20,
+        choices=BiddingMethod.choices,
         default=BiddingMethod.OPEN,
     )
     bid_form = models.CharField(
-        max_length=20, choices=Form.choices,
+        max_length=20,
+        choices=Form.choices,
         default=Form.ONE_STAGE,
     )
 
-    bid_type = models.CharField(max_length=30, default=" construction")  # construction/goods/services/consulting/mixed
+    bid_type = models.CharField(
+        max_length=30, default=" construction"
+    )  # construction/goods/services/consulting/mixed
     bid_package_price = models.DecimalField(max_digits=20, decimal_places=4, default=0)
     currency_code = models.CharField(max_length=3, default="VND")
     duration_days = models.PositiveIntegerField(default=0)
@@ -89,14 +94,21 @@ class BidOpportunity(CompanyOwnedModel):
     bid_opening_at = models.DateTimeField(null=True, blank=True)
 
     is_online = models.BooleanField(default=True)  # Hệ thống mạng đấu thầu quốc gia
-    bid_system_ref = models.CharField(max_length=100, blank=True, default="")  # mã trên muasamcong.mpi.gov.vn
+    bid_system_ref = models.CharField(
+        max_length=100, blank=True, default=""
+    )  # mã trên muasamcong.mpi.gov.vn
 
     description = models.TextField(blank=True, default="")
-    status = models.CharField(max_length=20, default="identified")  # identified, decided_to_bid, preparing, submitted, won, lost, cancelled
+    status = models.CharField(
+        max_length=20, default="identified"
+    )  # identified, decided_to_bid, preparing, submitted, won, lost, cancelled
 
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
-        null=True, blank=True, related_name="bids_created",
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bids_created",
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -122,18 +134,16 @@ class BidDocument(CompanyOwnedModel):
         CONTRACT_DRAFT = "contract_draft", "Dự thảo hợp đồng"
         OTHER = "other", "Khác"
 
-    bid = models.ForeignKey(
-        BidOpportunity, on_delete=models.CASCADE, related_name="documents"
-    )
-    doc_type = models.CharField(
-        max_length=20, choices=DocType.choices, default=DocType.PROPOSAL
-    )
+    bid = models.ForeignKey(BidOpportunity, on_delete=models.CASCADE, related_name="documents")
+    doc_type = models.CharField(max_length=20, choices=DocType.choices, default=DocType.PROPOSAL)
     name = models.CharField(max_length=255)
     file = models.FileField(upload_to="bidding/docs/", null=True, blank=True)
     version = models.CharField(max_length=20, default="1.0")
     uploaded_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
-        null=True, blank=True,
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -144,9 +154,7 @@ class BidDocument(CompanyOwnedModel):
 class BidSubmission(CompanyOwnedModel):
     """Submission of our bid for an opportunity."""
 
-    bid = models.OneToOneField(
-        BidOpportunity, on_delete=models.CASCADE, related_name="submission"
-    )
+    bid = models.OneToOneField(BidOpportunity, on_delete=models.CASCADE, related_name="submission")
     submitted_at = models.DateTimeField(null=True, blank=True)
     bid_security_amount = models.DecimalField(
         max_digits=20, decimal_places=4, default=0
@@ -154,14 +162,15 @@ class BidSubmission(CompanyOwnedModel):
     bid_security_provider = models.CharField(max_length=100, blank=True, default="")  # bank
     proposed_price = models.DecimalField(max_digits=20, decimal_places=4, default=0)
     proposed_duration_days = models.PositiveIntegerField(default=0)
-    proposed_technical_score = models.DecimalField(
-        max_digits=5, decimal_places=2, default=0
-    )
+    proposed_technical_score = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     notes = models.TextField(blank=True, default="")
 
     submitted_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
-        null=True, blank=True, related_name="bid_submissions",
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bid_submissions",
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -183,16 +192,10 @@ class BidResult(CompanyOwnedModel):
         CANCELLED = "cancelled", "Hủy bỏ"
         WAITING = "waiting", "Chờ kết quả"
 
-    bid = models.OneToOneField(
-        BidOpportunity, on_delete=models.CASCADE, related_name="result"
-    )
-    outcome = models.CharField(
-        max_length=20, choices=Outcome.choices, default=Outcome.WAITING
-    )
+    bid = models.OneToOneField(BidOpportunity, on_delete=models.CASCADE, related_name="result")
+    outcome = models.CharField(max_length=20, choices=Outcome.choices, default=Outcome.WAITING)
     awarded_at = models.DateField(null=True, blank=True)
-    final_contract_value = models.DecimalField(
-        max_digits=20, decimal_places=4, default=0
-    )
+    final_contract_value = models.DecimalField(max_digits=20, decimal_places=4, default=0)
     winner_name = models.CharField(max_length=255, blank=True, default="")  # nhà thầu trúng
     loss_reason = models.TextField(blank=True, default="")
     notes = models.TextField(blank=True, default="")
@@ -201,7 +204,8 @@ class BidResult(CompanyOwnedModel):
     contract = models.ForeignKey(
         "contracts.Contract",
         on_delete=models.SET_NULL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         related_name="bid_results",
     )
 

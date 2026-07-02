@@ -2,7 +2,7 @@
 
 import csv
 import io
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import Decimal
 
 from django.contrib.contenttypes.models import ContentType
@@ -32,9 +32,7 @@ class BankReconciliationService:
         reader = csv.DictReader(io.StringIO(decoded))
         required_cols = {"date", "amount", "description"}
         if not required_cols.issubset({c.lower() for c in (reader.fieldnames or [])}):
-            raise BankImportError(
-                f"CSV missing required columns. Found: {reader.fieldnames}"
-            )
+            raise BankImportError(f"CSV missing required columns. Found: {reader.fieldnames}")
 
         count = 0
         for row in reader:
@@ -59,7 +57,7 @@ class BankReconciliationService:
                     reference=row.get("reference", "")[:100],
                 )
                 count += 1
-            except Exception as e:
+            except Exception:
                 # Skip bad row, log
                 continue
 
@@ -72,9 +70,7 @@ class BankReconciliationService:
         """Try to match each unreconciled transaction to a voucher line (TK 1111/1121) by amount + date."""
         from apps.ledger.models import AccountingVoucher, VoucherLine
 
-        unreconciled = BankTransaction.objects.filter(
-            company=company, is_reconciled=False
-        )
+        unreconciled = BankTransaction.objects.filter(company=company, is_reconciled=False)
         voucher_ct = ContentType.objects.get_for_model(AccountingVoucher)
         bank_accounts = ("1121", "1122", "1111", "1112")
 

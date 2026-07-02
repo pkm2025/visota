@@ -1,11 +1,9 @@
 """Budget + Cash flow services."""
 
-from decimal import Decimal
 from datetime import date
+from decimal import Decimal
 
 from django.db.models import Sum
-
-from apps.core.models import Company
 
 from .models import Budget, BudgetLine, CashFlowProjection
 
@@ -21,12 +19,12 @@ class BudgetVarianceService:
         for line in budget.lines.all():
             # Map account_group to a range of account codes
             range_map = {
-                "revenue": ("511", "51"),      # 511x
-                "cogs": ("632", "63"),          # 632
-                "opex": ("641", "64"),          # 641-642
-                "salaries": ("6221", "62"),     # 622
+                "revenue": ("511", "51"),  # 511x
+                "cogs": ("632", "63"),  # 632
+                "opex": ("641", "64"),  # 641-642
+                "salaries": ("6221", "62"),  # 622
                 "marketing": ("6411", "6411"),  # marketing subset
-                "capex": ("211", "21"),         # TSCĐ
+                "capex": ("211", "21"),  # TSCĐ
             }
             prefix, _ = range_map.get(line.account_group, ("", ""))
             if not prefix:
@@ -83,8 +81,9 @@ class CashFlowService:
     @classmethod
     def generate_for_period(cls, company, year, month):
         """Compute expected inflow/outflow for given month based on outstanding AR/AP."""
-        from apps.ledger.models import VoucherLine
         from datetime import timedelta
+
+        from apps.ledger.models import VoucherLine
 
         period_start = date(year, month, 1)
         if month == 12:
@@ -124,9 +123,7 @@ class CashFlowService:
             account_code__startswith="334",
             voucher__voucher_date__range=(period_start, period_end),
         )
-        expected_payroll = sum(
-            (l.debit_vnd or 0 for l in payroll_qs), Decimal("0")
-        )
+        expected_payroll = sum((l.debit_vnd or 0 for l in payroll_qs), Decimal("0"))
 
         # Tax estimate from 333 lines this month
         tax_qs = VoucherLine.objects.filter(

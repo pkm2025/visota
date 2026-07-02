@@ -46,20 +46,17 @@ class BankStatementImport(CompanyOwnedModel):
         RECONCILED = "reconciled", "Đã đối soát"
         ARCHIVED = "archived", "Lưu trữ"
 
-    bank_account = models.ForeignKey(
-        BankAccount, on_delete=models.CASCADE, related_name="imports"
-    )
+    bank_account = models.ForeignKey(BankAccount, on_delete=models.CASCADE, related_name="imports")
     file_name = models.CharField(max_length=255)
     file = models.FileField(upload_to="banking/imports/", null=True, blank=True)
     period_from = models.DateField()
     period_to = models.DateField()
-    status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.UPLOADED
-    )
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.UPLOADED)
     imported_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         related_name="bank_imports",
     )
     note = models.TextField(blank=True, default="")
@@ -127,16 +124,15 @@ class ReconciliationMatch(models.Model):
     transaction = models.ForeignKey(
         BankTransaction, on_delete=models.CASCADE, related_name="matches"
     )
-    content_type = models.ForeignKey(
-        "contenttypes.ContentType", on_delete=models.CASCADE
-    )
+    content_type = models.ForeignKey("contenttypes.ContentType", on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     object_label = models.CharField(max_length=255)
     object_amount = models.DecimalField(max_digits=20, decimal_places=4)
     matched_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
     )
     match_method = models.CharField(
         max_length=10, choices=MatchMethod.choices, default=MatchMethod.AUTO

@@ -3,7 +3,7 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404, JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, redirect
 from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView
 
@@ -20,9 +20,7 @@ class BankAccountListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        company = (
-            getattr(self.request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(self.request, "current_company", None) or Company.objects.first()
         return BankAccount.objects.filter(company=company)
 
     def get_context_data(self, **kwargs):
@@ -37,12 +35,8 @@ class BankStatementImportListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        company = (
-            getattr(self.request, "current_company", None) or Company.objects.first()
-        )
-        return BankStatementImport.objects.filter(company=company).select_related(
-            "bank_account"
-        )
+        company = getattr(self.request, "current_company", None) or Company.objects.first()
+        return BankStatementImport.objects.filter(company=company).select_related("bank_account")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -54,9 +48,7 @@ class BankStatementUploadView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, *args, **kwargs):
-        company = (
-            getattr(request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(request, "current_company", None) or Company.objects.first()
         bank_account_id = request.POST.get("bank_account_id")
         period_from = request.POST.get("period_from")
         period_to = request.POST.get("period_to")
@@ -83,10 +75,9 @@ class BankStatementUploadView(LoginRequiredMixin, View):
             imp.file.open("rb")
             content = imp.file.read().decode("utf-8-sig")
             imp.file.close()
-            from io import StringIO
             import csv
             from decimal import Decimal
-            from datetime import datetime
+            from io import StringIO
 
             reader = csv.DictReader(StringIO(content))
             count = 0
@@ -94,9 +85,7 @@ class BankStatementUploadView(LoginRequiredMixin, View):
                 try:
                     txn_date = BankReconciliationService._parse_date(row.get("date", ""))
                     amount = Decimal(str(row.get("amount", "0")).replace(",", ""))
-                    direction = (
-                        "credit" if amount > 0 else "debit"
-                    )
+                    direction = "credit" if amount > 0 else "debit"
                     BankTransaction.objects.create(
                         import_session=imp,
                         company=company,
@@ -149,16 +138,14 @@ class BankReconciliationView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        company = (
-            getattr(self.request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(self.request, "current_company", None) or Company.objects.first()
         ctx["page_title"] = "Đối soát ngân hàng"
         ctx["unreconciled"] = BankTransaction.objects.filter(
             company=company, is_reconciled=False
         ).order_by("-txn_date")[:100]
-        ctx["recent_matches"] = ReconciliationMatch.objects.select_related(
-            "transaction"
-        ).order_by("-created_at")[:50]
+        ctx["recent_matches"] = ReconciliationMatch.objects.select_related("transaction").order_by(
+            "-created_at"
+        )[:50]
         return ctx
 
 
@@ -168,9 +155,7 @@ class BankReconciliationRunView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, *args, **kwargs):
-        company = (
-            getattr(request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(request, "current_company", None) or Company.objects.first()
         matched = BankReconciliationService.auto_reconcile(company)
         messages.success(request, f"Đã đối soát {matched} giao dịch.")
         return redirect("ui_modern:banking_reconcile")
@@ -185,10 +170,7 @@ class VietQRModalView(LoginRequiredMixin, View):
     """
 
     def get(self, request, invoice_type, pk):
-        company = (
-            getattr(request, "current_company", None)
-            or Company.objects.first()
-        )
+        company = getattr(request, "current_company", None) or Company.objects.first()
         if not company:
             return JsonResponse({"error": "No company"}, status=400)
 
@@ -222,30 +204,32 @@ class VietQRModalView(LoginRequiredMixin, View):
         # ponytail: VND amounts are whole-number; strip Decimal places for display.
         amount_display = str(int(amount)) if amount == int(amount) else str(amount)
 
-        bank_list = list(
-            bank_qs.values("id", "account_number", "bank_name", "account_holder")
-        )
+        bank_list = list(bank_qs.values("id", "account_number", "bank_name", "account_holder"))
 
-        return JsonResponse({
-            "qr_url": qr_url,
-            "account_no": bank_account.account_number,
-            "bank_name": bank_account.bank_name,
-            "holder": bank_account.account_holder,
-            "amount": amount_display,
-            "memo": memo,
-            "bank_list": bank_list,
-            "selected_bank_id": bank_account.id,
-        })
+        return JsonResponse(
+            {
+                "qr_url": qr_url,
+                "account_no": bank_account.account_number,
+                "bank_name": bank_account.bank_name,
+                "holder": bank_account.account_holder,
+                "amount": amount_display,
+                "memo": memo,
+                "bank_list": bank_list,
+                "selected_bank_id": bank_account.id,
+            }
+        )
 
     def _load_invoice(self, invoice_type, pk, company):
         if invoice_type == "einvoice":
             from apps.einvoice.models import EInvoice
+
             ei = EInvoice.objects.filter(pk=pk, company=company).first()
             if not ei:
                 raise Http404
             return ei.total_amount, ei.invoice_no or f"PK-{ei.pk}", ""
-        elif invoice_type == "sales":
+        if invoice_type == "sales":
             from apps.sales.models import SalesInvoice
+
             si = SalesInvoice.objects.filter(pk=pk, company=company).first()
             if not si:
                 raise Http404

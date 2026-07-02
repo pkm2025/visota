@@ -4,8 +4,8 @@ from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
 
-
 # ============ BLOG ============
+
 
 class BlogCategory(models.Model):
     name = models.CharField(max_length=100)
@@ -38,13 +38,21 @@ class BlogArticle(models.Model):
     excerpt = models.TextField(blank=True, default="")
     content = models.TextField(help_text="HTML content")
     cover_image = models.ImageField(upload_to="blog/covers/", null=True, blank=True)
-    category = models.ForeignKey(BlogCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name="articles")
+    category = models.ForeignKey(
+        BlogCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name="articles"
+    )
     tags = models.CharField(max_length=500, blank=True, default="")
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     featured = models.BooleanField(default=False)
     view_count = models.PositiveIntegerField(default=0)
     published_at = models.DateTimeField(null=True, blank=True)
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="blog_articles")
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="blog_articles",
+    )
     meta_title = models.CharField(max_length=255, blank=True, default="")
     meta_description = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -62,6 +70,7 @@ class BlogArticle(models.Model):
             self.slug = slugify(self.title)[:300]
         if self.status == self.Status.PUBLISHED and not self.published_at:
             from django.utils import timezone
+
             self.published_at = timezone.now()
         super().save(*args, **kwargs)
 
@@ -71,6 +80,7 @@ class BlogArticle(models.Model):
 
 
 # ============ CONTACT / LEAD CAPTURE ============
+
 
 class ContactRequest(models.Model):
     """Form submission from landing/blog — auto-notifies superadmin."""
@@ -106,8 +116,11 @@ class ContactRequest(models.Model):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.NEW)
     notes = models.TextField(blank=True, default="")
     assigned_to = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
-        null=True, blank=True, related_name="assigned_contacts",
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_contacts",
     )
 
     # Link to CRM lead if converted

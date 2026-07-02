@@ -3,8 +3,6 @@
 from django.conf import settings
 from django.db import models
 
-from apps.core.managers import CompanyOwnedModel
-
 
 class Notification(models.Model):
     """User notification — visible in bell dropdown + dedicated inbox."""

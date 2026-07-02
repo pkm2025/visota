@@ -56,13 +56,18 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             )
 
         # ===== AR Aging =====
-        ar_aging = {"current": Decimal("0"), "d1_30": Decimal("0"),
-                    "d31_60": Decimal("0"), "d60_plus": Decimal("0"),
-                    "total": Decimal("0"), "customer_count": 0}
+        ar_aging = {
+            "current": Decimal("0"),
+            "d1_30": Decimal("0"),
+            "d31_60": Decimal("0"),
+            "d60_plus": Decimal("0"),
+            "total": Decimal("0"),
+            "customer_count": 0,
+        }
         if company:
-            unpaid = SalesInvoice.objects.filter(
-                company=company, status__gte=2
-            ).exclude(payment_status=2)
+            unpaid = SalesInvoice.objects.filter(company=company, status__gte=2).exclude(
+                payment_status=2
+            )
             for inv in unpaid:
                 amount = (inv.total_amount or 0) - (inv.paid_amount or 0)
                 if amount <= 0:
@@ -85,7 +90,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         cash_breakdown = []
         if company:
             balance_qs = AccountPeriodBalance.objects.filter(
-                company=company, fiscal_year=today.year, period=today.month,
+                company=company,
+                fiscal_year=today.year,
+                period=today.month,
             )
             for prefix, label in [("111", "Tiền mặt"), ("112", "Ngân hàng")]:
                 qs = balance_qs.filter(account_code__startswith=prefix)
@@ -100,14 +107,15 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         pnl = {"revenue": Decimal("0"), "expense": Decimal("0"), "profit": Decimal("0")}
         if company:
             balance_qs = AccountPeriodBalance.objects.filter(
-                company=company, fiscal_year=today.year, period=today.month,
+                company=company,
+                fiscal_year=today.year,
+                period=today.month,
             )
             revenue = balance_qs.filter(account_code__startswith="511").aggregate(
-                s=Sum("period_credit"))["s"] or Decimal("0")
-            expense_qs = balance_qs.filter(
-                account_code__startswith="6"
-            )
-            expense = (expense_qs.aggregate(s=Sum("period_debit"))["s"] or Decimal("0"))
+                s=Sum("period_credit")
+            )["s"] or Decimal("0")
+            expense_qs = balance_qs.filter(account_code__startswith="6")
+            expense = expense_qs.aggregate(s=Sum("period_debit"))["s"] or Decimal("0")
             pnl = {
                 "revenue": revenue,
                 "expense": expense,
@@ -118,7 +126,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         ap_total = Decimal("0")
         if company:
             balance_qs = AccountPeriodBalance.objects.filter(
-                company=company, fiscal_year=today.year, period=today.month,
+                company=company,
+                fiscal_year=today.year,
+                period=today.month,
             )
             ap_qs = balance_qs.filter(account_code__startswith="331")
             ap_total = (ap_qs.aggregate(c=Sum("closing_credit"))["c"] or 0) - (
@@ -129,7 +139,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         inventory_value = Decimal("0")
         if company:
             inv_qs = AccountPeriodBalance.objects.filter(
-                company=company, fiscal_year=today.year, period=today.month,
+                company=company,
+                fiscal_year=today.year,
+                period=today.month,
                 account_code__startswith="15",
             )
             inventory_value = (inv_qs.aggregate(v=Sum("closing_debit"))["v"] or 0) - (
@@ -142,9 +154,11 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         # ===== Unpaid invoice count (for quick link) =====
         unpaid_invoices = 0
         if company:
-            unpaid_invoices = SalesInvoice.objects.filter(
-                company=company, status__gte=2
-            ).exclude(payment_status=2).count()
+            unpaid_invoices = (
+                SalesInvoice.objects.filter(company=company, status__gte=2)
+                .exclude(payment_status=2)
+                .count()
+            )
 
         # ===== Pending approvals count (for mobile quick action) =====
         pending_approvals = 0
@@ -155,34 +169,34 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 company=company, status=ApprovalRequest.Status.PENDING
             ).count()
 
-        ctx.update({
-            # View mode
-            "view_mode": view_mode,
-
-            # Common
-            "vouchers_today": vouchers_today,
-            "total_vouchers": total_vouchers,
-            "posted_count": posted_count,
-            "draft_count": draft_count,
-            "recent_vouchers": recent_vouchers,
-
-            # CEO dashboard
-            "cash_total": cash_total,
-            "cash_breakdown": cash_breakdown,
-            "pnl": pnl,
-            "ar_aging": ar_aging,
-            "ap_total": ap_total,
-            "inventory_value": inventory_value,
-            "unpaid_invoices": unpaid_invoices,
-            "pending_approvals": pending_approvals,
-            "tax_deadlines": tax_deadlines,
-
-            # Stock
-            "stock_vouchers_today": (
-                StockVoucher.objects.filter(company=company, voucher_date=today).count()
-                if company else 0
-            ),
-        })
+        ctx.update(
+            {
+                # View mode
+                "view_mode": view_mode,
+                # Common
+                "vouchers_today": vouchers_today,
+                "total_vouchers": total_vouchers,
+                "posted_count": posted_count,
+                "draft_count": draft_count,
+                "recent_vouchers": recent_vouchers,
+                # CEO dashboard
+                "cash_total": cash_total,
+                "cash_breakdown": cash_breakdown,
+                "pnl": pnl,
+                "ar_aging": ar_aging,
+                "ap_total": ap_total,
+                "inventory_value": inventory_value,
+                "unpaid_invoices": unpaid_invoices,
+                "pending_approvals": pending_approvals,
+                "tax_deadlines": tax_deadlines,
+                # Stock
+                "stock_vouchers_today": (
+                    StockVoucher.objects.filter(company=company, voucher_date=today).count()
+                    if company
+                    else 0
+                ),
+            }
+        )
         return ctx
 
     def _get_tax_deadlines(self, today):
@@ -194,22 +208,26 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         # VAT — 20th of next month
         vat_date = date(next_year, next_month, 20)
         days_left = (vat_date - today).days
-        deadlines.append({
-            "type": "VAT (GTGT)",
-            "due_date": vat_date,
-            "days_left": days_left,
-            "url": "/modern/reports/vat-return/",
-            "urgent": days_left <= 7,
-        })
+        deadlines.append(
+            {
+                "type": "VAT (GTGT)",
+                "due_date": vat_date,
+                "days_left": days_left,
+                "url": "/modern/reports/vat-return/",
+                "urgent": days_left <= 7,
+            }
+        )
 
         # PIT — 20th of next month (same as VAT for monthly filers)
-        deadlines.append({
-            "type": "TNCN (khấu trừ)",
-            "due_date": vat_date,
-            "days_left": days_left,
-            "url": "/modern/reports/pit-monthly/",
-            "urgent": days_left <= 7,
-        })
+        deadlines.append(
+            {
+                "type": "TNCN (khấu trừ)",
+                "due_date": vat_date,
+                "days_left": days_left,
+                "url": "/modern/reports/pit-monthly/",
+                "urgent": days_left <= 7,
+            }
+        )
 
         # BHXH — last day of current month
         if today.month == 12:
@@ -217,13 +235,15 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         else:
             bhxh_date = date(today.year, today.month + 1, 1) - timedelta(days=1)
         bhxh_days = (bhxh_date - today).days
-        deadlines.append({
-            "type": "BHXH + D62",
-            "due_date": bhxh_date,
-            "days_left": bhxh_days,
-            "url": "/modern/reports/d62/",
-            "urgent": bhxh_days <= 7,
-        })
+        deadlines.append(
+            {
+                "type": "BHXH + D62",
+                "due_date": bhxh_date,
+                "days_left": bhxh_days,
+                "url": "/modern/reports/d62/",
+                "urgent": bhxh_days <= 7,
+            }
+        )
 
         # Sort by days left
         deadlines.sort(key=lambda d: d["days_left"])
@@ -274,13 +294,17 @@ class QuickExpenseView(LoginRequiredMixin, TemplateView):
         today = date.today()
 
         voucher = AccountingVoucher.objects.create(
-            company=company, fiscal_year=today.year, period=today.month,
+            company=company,
+            fiscal_year=today.year,
+            period=today.month,
             voucher_no=f"QEXP-{today.strftime('%y%m%d')}-{AccountingVoucher.objects.filter(company=company, voucher_no__startswith='QEXP').count() + 1:04d}",
             voucher_type=AccountingVoucher.VoucherType.CASH_PAYMENT,
             voucher_date=today,
             description=f"[Chi nhanh] {description}",
-            currency_code="VND", exchange_rate=Decimal("1"),
-            total_vnd=amount, status=AccountingVoucher.Status.DRAFT,
+            currency_code="VND",
+            exchange_rate=Decimal("1"),
+            total_vnd=amount,
+            status=AccountingVoucher.Status.DRAFT,
             created_by=request.user,
         )
 
@@ -288,19 +312,52 @@ class QuickExpenseView(LoginRequiredMixin, TemplateView):
         if has_vat:
             net_amount = (amount / Decimal("1.1")).quantize(Decimal("0.0001"))
             vat_amount = amount - net_amount
-            VoucherLine.objects.create(voucher=voucher, line_no=line_no, account_code=expense_account, debit_vnd=net_amount, description=description)
+            VoucherLine.objects.create(
+                voucher=voucher,
+                line_no=line_no,
+                account_code=expense_account,
+                debit_vnd=net_amount,
+                description=description,
+            )
             line_no += 1
-            VoucherLine.objects.create(voucher=voucher, line_no=line_no, account_code="1331", debit_vnd=vat_amount, description=f"VAT (10%) — {description}")
+            VoucherLine.objects.create(
+                voucher=voucher,
+                line_no=line_no,
+                account_code="1331",
+                debit_vnd=vat_amount,
+                description=f"VAT (10%) — {description}",
+            )
             line_no += 1
-            VoucherLine.objects.create(voucher=voucher, line_no=line_no, account_code=payment_account, credit_vnd=amount, description=description)
+            VoucherLine.objects.create(
+                voucher=voucher,
+                line_no=line_no,
+                account_code=payment_account,
+                credit_vnd=amount,
+                description=description,
+            )
         else:
-            VoucherLine.objects.create(voucher=voucher, line_no=line_no, account_code=expense_account, debit_vnd=amount, description=description)
+            VoucherLine.objects.create(
+                voucher=voucher,
+                line_no=line_no,
+                account_code=expense_account,
+                debit_vnd=amount,
+                description=description,
+            )
             line_no += 1
-            VoucherLine.objects.create(voucher=voucher, line_no=line_no, account_code=payment_account, credit_vnd=amount, description=description)
+            VoucherLine.objects.create(
+                voucher=voucher,
+                line_no=line_no,
+                account_code=payment_account,
+                credit_vnd=amount,
+                description=description,
+            )
 
         try:
             VoucherPostingService().post(voucher)
-            messages.success(request, f"Đã ghi chi {amount:,.0f}đ → TK {expense_account}. Phiếu {voucher.voucher_no} đã ghi sổ.")
+            messages.success(
+                request,
+                f"Đã ghi chi {amount:,.0f}đ → TK {expense_account}. Phiếu {voucher.voucher_no} đã ghi sổ.",
+            )
         except Exception as e:
             messages.warning(request, f"Phiếu đã tạo nhưng chưa ghi sổ: {e}")
         return redirect("ui_modern:dashboard")

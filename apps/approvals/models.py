@@ -16,9 +16,7 @@ class ApprovalRule(CompanyOwnedModel):
 
     voucher_type = models.CharField(max_length=30)
     min_amount = models.DecimalField(max_digits=20, decimal_places=4, default=0)
-    max_amount = models.DecimalField(
-        max_digits=20, decimal_places=4, default=999999999999
-    )
+    max_amount = models.DecimalField(max_digits=20, decimal_places=4, default=999999999999)
     approver_roles = models.JSONField(default=list)
     description = models.CharField(max_length=255, blank=True, default="")
     is_active = models.BooleanField(default=True)

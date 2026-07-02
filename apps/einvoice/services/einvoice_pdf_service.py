@@ -1,13 +1,10 @@
 """EInvoice PDF generation service — render Vietnamese-standard HĐĐT PDF."""
 
-from decimal import Decimal
-from typing import Optional
-
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.template.loader import render_to_string
-from django.utils.text import get_valid_filename
 from django.utils import timezone
+from django.utils.text import get_valid_filename
 
 from apps.einvoice.models import EInvoice
 from apps.einvoice.services import amount_in_words
@@ -83,4 +80,3 @@ class EInvoicePDFService:
         safe_name = get_valid_filename(identifier)
         filename = f"einvoice_{safe_name}.pdf"
         einvoice.pdf_file.save(filename, ContentFile(pdf_bytes), save=True)
-

@@ -14,9 +14,7 @@ class BankLoanListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        company = (
-            getattr(self.request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(self.request, "current_company", None) or Company.objects.first()
         return BankLoan.objects.filter(company=company).select_related("contract")
 
     def get_context_data(self, **kwargs):

@@ -2,8 +2,8 @@
 
 import logging
 
-from django.http import Http404, HttpResponse
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import Http404, HttpResponse
 from django.views import View
 
 from apps.core.models import Company
@@ -27,10 +27,7 @@ class EinvoicePDFView(LoginRequiredMixin, View):
     def get(self, request, pk):
         # ponytail: mirror apps/einvoice/views.py company resolution —
         # request.current_company (session-driven) with first() fallback.
-        company = (
-            getattr(request, "current_company", None)
-            or Company.objects.first()
-        )
+        company = getattr(request, "current_company", None) or Company.objects.first()
         try:
             einvoice = EInvoice.objects.get(pk=pk, company=company)
         except EInvoice.DoesNotExist:
@@ -39,7 +36,7 @@ class EinvoicePDFView(LoginRequiredMixin, View):
         force = request.GET.get("force") == "1"
         try:
             pdf_bytes = EInvoicePDFService().get_or_generate(einvoice, force=force)
-        except EInvoicePDFError as exc:
+        except EInvoicePDFError:
             logger.exception("PDF generation failed for einvoice pk=%s", pk)
             return HttpResponse(
                 "Lỗi tạo PDF. Vui lòng thử lại hoặc liên hệ quản trị viên.",
@@ -51,6 +48,7 @@ class EinvoicePDFView(LoginRequiredMixin, View):
         # CRLF is the real injection vector; truncate before it so the injected header token
         # never reaches the response. Then drop quotes/separators from the surviving prefix.
         import re
+
         raw = einvoice.invoice_no or str(einvoice.pk)
         raw = re.split(r"[\r\n]", raw, maxsplit=1)[0]  # drop injected payload after CRLF
         raw = raw.replace('"', "").replace("/", "-").replace("\\", "-")

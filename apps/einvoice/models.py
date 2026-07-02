@@ -108,9 +108,7 @@ class EInvoice(CompanyOwnedModel):
     json_file = models.FileField(upload_to="einvoice/json/", null=True, blank=True)
     pdf_file = models.FileField(upload_to="einvoice/pdf/", null=True, blank=True)
 
-    status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.DRAFT
-    )
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
 
     # Adjustment reference (if this is an adjusting/replacing invoice)
     replaces_invoice = models.ForeignKey(

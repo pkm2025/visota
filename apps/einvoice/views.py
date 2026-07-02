@@ -3,13 +3,13 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, redirect
 from django.views import View
 from django.views.generic import DetailView, ListView
 
 from apps.core.models import Company
 
-from .models import EInvoice, EInvoiceConfig
+from .models import EInvoice
 from .services import EInvoiceReportService, EInvoiceService
 
 
@@ -20,9 +20,7 @@ class EInvoiceListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        company = (
-            getattr(self.request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(self.request, "current_company", None) or Company.objects.first()
         qs = EInvoice.objects.filter(company=company).select_related("sales_invoice")
         status = self.request.GET.get("status")
         if status:
@@ -44,9 +42,7 @@ class EInvoiceDetailView(LoginRequiredMixin, DetailView):
 
     def get_queryset(self):
         # ponytail: scope by current_company — IDOR guard, mirrors XML/JSON views.
-        company = (
-            getattr(self.request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(self.request, "current_company", None) or Company.objects.first()
         return EInvoice.objects.filter(company=company).select_related(
             "sales_invoice", "company", "issued_by"
         )
@@ -81,9 +77,7 @@ class EInvoicePublishView(LoginRequiredMixin, View):
 
     def post(self, request, pk, *args, **kwargs):
         # ponytail: scope by current_company — IDOR guard.
-        company = (
-            getattr(request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(request, "current_company", None) or Company.objects.first()
         ei = get_object_or_404(EInvoice, pk=pk, company=company)
         invoice_no = request.POST.get("invoice_no", "").strip()
         try:
@@ -99,9 +93,7 @@ class EInvoiceCancelView(LoginRequiredMixin, View):
 
     def post(self, request, pk, *args, **kwargs):
         # ponytail: scope by current_company — IDOR guard.
-        company = (
-            getattr(request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(request, "current_company", None) or Company.objects.first()
         ei = get_object_or_404(EInvoice, pk=pk, company=company)
         reason = request.POST.get("reason", "")
         if not reason.strip():
@@ -117,16 +109,20 @@ class EInvoiceXmlDownloadView(LoginRequiredMixin, View):
 
     def get(self, request, pk, *args, **kwargs):
         # ponytail: scope by current_company — same IDOR guard as PDF view.
-        company = (
-            getattr(request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(request, "current_company", None) or Company.objects.first()
         ei = get_object_or_404(EInvoice, pk=pk, company=company)
         if not ei.xml_file:
             return HttpResponse("No XML", status=404)
         response = HttpResponse(ei.xml_file.read(), content_type="application/xml")
         # ponytail: sanitize filename for Content-Disposition — header injection guard.
         raw = ei.invoice_no or str(ei.transaction_id)
-        safe = raw.replace('"', "").replace("/", "-").replace("\\", "-").replace("\r", "").replace("\n", "")
+        safe = (
+            raw.replace('"', "")
+            .replace("/", "-")
+            .replace("\\", "-")
+            .replace("\r", "")
+            .replace("\n", "")
+        )
         response["Content-Disposition"] = f'attachment; filename="einvoice_{safe}.xml"'
         return response
 
@@ -136,16 +132,20 @@ class EInvoiceJsonDownloadView(LoginRequiredMixin, View):
 
     def get(self, request, pk, *args, **kwargs):
         # ponytail: scope by current_company — same IDOR guard as PDF view.
-        company = (
-            getattr(request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(request, "current_company", None) or Company.objects.first()
         ei = get_object_or_404(EInvoice, pk=pk, company=company)
         if not ei.json_file:
             return HttpResponse("No JSON", status=404)
         response = HttpResponse(ei.json_file.read(), content_type="application/json")
         # ponytail: sanitize filename for Content-Disposition — header injection guard.
         raw = ei.invoice_no or str(ei.transaction_id)
-        safe = raw.replace('"', "").replace("/", "-").replace("\\", "-").replace("\r", "").replace("\n", "")
+        safe = (
+            raw.replace('"', "")
+            .replace("/", "-")
+            .replace("\\", "-")
+            .replace("\r", "")
+            .replace("\n", "")
+        )
         response["Content-Disposition"] = f'attachment; filename="einvoice_{safe}.json"'
         return response
 
@@ -156,14 +156,10 @@ class EInvoiceReportView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, *args, **kwargs):
-        company = (
-            getattr(request, "current_company", None) or Company.objects.first()
-        )
+        company = getattr(request, "current_company", None) or Company.objects.first()
         month = int(request.POST.get("month"))
         year = int(request.POST.get("year"))
-        batch = EInvoiceReportService.generate_bc01(
-            company, month, year, submitted_by=request.user
-        )
+        batch = EInvoiceReportService.generate_bc01(company, month, year, submitted_by=request.user)
         messages.success(
             request,
             f"Đã tạo BC01 {month:02d}/{year}: {batch.invoice_count} HĐ, "

@@ -413,20 +413,29 @@ class VoucherGuidedView(LoginRequiredMixin, View):
             return redirect("ui_modern:voucher_guided")
 
         voucher = AccountingVoucher.objects.create(
-            company=company, fiscal_year=today.year, period=today.month,
+            company=company,
+            fiscal_year=today.year,
+            period=today.month,
             voucher_no=f"GUIDE-{today.strftime('%y%m%d')}-{AccountingVoucher.objects.filter(company=company, voucher_no__startswith='GUIDE').count() + 1:04d}",
-            voucher_type=vtype, voucher_date=today,
+            voucher_type=vtype,
+            voucher_date=today,
             description=desc or f"[Tạo nhanh] {action}",
-            currency_code="VND", exchange_rate=Decimal("1"),
-            total_vnd=amount, status=AccountingVoucher.Status.DRAFT,
+            currency_code="VND",
+            exchange_rate=Decimal("1"),
+            total_vnd=amount,
+            status=AccountingVoucher.Status.DRAFT,
             created_by=request.user,
         )
 
         for idx, (acc, dr, cr, line_desc) in enumerate(lines_to_create, 1):
             VoucherLine.objects.create(
-                voucher=voucher, line_no=idx, account_code=acc,
+                voucher=voucher,
+                line_no=idx,
+                account_code=acc,
                 object_code=cp if action in ("collect", "pay_vendor") else "",
-                debit_vnd=dr, credit_vnd=cr, description=line_desc,
+                debit_vnd=dr,
+                credit_vnd=cr,
+                description=line_desc,
             )
 
         try:

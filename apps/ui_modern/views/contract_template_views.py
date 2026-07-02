@@ -73,17 +73,28 @@ class ContractTemplateCreateView(LoginRequiredMixin, View):
         name = request.POST.get("name", "").strip()
         if not code or not name:
             messages.error(request, "Vui lòng nhập mã và tên mẫu.")
-            return render(request, self.template_name, {
-                "page_title": "Tạo mẫu văn bản", "is_new": True,
-                "form_data": request.POST,
-            })
+            return render(
+                request,
+                self.template_name,
+                {
+                    "page_title": "Tạo mẫu văn bản",
+                    "is_new": True,
+                    "form_data": request.POST,
+                },
+            )
         if ContractTemplate.objects.filter(code=code).exists():
             messages.error(request, f"Mã '{code}' đã tồn tại.")
-            return render(request, self.template_name, {
-                "page_title": "Tạo mẫu văn bản", "is_new": True,
-                "form_data": request.POST,
-            })
+            return render(
+                request,
+                self.template_name,
+                {
+                    "page_title": "Tạo mẫu văn bản",
+                    "is_new": True,
+                    "form_data": request.POST,
+                },
+            )
         import json
+
         try:
             fields = json.loads(request.POST.get("required_fields", "[]"))
         except json.JSONDecodeError:
@@ -133,6 +144,7 @@ class ContractTemplateEditView(LoginRequiredMixin, View):
         tpl.contract_type = request.POST.get("contract_type", tpl.contract_type)
         tpl.template_html = request.POST.get("template_html", tpl.template_html)
         import json
+
         try:
             tpl.required_fields = json.loads(request.POST.get("required_fields", "[]"))
         except json.JSONDecodeError:
@@ -177,19 +189,33 @@ class ContractTemplatePreviewRawView(LoginRequiredMixin, View):
         else:
             # Use placeholder data for preview
             ctx = {
-                "company": type("C", (), {"name": "CÔNG TY ABC", "tax_code": "0101234567",
-                                           "address": "123 Đường ABC, Hà Nội"})(),
-                "contract": type("D", (), {"contract_no": "HĐ-DEMO-001",
-                                            "contract_date": "25/06/2026",
-                                            "party_name": "Công ty Đối tác XYZ",
-                                            "party_tax_code": "0109876543",
-                                            "party_address": "456 Lê Lợi, TP.HCM",
-                                            "value": "500000000",
-                                            "start_date": "01/07/2026",
-                                            "end_date": "30/06/2027",
-                                            "description": "Hợp đồng dịch vụ"})(),
+                "company": type(
+                    "C",
+                    (),
+                    {
+                        "name": "CÔNG TY ABC",
+                        "tax_code": "0101234567",
+                        "address": "123 Đường ABC, Hà Nội",
+                    },
+                )(),
+                "contract": type(
+                    "D",
+                    (),
+                    {
+                        "contract_no": "HĐ-DEMO-001",
+                        "contract_date": "25/06/2026",
+                        "party_name": "Công ty Đối tác XYZ",
+                        "party_tax_code": "0109876543",
+                        "party_address": "456 Lê Lợi, TP.HCM",
+                        "value": "500000000",
+                        "start_date": "01/07/2026",
+                        "end_date": "30/06/2027",
+                        "description": "Hợp đồng dịch vụ",
+                    },
+                )(),
             }
         from django.template import engines
+
         try:
             if "{% load humanize" not in html:
                 html = "{% load humanize %}\n" + html
@@ -223,13 +249,18 @@ class ContractTemplatePreviewView(LoginRequiredMixin, View):
         service = ContractPrintService()
         ctx = service._build_context(contract)
         from django.template import engines
+
         rendered = engines["django"].from_string(template.template_html).render(ctx)
-        return render(request, self.template_name, {
-            "page_title": f"Xem trước — {template.name}",
-            "template": template,
-            "contract": contract,
-            "rendered_html": rendered,
-        })
+        return render(
+            request,
+            self.template_name,
+            {
+                "page_title": f"Xem trước — {template.name}",
+                "template": template,
+                "contract": contract,
+                "rendered_html": rendered,
+            },
+        )
 
 
 DEFAULT_TEMPLATE_HTML = """<!DOCTYPE html>
@@ -335,11 +366,7 @@ class ContractWizardView(LoginRequiredMixin, View):
                     if cat.get("code_prefix"):
                         # Filter by code_prefix (for minutes bb_ and decisions qd_)
                         prefix = cat["code_prefix"]
-                        if cat["key"] == "minutes":
-                            qs = ContractTemplate.objects.filter(
-                                code__startswith=prefix, is_active=True
-                            ).order_by("name")
-                        elif cat["key"] == "decision":
+                        if cat["key"] == "minutes" or cat["key"] == "decision":
                             qs = ContractTemplate.objects.filter(
                                 code__startswith=prefix, is_active=True
                             ).order_by("name")

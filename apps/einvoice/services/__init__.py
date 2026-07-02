@@ -13,9 +13,8 @@ from django.core.files.base import ContentFile
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from apps.notifications.services import NotificationService
-
 from apps.einvoice.models import EInvoice, EInvoiceConfig, EInvoiceProvider, EInvoiceReportBatch
+from apps.notifications.services import NotificationService
 
 
 class EInvoiceIssueError(Exception):
@@ -49,9 +48,7 @@ def amount_in_words(amount: Decimal) -> str:
             if dv == 5 and ch:
                 out.append("lăm")
         if dv and dv != 5:
-            if ch == 0 and tr:
-                out.append(units[dv])
-            elif not out or units[dv] != "một":
+            if ch == 0 and tr or not out or units[dv] != "một":
                 out.append(units[dv])
             elif units[dv] == "một" and ch != 0 and ch != 1:
                 out.append("mốt")
@@ -75,9 +72,7 @@ class EInvoiceService:
 
     @staticmethod
     def get_config(company):
-        config = EInvoiceConfig.objects.filter(
-            company=company, is_active=True
-        ).first()
+        config = EInvoiceConfig.objects.filter(company=company, is_active=True).first()
         if not config:
             # Auto-create with defaults (manual mode)
             config = EInvoiceConfig.objects.create(company=company)
@@ -99,9 +94,7 @@ class EInvoiceService:
         subtotal = sales_invoice.subtotal or Decimal("0")
         vat = sales_invoice.vat_amount or Decimal("0")
         total = sales_invoice.total_amount or Decimal("0")
-        avg_vat_rate = (
-            (vat / subtotal * Decimal("100")) if subtotal else Decimal("0")
-        )
+        avg_vat_rate = (vat / subtotal * Decimal("100")) if subtotal else Decimal("0")
 
         ei = EInvoice.objects.create(
             company=sales_invoice.company,
@@ -131,7 +124,8 @@ class EInvoiceService:
         # Generate JSON (for API-driven providers)
         payload = cls._build_json(ei, sales_invoice)
         ei.json_file.save(
-            f"{ei.transaction_id}.json", ContentFile(json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8"))
+            f"{ei.transaction_id}.json",
+            ContentFile(json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")),
         )
 
         ei.save()
@@ -185,9 +179,11 @@ class EInvoiceService:
         # Auto-generate human-readable PDF for download/email (best-effort)
         try:
             from apps.einvoice.services.einvoice_pdf_service import EInvoicePDFService
+
             EInvoicePDFService().get_or_generate(einvoice, force=True)
         except Exception:
             import logging
+
             logging.getLogger(__name__).warning(
                 "PDF auto-gen failed for einvoice %s", einvoice.pk, exc_info=True
             )
@@ -340,15 +336,12 @@ class EInvoiceReportService:
     def generate_bc01(company, month, year, submitted_by=None):
         """BC01 — usage situation report for given month."""
         from calendar import monthrange
-        from datetime import datetime
 
         # Use timezone-aware datetimes (USE_TZ=True in settings)
         first_day = timezone.make_aware(datetime(year, month, 1))
         last_day_num = monthrange(year, month)[1]
         # Range covers entire month inclusive
-        last_day = timezone.make_aware(
-            datetime(year, month, last_day_num, 23, 59, 59)
-        )
+        last_day = timezone.make_aware(datetime(year, month, last_day_num, 23, 59, 59))
         qs = EInvoice.objects.filter(
             company=company,
             issue_date__gte=first_day,
@@ -393,8 +386,6 @@ class EInvoiceReportService:
     </Invoices>
     <Total><Count>{qs.count()}</Count><Amount>{batch.total_amount}</Amount></Total>
 </BC01>"""
-        batch.xml_file.save(
-            f"BC01_{year}{month:02d}.xml", ContentFile(xml.encode("utf-8"))
-        )
+        batch.xml_file.save(f"BC01_{year}{month:02d}.xml", ContentFile(xml.encode("utf-8")))
         batch.save()
         return batch

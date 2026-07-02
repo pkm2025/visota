@@ -6,6 +6,7 @@ When final step approved, fires hook on target object (e.g. auto-post voucher).
 """
 
 from decimal import Decimal
+
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 
@@ -53,15 +54,15 @@ class ApprovalService:
 
         rule = cls.get_rule(company, voucher_type, amount)
         if not rule:
-            raise NoApprovalRuleError(
-                f"No approval rule for {voucher_type} amount {amount}"
-            )
+            raise NoApprovalRuleError(f"No approval rule for {voucher_type} amount {amount}")
 
         ct = ContentType.objects.get_for_model(obj)
 
         # Cancel any prior pending requests for same object
         ApprovalRequest.objects.filter(
-            content_type=ct, object_id=obj.id, status=ApprovalRequest.Status.PENDING,
+            content_type=ct,
+            object_id=obj.id,
+            status=ApprovalRequest.Status.PENDING,
         ).update(status=ApprovalRequest.Status.CANCELLED, completed_at=timezone.now())
 
         label = label or str(obj)
@@ -91,9 +92,7 @@ class ApprovalService:
     def approve(cls, request, user, note=""):
         """Approve the current step. Auto-advance to next or finalize."""
         current_step = (
-            request.steps.filter(status=ApprovalRequest.Status.PENDING)
-            .order_by("sequence")
-            .first()
+            request.steps.filter(status=ApprovalRequest.Status.PENDING).order_by("sequence").first()
         )
         if not current_step:
             return request  # already done
@@ -105,9 +104,7 @@ class ApprovalService:
         current_step.save()
 
         next_step = (
-            request.steps.filter(status=ApprovalRequest.Status.PENDING)
-            .order_by("sequence")
-            .first()
+            request.steps.filter(status=ApprovalRequest.Status.PENDING).order_by("sequence").first()
         )
         if next_step:
             cls._notify_next_approver(request)
@@ -125,9 +122,7 @@ class ApprovalService:
     def reject(cls, request, user, reason=""):
         """Reject the request — blocks all future steps."""
         current_step = (
-            request.steps.filter(status=ApprovalRequest.Status.PENDING)
-            .order_by("sequence")
-            .first()
+            request.steps.filter(status=ApprovalRequest.Status.PENDING).order_by("sequence").first()
         )
         if current_step:
             current_step.status = ApprovalRequest.Status.REJECTED
@@ -146,9 +141,7 @@ class ApprovalService:
     @staticmethod
     def _notify_next_approver(request):
         next_step = (
-            request.steps.filter(status=ApprovalRequest.Status.PENDING)
-            .order_by("sequence")
-            .first()
+            request.steps.filter(status=ApprovalRequest.Status.PENDING).order_by("sequence").first()
         )
         if not next_step:
             return
@@ -198,7 +191,10 @@ class ApprovalService:
             return
 
         # Generic hook for vouchers
-        if request.content_type.app_label == "ledger" and request.content_type.model == "accountingvoucher":
+        if (
+            request.content_type.app_label == "ledger"
+            and request.content_type.model == "accountingvoucher"
+        ):
             from apps.ledger.services.voucher_posting_service import VoucherPostingService
 
             try:
@@ -212,9 +208,9 @@ class ApprovalService:
         from apps.identity.models import UserCompanyRole
 
         # Roles this user has
-        user_roles = UserCompanyRole.objects.filter(
-            user=user, company=company
-        ).values_list("role__code", flat=True)
+        user_roles = UserCompanyRole.objects.filter(user=user, company=company).values_list(
+            "role__code", flat=True
+        )
 
         request_ids = ApprovalStep.objects.filter(
             status=ApprovalRequest.Status.PENDING,

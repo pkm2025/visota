@@ -39,6 +39,7 @@ class ContractPrintService:
 
         # Build base_url for resolving image URLs in PDF
         from django.conf import settings
+
         base_url = getattr(settings, "BASE_URL", "http://127.0.0.1:8903")
         return HTML(string=html, base_url=base_url).write_pdf()
 

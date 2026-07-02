@@ -5,11 +5,9 @@ request. Superusers bypass. Users without permission are redirected to
 /no-access/. Auth/login/static/media paths are exempt.
 """
 
-from django.urls import reverse
 from django.shortcuts import redirect
 
 from apps.identity.services import UserService
-
 
 PATH_MODULE_MAP = [
     ("/modern/vouchers/", "ledger"),
@@ -82,11 +80,7 @@ class ModulePermissionMiddleware:
     def __call__(self, request):
         user = getattr(request, "user", None)
 
-        if (
-            not user
-            or not user.is_authenticated
-            or not request.path.startswith("/modern/")
-        ):
+        if not user or not user.is_authenticated or not request.path.startswith("/modern/"):
             return self.get_response(request)
 
         # Ensure current_company is set (session may not have current_company_id).
@@ -121,8 +115,6 @@ class ModulePermissionMiddleware:
                 return redirect("/no-access/")
             from django.http import HttpResponseForbidden
 
-            return HttpResponseForbidden(
-                f"Bạn không có quyền truy cập module: {module}"
-            )
+            return HttpResponseForbidden(f"Bạn không có quyền truy cập module: {module}")
 
         return self.get_response(request)

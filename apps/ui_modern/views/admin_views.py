@@ -4,7 +4,6 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
 from django.views import View
 from django.views.generic import ListView, TemplateView
 
@@ -48,7 +47,9 @@ class MyPermissionsView(LoginRequiredMixin, TemplateView):
             service = UserService(self.request.user, company)
             perm_codes = service._get_permissions()
             ctx["permission_codes"] = sorted(perm_codes)
-            ctx["permissions"] = Permission.objects.filter(code__in=perm_codes).order_by("module", "code")
+            ctx["permissions"] = Permission.objects.filter(code__in=perm_codes).order_by(
+                "module", "code"
+            )
 
             all_perms = Permission.objects.all().order_by("module", "code")
             ctx["all_permissions"] = all_perms
@@ -163,9 +164,7 @@ class AdminUserAssignView(StaffRequiredMixin, View):
         action = request.POST.get("action", "assign")
 
         if action == "remove":
-            UserCompanyRole.objects.filter(
-                user=target_user, company=company
-            ).delete()
+            UserCompanyRole.objects.filter(user=target_user, company=company).delete()
             UserService(target_user, company).invalidate_cache()
             messages.success(
                 request,
@@ -185,9 +184,9 @@ class AdminUserAssignView(StaffRequiredMixin, View):
             defaults={"is_default": True},
         )
         # Other assignments lose default
-        UserCompanyRole.objects.filter(user=target_user, company=company).exclude(
-            pk=ucr.pk
-        ).update(is_default=False)
+        UserCompanyRole.objects.filter(user=target_user, company=company).exclude(pk=ucr.pk).update(
+            is_default=False
+        )
 
         UserService(target_user, company).invalidate_cache()
         verb = "Đã gán" if created else "Đã cập nhật"
