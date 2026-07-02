@@ -146,6 +146,15 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 company=company, status__gte=2
             ).exclude(payment_status=2).count()
 
+        # ===== Pending approvals count (for mobile quick action) =====
+        pending_approvals = 0
+        if company:
+            from apps.approvals.models import ApprovalRequest
+
+            pending_approvals = ApprovalRequest.objects.filter(
+                company=company, status=ApprovalRequest.Status.PENDING
+            ).count()
+
         ctx.update({
             # View mode
             "view_mode": view_mode,
@@ -165,6 +174,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             "ap_total": ap_total,
             "inventory_value": inventory_value,
             "unpaid_invoices": unpaid_invoices,
+            "pending_approvals": pending_approvals,
             "tax_deadlines": tax_deadlines,
 
             # Stock

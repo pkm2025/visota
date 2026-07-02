@@ -29,6 +29,30 @@
         {% if can_appr %}<a href="{% url 'ui_modern:approval_queue' %}" class="btn btn-outline-info btn-sm"><i class="bi bi-clipboard-check"></i> Phê duyệt</a>{% endif %}
     </div>
 
+    <!-- Mobile Home Screen — compact metrics + quick actions (hidden on desktop) -->
+    <div class="d-md-none mb-3">
+        <div class="row g-2 mb-2">
+            <div class="col-4"><div class="card text-center border-success"><div class="card-body p-2">
+                <small class="text-muted">Tiền</small>
+                <div class="fw-bold text-success" style="font-size:1.1rem">{{ cash_total|vnd }}đ</div>
+            </div></div></div>
+            <div class="col-4"><div class="card text-center border-primary"><div class="card-body p-2">
+                <small class="text-muted">Doanh thu</small>
+                <div class="fw-bold text-primary" style="font-size:1.1rem">{{ pnl.revenue|vnd }}</div>
+            </div></div></div>
+            <div class="col-4"><div class="card text-center {% if ar_aging.total > 0 %}border-warning{% else %}border-light{% endif %}"><div class="card-body p-2">
+                <small class="text-muted">Công nợ</small>
+                <div class="fw-bold {% if ar_aging.total > 0 %}text-warning{% else %}text-muted{% endif %}" style="font-size:1.1rem">{{ ar_aging.total|vnd }}đ</div>
+            </div></div></div>
+        </div>
+        <div class="row g-2">
+            <div class="col-3"><a href="{% url 'ui_modern:voucher_create' %}" class="btn btn-outline-primary btn-sm w-100 py-2"><i class="bi bi-receipt d-block" style="font-size:18px"></i><small>Phiếu</small></a></div>
+            <div class="col-3"><a href="{% url 'ui_modern:approval_queue' %}" class="btn btn-outline-info btn-sm w-100 py-2 position-relative"><i class="bi bi-clipboard-check d-block" style="font-size:18px"></i><small>Duyệt{% if pending_approvals %} <span class="badge bg-danger">{{ pending_approvals }}</span>{% endif %}</small></a></div>
+            <div class="col-3"><a href="{% url 'ui_modern:trial_balance' %}" class="btn btn-outline-secondary btn-sm w-100 py-2"><i class="bi bi-bar-chart d-block" style="font-size:18px"></i><small>Báo cáo</small></a></div>
+            <div class="col-3"><a href="{% url 'notifications:inbox' %}" class="btn btn-outline-warning btn-sm w-100 py-2 position-relative"><i class="bi bi-bell d-block" style="font-size:18px"></i><small>Thông báo{% if unread_count %} <span class="badge bg-danger">{{ unread_count|truncatechars:2 }}</span>{% endif %}</small></a></div>
+        </div>
+    </div>
+
     {% if view_mode == 'ceo' %}
     <!-- CEO VIEW -->
     <div class="row g-3 mb-3">
