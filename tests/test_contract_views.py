@@ -14,7 +14,9 @@ from apps.identity.models import User
 @pytest.fixture
 def setup(db):
     company = Company.objects.create(code="TCO", name="Test Co")
-    user = User.objects.create_superuser(username="alice", password="Secret123", email="alice@test.local")
+    user = User.objects.create_superuser(
+        username="alice", password="Secret123", email="alice@test.local"
+    )
     return company, user
 
 
@@ -76,3 +78,51 @@ def test_contract_create_submits(setup, auth_client):
     assert c is not None
     assert c.party_name == "Cty XYZ"
     assert c.value == Decimal("50000000")
+
+
+@pytest.mark.django_db
+def test_contract_wizard_shows_categories(auth_client):
+    response = auth_client.get("/modern/contracts/wizard/")
+    assert response.status_code == 200
+    content = response.content.decode("utf-8")
+    assert "Tạo hợp đồng nhanh" in content
+    assert "Hợp đồng với nhân viên" in content
+    assert "Biên bản" in content
+    assert "Quyết định" in content
+
+
+@pytest.mark.django_db
+def test_contract_wizard_filters_by_category(auth_client, setup):
+    from apps.contracts.models import ContractTemplate
+
+    ContractTemplate.objects.create(
+        code="TEST_WIZ_LABOR",
+        name="HĐLĐ Test",
+        contract_type="labor_fixed",
+        template_html="<p>test</p>",
+        required_fields=[],
+    )
+    response = auth_client.get("/modern/contracts/wizard/?cat=labor")
+    assert response.status_code == 200
+    content = response.content.decode("utf-8")
+    assert "Hợp đồng với nhân viên" in content
+    assert "selected_templates" in response.context
+    assert len(response.context["selected_templates"]) > 0
+
+
+@pytest.mark.django_db
+def test_contract_create_with_template_param(auth_client, setup):
+    """Contract create page accepts ?template=CODE and shows template info."""
+    from apps.contracts.models import ContractTemplate
+
+    ContractTemplate.objects.create(
+        code="TEST_WIZARD",
+        name="Test Wizard Template",
+        contract_type="service",
+        template_html="<p>test</p>",
+        required_fields=["party_name"],
+    )
+    response = auth_client.get("/modern/contracts/new/?template=TEST_WIZARD")
+    assert response.status_code == 200
+    content = response.content.decode("utf-8")
+    assert "Test Wizard Template" in content

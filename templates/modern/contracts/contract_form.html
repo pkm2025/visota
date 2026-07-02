@@ -13,6 +13,19 @@
     </nav>
     <h1 class="h3 mb-4">{{ page_title }}</h1>
 
+    {% if selected_template %}
+    <div class="alert alert-info d-flex align-items-center">
+        <i class="bi bi-file-earmark-text me-2" style="font-size:20px"></i>
+        <div class="flex-grow-1">
+            <strong>Mẫu: {{ selected_template.name }}</strong>
+            <small class="text-muted d-block">{{ selected_template.legal_basis|truncatechars:100 }}</small>
+        </div>
+        <a href="{% url 'ui_modern:contract_template_generate' selected_template.code 0 %}" class="btn btn-sm btn-outline-primary ms-3">
+            <i class="bi bi-printer"></i> In từ mẫu
+        </a>
+    </div>
+    {% endif %}
+
     <div class="card">
         <div class="card-body">
             <form method="post">
@@ -37,7 +50,7 @@
                         <label class="form-label">Loại hợp đồng</label>
                         <select name="contract_type" class="form-select">
                             {% for ct in contract_type_choices %}
-                            <option value="{{ ct.0 }}" {% if form_data.contract_type == ct.0 %}selected{% endif %}>{{ ct.1 }}</option>
+                            <option value="{{ ct.0 }}" {% if form_data.contract_type|default:suggested_type == ct.0 %}selected{% endif %}>{{ ct.1 }}</option>
                             {% endfor %}
                         </select>
                     </div>

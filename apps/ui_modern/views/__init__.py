@@ -79,6 +79,7 @@ from .contract_template_views import (
     ContractTemplateDeleteView,
     ContractTemplatePreviewRawView,
     ContractTemplatePreviewView,
+    ContractWizardView,
 )
 from .contract_views import ContractCreateView, ContractDetailView, ContractListView
 from .crm_views import (

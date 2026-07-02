@@ -260,3 +260,99 @@ body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6;
 </tr>
 </table>
 </body></html>"""
+
+
+# ============================================================================
+# Contract Wizard — guided template selection
+# ============================================================================
+
+WIZARD_CATEGORIES = [
+    {
+        "key": "labor",
+        "label": "Hợp đồng với nhân viên",
+        "icon": "bi-person-badge",
+        "desc": "HĐLĐ, thử việc, quyết định...",
+        "types": ["labor_fixed", "labor_indefinite", "labor_probation", "labor_dispatch", "labor"],
+    },
+    {
+        "key": "commercial",
+        "label": "Hợp đồng với khách hàng / NCC",
+        "icon": "bi-briefcase",
+        "desc": "Mua bán, dịch vụ, gia công, đại lý...",
+        "types": ["sale", "service", "it_service", "processing", "agency", "lease", "purchase"],
+    },
+    {
+        "key": "construction",
+        "label": "Hợp đồng thi công / đấu thầu",
+        "icon": "bi-building",
+        "desc": "Thi công, đấu thầu, tư vấn...",
+        "types": ["construction", "bidding_lump_sum", "bidding_unit_price", "bidding_consulting"],
+    },
+    {
+        "key": "minutes",
+        "label": "Biên bản",
+        "icon": "bi-file-earmark-text",
+        "desc": "Nghiệm thu, bàn giao, thanh lý, đối chiếu...",
+        "types": ["other"],
+        "code_prefix": "bb_",
+    },
+    {
+        "key": "decision",
+        "label": "Quyết định",
+        "icon": "bi-award",
+        "desc": "Nâng lương, điều chuyển, chấm dứt HĐLĐ...",
+        "types": ["labor"],
+        "code_prefix": "qd_",
+    },
+    {
+        "key": "other",
+        "label": "Khác / Phụ lục",
+        "icon": "bi-three-dots",
+        "desc": "Phụ lục hợp đồng và mẫu khác",
+        "types": ["appendix"],
+    },
+]
+
+
+class ContractWizardView(LoginRequiredMixin, View):
+    """Guided wizard: pick category → pick template → create contract."""
+
+    template_name = "modern/contracts/wizard.html"
+    login_url = "/auth/login/"
+
+    def get(self, request, *args, **kwargs):
+        category = request.GET.get("cat", "")
+        selected_templates = []
+        active_category = None
+
+        if category:
+            for cat in WIZARD_CATEGORIES:
+                if cat["key"] == category:
+                    active_category = cat
+                    qs = ContractTemplate.objects.filter(
+                        contract_type__in=cat["types"], is_active=True
+                    ).order_by("name")
+                    if cat.get("code_prefix"):
+                        # Filter by code_prefix (for minutes bb_ and decisions qd_)
+                        prefix = cat["code_prefix"]
+                        if cat["key"] == "minutes":
+                            qs = ContractTemplate.objects.filter(
+                                code__startswith=prefix, is_active=True
+                            ).order_by("name")
+                        elif cat["key"] == "decision":
+                            qs = ContractTemplate.objects.filter(
+                                code__startswith=prefix, is_active=True
+                            ).order_by("name")
+                    selected_templates = list(qs)
+                    break
+
+        return render(
+            request,
+            self.template_name,
+            {
+                "page_title": "Tạo hợp đồng nhanh",
+                "categories": WIZARD_CATEGORIES,
+                "active_category": active_category,
+                "selected_templates": selected_templates,
+            },
+        )

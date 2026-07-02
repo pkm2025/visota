@@ -69,11 +69,24 @@ class ContractCreateView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get(self, request, *args, **kwargs):
+        template_code = request.GET.get("template", "")
+        selected_template = None
+        suggested_type = ""
+        if template_code:
+            from apps.contracts.models import ContractTemplate
+
+            try:
+                selected_template = ContractTemplate.objects.get(code=template_code)
+                suggested_type = selected_template.contract_type
+            except ContractTemplate.DoesNotExist:
+                pass
         ctx = {
             "page_title": "Tạo hợp đồng",
             "contract_type_choices": Contract.ContractType.choices,
             "status_choices": Contract.Status.choices,
             "today": date.today().isoformat(),
+            "selected_template": selected_template,
+            "suggested_type": suggested_type,
         }
         return render(request, self.template_name, ctx)
 

@@ -67,6 +67,7 @@ from .views import (
     ContractEmailView,
     ContractExportDocxView,
     ContractGenerateView,
+    ContractWizardView,
     ContractListView,
     ContractTemplateListView,
     ContractTemplateCreateView,
@@ -778,6 +779,11 @@ urlpatterns = [
         "contracts/",
         login_required(ContractListView.as_view()),
         name="contract_list",
+    ),
+    path(
+        "contracts/wizard/",
+        login_required(ContractWizardView.as_view()),
+        name="contract_wizard",
     ),
     path(
         "contracts/new/",
