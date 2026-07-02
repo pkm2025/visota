@@ -342,11 +342,13 @@ class EInvoiceReportService:
         from calendar import monthrange
         from datetime import datetime
 
-        # Use range filter (avoids CONVERT_TZ needed for __year/__month on tz-aware fields)
-        first_day = datetime(year, month, 1)
+        # Use timezone-aware datetimes (USE_TZ=True in settings)
+        first_day = timezone.make_aware(datetime(year, month, 1))
         last_day_num = monthrange(year, month)[1]
         # Range covers entire month inclusive
-        last_day = datetime(year, month, last_day_num, 23, 59, 59)
+        last_day = timezone.make_aware(
+            datetime(year, month, last_day_num, 23, 59, 59)
+        )
         qs = EInvoice.objects.filter(
             company=company,
             issue_date__gte=first_day,
