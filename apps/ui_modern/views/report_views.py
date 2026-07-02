@@ -583,3 +583,74 @@ class SubLedgerView(LoginRequiredMixin, TemplateView):
             }
         )
         return ctx
+
+
+class BookEntryRegisterView(LoginRequiredMixin, TemplateView):
+    """Sổ đăng ký chứng từ ghi sổ (S02a-DN) — alternate bookkeeping form.
+
+    In the "chứng từ ghi sổ" method, transactions are first recorded in
+    subsidiary books, then summarized into "chứng từ ghi sổ" entries which
+    are posted to the general ledger. This register lists all vouchers
+    in CTGS format: sequential number, date, description, debit/credit totals.
+    """
+
+    template_name = "modern/reporting/book_entry_register.html"
+    login_url = "/auth/login/"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        today = date.today()
+        try:
+            fiscal_year = int(self.request.GET.get("fiscal_year", today.year))
+        except (TypeError, ValueError):
+            fiscal_year = today.year
+        try:
+            period = int(self.request.GET.get("period", today.month))
+        except (TypeError, ValueError):
+            period = today.month
+
+        company = getattr(self.request, "current_company", None) or Company.objects.first()
+
+        vouchers = AccountingVoucher.objects.filter(
+            company=company,
+            fiscal_year=fiscal_year,
+            period=period,
+            status__gte=AccountingVoucher.Status.LEDGER,
+        ).order_by("voucher_date", "voucher_no")
+
+        rows = []
+        total_debit = Decimal("0")
+        total_credit = Decimal("0")
+        seq = 0
+        for v in vouchers:
+            seq += 1
+            line_totals = v.lines.aggregate(d=Sum("debit_vnd"), c=Sum("credit_vnd"))
+            debit = line_totals["d"] or Decimal("0")
+            credit = line_totals["c"] or Decimal("0")
+            total_debit += debit
+            total_credit += credit
+            rows.append(
+                {
+                    "seq": seq,
+                    "voucher_no": v.voucher_no,
+                    "voucher_date": v.voucher_date,
+                    "voucher_type": v.get_voucher_type_display(),
+                    "description": v.description,
+                    "debit": debit,
+                    "credit": credit,
+                }
+            )
+
+        ctx.update(
+            {
+                "page_title": "Sổ đăng ký CTGS (S02a-DN)",
+                "fiscal_year": fiscal_year,
+                "period": period,
+                "rows": rows,
+                "total_debit": total_debit,
+                "total_credit": total_credit,
+                "is_balanced": total_debit == total_credit,
+                **_common_period_choices(),
+            }
+        )
+        return ctx

@@ -87,6 +87,8 @@ from .views import (
     GeneralLedgerView,
     HelpDetailView,
     HelpIndexView,
+    CostReportView,
+    BookEntryRegisterView,
     InputInvoiceListView,
     InputInvoiceProcessView,
     InputInvoiceUploadView,
@@ -855,6 +857,18 @@ urlpatterns = [
         "reports/sub-ledger/",
         login_required(SubLedgerView.as_view()),
         name="report_sub_ledger",
+    ),
+    # Cost accounting
+    path(
+        "reports/cost/",
+        login_required(CostReportView.as_view()),
+        name="report_cost",
+    ),
+    # Book entry register (S02a-DN)
+    path(
+        "reports/book-entry-register/",
+        login_required(BookEntryRegisterView.as_view()),
+        name="report_book_entry_register",
     ),
     # Recurring entries
     path(

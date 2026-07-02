@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'apps.bidding',
     'apps.budget',
     'apps.fx',
+    'apps.costing',
     'apps.public',
 
     # Local — UI layout packs

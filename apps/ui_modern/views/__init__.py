@@ -353,3 +353,5 @@ __all__ = [
     "CampaignCreateView",
 ]
 from .help_views import HelpDetailView, HelpIndexView
+from .costing_views import CostReportView
+from .report_views import BookEntryRegisterView

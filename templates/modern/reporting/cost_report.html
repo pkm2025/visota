@@ -1,0 +1,85 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    {% include 'shared/_breadcrumb.html' %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0"><i class="bi bi-calculator"></i> {{ page_title }}</h1>
+        <form method="get" class="d-flex gap-2 align-items-center">
+            <input type="number" name="fiscal_year" value="{{ fiscal_year }}" class="form-control form-control-sm" style="width:80px" placeholder="Năm">
+            <input type="number" name="period" value="{{ period }}" class="form-control form-control-sm" style="width:60px" placeholder="Kỳ">
+            <input type="number" name="output_qty" value="{{ output_qty|stringformat:'s' }}" class="form-control form-control-sm" style="width:140px" placeholder="SL thành phẩm" step="0.0001">
+            <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-clockwise"></i> Tính</button>
+        </form>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header"><strong>Chi phí sản xuất kỳ {{ period }}/{{ fiscal_year }}</strong></div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            <tr>
+                                <td>TK 621 — Chi phí NVL trực tiếp</td>
+                                <td class="text-end font-mono">{{ summary.materials|floatformat:0|intcomma }}đ</td>
+                            </tr>
+                            <tr>
+                                <td>TK 622 — Chi phí nhân công trực tiếp</td>
+                                <td class="text-end font-mono">{{ summary.labor|floatformat:0|intcomma }}đ</td>
+                            </tr>
+                            <tr>
+                                <td>TK 623 — Chi phí sản xuất chung</td>
+                                <td class="text-end font-mono">{{ summary.overhead|floatformat:0|intcomma }}đ</td>
+                            </tr>
+                            <tr class="table-light">
+                                <th>Tổng chi phí đầu vào</th>
+                                <th class="text-end font-mono">{{ summary.total_input|floatformat:0|intcomma }}đ</th>
+                            </tr>
+                            <tr>
+                                <td>CP dở dang đầu kỳ (TK 154)</td>
+                                <td class="text-end font-mono">{{ summary.wip_opening|floatformat:0|intcomma }}đ</td>
+                            </tr>
+                            <tr>
+                                <td>CP dở dang cuối kỳ</td>
+                                <td class="text-end font-mono">{{ summary.wip_closing|floatformat:0|intcomma }}đ</td>
+                            </tr>
+                            <tr class="table-warning">
+                                <th>Tổng giá thành sản xuất</th>
+                                <th class="text-end font-mono">{{ summary.total_production_cost|floatformat:0|intcomma }}đ</th>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <div class="text-muted small mb-1">Giá vốn hàng bán (TK 632)</div>
+                    <div class="h3 text-primary">{{ summary.cogs|floatformat:0|intcomma }}đ</div>
+                </div>
+            </div>
+            {% if summary.output_quantity > 0 %}
+            <div class="card border-success mt-3">
+                <div class="card-body text-center">
+                    <div class="text-muted small mb-1">Giá thành đơn vị</div>
+                    <div class="h3 text-success">{{ summary.unit_cost|floatformat:4 }}đ / {{ summary.output_quantity }} SP</div>
+                    <div class="text-muted small mt-2">
+                        = {{ summary.total_production_cost|floatformat:0|intcomma }}đ / {{ summary.output_quantity }}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="card mt-3">
+                <div class="card-body text-center text-muted">
+                    <i class="bi bi-info-circle"></i>
+                    Nhập số lượng thành phẩm để tính giá thành đơn vị.
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
