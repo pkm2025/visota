@@ -89,6 +89,27 @@ from .views import (
     HelpIndexView,
     CostReportView,
     BookEntryRegisterView,
+    CashPaymentJournalView,
+    CashReceiptJournalView,
+    PurchaseJournalView,
+    SalesJournalView,
+    TAccountSummaryView,
+    CashBookView,
+    BankBookView,
+    SalesDetailView,
+    CashFlowDirectView,
+    CashFlowIndirectView,
+    ClosingEntryDeclarationView,
+    CustomerOpeningBalanceView,
+    InvoiceOpeningBalanceView,
+    PeriodAllocationView,
+    VoucherRenumberView,
+    YearEndCarryForwardView,
+    CTGSCheckView,
+    CTGSCreateView,
+    CTGSRegisterView,
+    DepartmentMasterView,
+    SourceDocScheduleView,
     InputInvoiceListView,
     InputInvoiceProcessView,
     InputInvoiceUploadView,
@@ -869,6 +890,117 @@ urlpatterns = [
         "reports/book-entry-register/",
         login_required(BookEntryRegisterView.as_view()),
         name="report_book_entry_register",
+    ),
+    # Specialized journals (S03a1/a2/a3/a4-DN)
+    path(
+        "reports/journal/cash-receipt/",
+        login_required(CashReceiptJournalView.as_view()),
+        name="report_cash_receipt_journal",
+    ),
+    path(
+        "reports/journal/cash-payment/",
+        login_required(CashPaymentJournalView.as_view()),
+        name="report_cash_payment_journal",
+    ),
+    path(
+        "reports/journal/sales/",
+        login_required(SalesJournalView.as_view()),
+        name="report_sales_journal",
+    ),
+    path(
+        "reports/journal/purchase/",
+        login_required(PurchaseJournalView.as_view()),
+        name="report_purchase_journal",
+    ),
+    path(
+        "reports/t-account/",
+        login_required(TAccountSummaryView.as_view()),
+        name="report_t_account",
+    ),
+    # Sub-ledger books (S07/S08/S35-DN)
+    path(
+        "reports/cash-book/",
+        login_required(CashBookView.as_view()),
+        name="report_cash_book",
+    ),
+    path(
+        "reports/bank-book/",
+        login_required(BankBookView.as_view()),
+        name="report_bank_book",
+    ),
+    path(
+        "reports/sales-detail/",
+        login_required(SalesDetailView.as_view()),
+        name="report_sales_detail",
+    ),
+    # Cash flow statements (B03-DN)
+    path(
+        "reports/cash-flow/direct/",
+        login_required(CashFlowDirectView.as_view()),
+        name="report_cash_flow_direct",
+    ),
+    path(
+        "reports/cash-flow/indirect/",
+        login_required(CashFlowIndirectView.as_view()),
+        name="report_cash_flow_indirect",
+    ),
+    # Period tools
+    path(
+        "tools/year-end-carry-forward/",
+        login_required(YearEndCarryForwardView.as_view()),
+        name="year_end_carry_forward",
+    ),
+    path(
+        "tools/period-allocation/",
+        login_required(PeriodAllocationView.as_view()),
+        name="period_allocation",
+    ),
+    path(
+        "tools/closing-entry-declaration/",
+        login_required(ClosingEntryDeclarationView.as_view()),
+        name="closing_entry_declaration",
+    ),
+    path(
+        "tools/voucher-renumber/",
+        login_required(VoucherRenumberView.as_view()),
+        name="voucher_renumber",
+    ),
+    path(
+        "tools/opening-balances/customers/",
+        login_required(CustomerOpeningBalanceView.as_view()),
+        name="customer_opening_balances",
+    ),
+    path(
+        "tools/opening-balances/invoices/",
+        login_required(InvoiceOpeningBalanceView.as_view()),
+        name="invoice_opening_balances",
+    ),
+    # CTGS workflow
+    path(
+        "ctgs/create/",
+        login_required(CTGSCreateView.as_view()),
+        name="ctgs_create",
+    ),
+    path(
+        "ctgs/register/",
+        login_required(CTGSRegisterView.as_view()),
+        name="ctgs_register",
+    ),
+    path(
+        "ctgs/check/",
+        login_required(CTGSCheckView.as_view()),
+        name="ctgs_check",
+    ),
+    path(
+        "ctgs/schedule/",
+        login_required(SourceDocScheduleView.as_view()),
+        name="ctgs_schedule",
+    ),
+    # Department master
+    path(
+        "departments/",
+        login_required(DepartmentMasterView.as_view()),
+        name="department_master",
     ),
     # Recurring entries
     path(

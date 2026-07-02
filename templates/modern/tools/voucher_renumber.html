@@ -1,0 +1,70 @@
+{% extends 'modern/base/layout.html' %}
+{% load humanize %}
+{% load format_utils %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item">Cập nhật số liệu</li>
+                    <li class="breadcrumb-item active">{{ page_title }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+            <p class="text-muted mb-0">Kỳ: Tháng {{ period }} / {{ fiscal_year }}</p>
+        </div>
+        <form class="d-flex gap-2">
+            <select name="fiscal_year" class="form-select form-select-sm">
+                {% for y in year_choices %}
+                <option value="{{ y }}" {% if y == fiscal_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+            <select name="period" class="form-select form-select-sm">
+                {% for p in period_choices %}
+                <option value="{{ p }}" {% if p == period %}selected{% endif %}>Tháng {{ p }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-outline-primary btn-sm">Xem</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <form method="post">{% csrf_token %}
+                <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Xác nhận đánh lại số {{ rows|length }} chứng từ?')">
+                    <i class="bi bi-arrow-repeat"></i> Đánh lại số
+                </button>
+            </form>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>STT</th>
+                        <th>Số cũ</th>
+                        <th>Số mới</th>
+                        <th>Ngày</th>
+                        <th>Loại</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in rows %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td class="font-mono">{{ r.old_no }}</td>
+                        <td class="font-mono text-primary"><strong>{{ r.new_no }}</strong></td>
+                        <td>{{ r.date|date:"d/m/Y" }}</td>
+                        <td><small class="text-muted">{{ r.type }}</small></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">Không có chứng từ.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

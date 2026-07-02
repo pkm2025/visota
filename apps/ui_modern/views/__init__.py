@@ -355,3 +355,27 @@ __all__ = [
 from .help_views import HelpDetailView, HelpIndexView
 from .costing_views import CostReportView
 from .report_views import BookEntryRegisterView
+from .specialized_journal_views import (
+    CashPaymentJournalView,
+    CashReceiptJournalView,
+    PurchaseJournalView,
+    SalesJournalView,
+    TAccountSummaryView,
+)
+from .detail_book_views import CashBookView, BankBookView, SalesDetailView
+from .cash_flow_views import CashFlowDirectView, CashFlowIndirectView
+from .tool_views import (
+    ClosingEntryDeclarationView,
+    CustomerOpeningBalanceView,
+    InvoiceOpeningBalanceView,
+    PeriodAllocationView,
+    VoucherRenumberView,
+    YearEndCarryForwardView,
+)
+from .ctgs_views import (
+    CTGSCheckView,
+    CTGSCreateView,
+    CTGSRegisterView,
+    DepartmentMasterView,
+    SourceDocScheduleView,
+)

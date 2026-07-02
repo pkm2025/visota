@@ -361,7 +361,16 @@
                     <div x-show="open" x-collapse>
                         {% if can_ledger_2 %}
                         <a href="{% url 'ui_modern:general_journal' %}" class="nav-item"><i class="bi bi-journal-book"></i> <span>Nhật ký chung</span></a>
-                        <a href="{% url 'ui_modern:general_ledger' %}" class="nav-item"><i class="bi bi-book"></i> <span>Sổ cái</span></a>
+                        <a href="{% url 'ui_modern:report_cash_receipt_journal' %}" class="nav-item"><i class="bi bi-cash"></i> <span>NK thu tiền (S03a1)</span></a>
+                        <a href="{% url 'ui_modern:report_cash_payment_journal' %}" class="nav-item"><i class="bi bi-cash-coin"></i> <span>NK chi tiền (S03a2)</span></a>
+                        <a href="{% url 'ui_modern:report_sales_journal' %}" class="nav-item"><i class="bi bi-receipt"></i> <span>NK bán hàng (S03a4)</span></a>
+                        <a href="{% url 'ui_modern:report_purchase_journal' %}" class="nav-item"><i class="bi bi-bag"></i> <span>NK mua hàng (S03a3)</span></a>
+                        <a href="{% url 'ui_modern:general_ledger' %}" class="nav-item"><i class="bi bi-book"></i> <span>Sổ cái TK (S03b)</span></a>
+                        <a href="{% url 'ui_modern:report_t_account' %}" class="nav-item"><i class="bi bi-table"></i> <span>Sổ chữ T TK</span></a>
+                        <a href="{% url 'ui_modern:report_cash_book' %}" class="nav-item"><i class="bi bi-wallet2"></i> <span>Sổ quỹ TM (S07)</span></a>
+                        <a href="{% url 'ui_modern:report_bank_book' %}" class="nav-item"><i class="bi bi-bank"></i> <span>Sổ TGNH (S08)</span></a>
+                        <a href="{% url 'ui_modern:report_sales_detail' %}" class="nav-item"><i class="bi bi-cart-check"></i> <span>Sổ chi tiết bán hàng (S35)</span></a>
+                        <a href="{% url 'ui_modern:report_sub_ledger' %}" class="nav-item"><i class="bi bi-journal-text"></i> <span>Sổ chi tiết KH/NCC</span></a>
                         {% endif %}
                     </div>
                 </div>
@@ -387,6 +396,8 @@
                         <a href="{% url 'ui_modern:report_sub_ledger' %}" class="nav-item"><i class="bi bi-journal-text"></i> <span>Sổ chi tiết TK</span></a>
                         <a href="{% url 'ui_modern:report_cost' %}" class="nav-item"><i class="bi bi-calculator"></i> <span>Bảng tính giá thành</span></a>
                         <a href="{% url 'ui_modern:report_book_entry_register' %}" class="nav-item"><i class="bi bi-journal-bookmark"></i> <span>Sổ ĐK CTGS (S02a)</span></a>
+                        <a href="{% url 'ui_modern:report_cash_flow_direct' %}" class="nav-item"><i class="bi bi-water"></i> <span>BC dòng tiền trực tiếp (B03)</span></a>
+                        <a href="{% url 'ui_modern:report_cash_flow_indirect' %}" class="nav-item"><i class="bi bi-water"></i> <span>BC dòng tiền gián tiếp (B03)</span></a>
                         {% endif %}
                         {% if can_budget %}
                         <a href="{% url 'ui_modern:budget_list' %}" class="nav-item"><i class="bi bi-graph-up-arrow"></i> <span>Ngân sách</span></a>
@@ -407,6 +418,39 @@
                     <div x-show="open" x-collapse>
                         {% if can_md_2 %}
                         <a href="{% url 'ui_modern:chart_of_accounts_list' %}" class="nav-item"><i class="bi bi-list-ul"></i> <span>Hệ thống TK</span></a>
+                        <a href="{% url 'ui_modern:department_master' %}" class="nav-item"><i class="bi bi-diagram-3"></i> <span>Bộ phận hạch toán</span></a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_CTGS') !== 'false' }"
+                     {% has_module_access "ledger" as can_ledger_3 %}{% if not can_ledger_3 %}style="display:none"{% endif %}>
+                    <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_CTGS', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                        <span>Chứng từ ghi sổ</span>
+                        <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
+                    </div>
+                    <div x-show="open" x-collapse>
+                        {% if can_ledger_3 %}
+                        <a href="{% url 'ui_modern:ctgs_create' %}" class="nav-item"><i class="bi bi-file-earmark-plus"></i> <span>Khai báo CTGS</span></a>
+                        <a href="{% url 'ui_modern:ctgs_register' %}" class="nav-item"><i class="bi bi-bookmark-check"></i> <span>Đăng ký CTGS</span></a>
+                        <a href="{% url 'ui_modern:ctgs_check' %}" class="nav-item"><i class="bi bi-shield-check"></i> <span>Kiểm tra CTGS</span></a>
+                        <a href="{% url 'ui_modern:ctgs_schedule' %}" class="nav-item"><i class="bi bi-list-columns"></i> <span>Bảng kê S04-H</span></a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_TOOL') === 'true' }"
+                     {% has_module_access "ledger" as can_ledger_4 %}{% if not can_ledger_4 %}style="display:none"{% endif %}>
+                    <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_TOOL', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                        <span>Cập nhật số liệu</span>
+                        <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
+                    </div>
+                    <div x-show="open" x-collapse>
+                        {% if can_ledger_4 %}
+                        <a href="{% url 'ui_modern:period_allocation' %}" class="nav-item"><i class="bi bi-arrow-left-right"></i> <span>Phân bổ cuối kỳ</span></a>
+                        <a href="{% url 'ui_modern:closing_entry_declaration' %}" class="nav-item"><i class="bi bi-arrow-return-left"></i> <span>KK kết chuyển cuối kỳ</span></a>
+                        <a href="{% url 'ui_modern:voucher_renumber' %}" class="nav-item"><i class="bi bi-arrow-repeat"></i> <span>Đánh lại số CT</span></a>
+                        <a href="{% url 'ui_modern:customer_opening_balances' %}" class="nav-item"><i class="bi bi-people"></i> <span>Dư đầu KH</span></a>
+                        <a href="{% url 'ui_modern:invoice_opening_balances' %}" class="nav-item"><i class="bi bi-receipt"></i> <span>Dư đầu hoá đơn</span></a>
+                        <a href="{% url 'ui_modern:year_end_carry_forward' %}" class="nav-item"><i class="bi bi-box-arrow-right"></i> <span>Chuyển số dư năm sau</span></a>
                         {% endif %}
                     </div>
                 </div>

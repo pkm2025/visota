@@ -1,0 +1,84 @@
+{% extends 'modern/base/layout.html' %}
+{% load static humanize %}
+{% load format_utils %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'modern/css/ledger.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item">Báo cáo</li>
+                    <li class="breadcrumb-item">Nhật ký chuyên biệt</li>
+                    <li class="breadcrumb-item active">{{ form_code }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+            <p class="text-muted mb-0">Kỳ: Tháng {{ period }} / {{ fiscal_year }}</p>
+        </div>
+        <form method="get" class="d-flex gap-2">
+            <select name="fiscal_year" class="form-select form-select-sm">
+                {% for y in year_choices %}
+                <option value="{{ y }}" {% if y == fiscal_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+            <select name="period" class="form-select form-select-sm">
+                {% for p in period_choices %}
+                <option value="{{ p }}" {% if p == period %}selected{% endif %}>Tháng {{ p }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">Xem</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 90px;">Ngày</th>
+                            <th style="width: 110px;">Số CT</th>
+                            <th>Diễn giải</th>
+                            <th style="width: 80px;">TK</th>
+                            <th style="width: 100px;">Đối tượng</th>
+                            <th>Tên đối tượng</th>
+                            <th style="width: 140px;" class="text-end">Số tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr>
+                            <td>{{ row.voucher_date|date:"d/m/Y" }}</td>
+                            <td class="font-mono">{{ row.voucher_no }}</td>
+                            <td>{{ row.description }}</td>
+                            <td class="font-mono">{{ row.account_code }}</td>
+                            <td class="font-mono">{{ row.object_code }}</td>
+                            <td>{{ row.object_name }}</td>
+                            <td class="text-end font-mono">{{ row.amount|vnd }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">Không có dữ liệu kỳ này.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    {% if rows %}
+                    <tfoot class="table-light">
+                        <tr>
+                            <th colspan="6" class="text-end">Tổng cộng</th>
+                            <th class="text-end font-mono">{{ total_amount|vnd }}</th>
+                        </tr>
+                    </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
