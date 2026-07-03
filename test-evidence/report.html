@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Báo cáo kiểm thử toàn diện — PMKetoan</title>
+<style>
+body { font-family: -apple-system, sans-serif; margin: 20px; background: #f8f9fa; }
+h1 { color: #2563eb; border-bottom: 3px solid #2563eb; padding-bottom: 10px; }
+h2 { color: #495057; margin-top: 30px; border-left: 4px solid #2563eb; padding-left: 10px; }
+.summary { display: flex; gap: 20px; margin: 20px 0; }
+.summary-card { background: white; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
+.summary-card .num { font-size: 36px; font-weight: bold; }
+.summary-card .label { color: #6c757d; font-size: 14px; }
+.pass .num { color: #16a34a; }
+.fail .num { color: #dc2626; }
+.total .num { color: #2563eb; }
+.test-case { background: white; margin: 10px 0; padding: 15px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.test-case-header { display: flex; justify-content: space-between; align-items: center; }
+.test-case-id { font-weight: bold; color: #495057; }
+.badge { padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+.badge-pass { background: #d4edda; color: #155724; }
+.badge-fail { background: #f8d7da; color: #721c24; }
+.screenshot { margin-top: 10px; max-width: 100%; border: 1px solid #dee2e6; border-radius: 4px; }
+.error-msg { color: #dc2626; font-size: 13px; margin-top: 5px; }
+.meta { color: #6c757d; font-size: 13px; margin-bottom: 20px; }
+table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #dee2e6; }
+th { background: #e9ecef; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>Báo cáo kiểm thử toàn diện — PMKetoan (Visota)</h1>
+<div class="meta">
+  <p><strong>Ngày test:</strong> 03/07/2026 19:07</p>
+  <p><strong>Server:</strong> http://127.0.0.1:8903</p>
+  <p><strong>Tài khoản:</strong> e2e_admin (superuser), e2e_sales (RBAC)</p>
+  <p><strong>Tổng số test case:</strong> 71</p>
+</div>
+
+<div class="summary">
+  <div class="summary-card total"><div class="num">71</div><div class="label">Tổng</div></div>
+  <div class="summary-card pass"><div class="num">71</div><div class="label">Pass</div></div>
+  <div class="summary-card fail"><div class="num">0</div><div class="label">Fail</div></div>
+  <div class="summary-card"><div class="num">100%</div><div class="label">Pass Rate</div></div>
+</div>
+<h2>17. Trợ giúp & Hệ thống (71/71)</h2>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">AUTH-01: Trang dang nhap hien thi</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/auth_01_login_page.png" alt="AUTH-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">AUTH-02: Dang nhap admin thanh cong</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/auth_02_login_success.png" alt="AUTH-02" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">AUTH-03: Dang nhap sai mat khau</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/auth_03_wrong_password.png" alt="AUTH-03" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">AUTH-04: Dang xuat</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/auth_04_logout.png" alt="AUTH-04" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">DASH-01: Dashboard hiển thị</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/dash_01_dashboard.png" alt="DASH-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">DASH-02: Mobile dashboard</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/dash_02_mobile.png" alt="DASH-02" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">LED-01: Danh sách chứng từ</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/led_01_voucher_list.png" alt="LED-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">LED-02: Tạo chứng từ</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/led_02_voucher_create.png" alt="LED-02" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">LED-03: Nhật ký chung (S03a-DN)</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/led_03_general_journal.png" alt="LED-03" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">LED-04: Sổ cái TK (S03b-DN)</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/led_04_general_ledger.png" alt="LED-04" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">LED-05: Bảng cân đối TK (S06)</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/led_05_trial_balance.png" alt="LED-05" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">LED-06: Sổ chi tiết TK</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/led_06_sub_ledger.png" alt="LED-06" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">LED-07: Sổ ĐK CTGS (S02a-DN)</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/led_07_book_entry.png" alt="LED-07" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">SJ-01: NK thu tiền (S03a1-DN)</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/sj_01_cash_receipt.png" alt="SJ-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">SJ-02: NK chi tiền (S03a2-DN)</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/sj_02_cash_payment.png" alt="SJ-02" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">SJ-03: NK bán hàng (S03a4-DN)</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/sj_03_sales.png" alt="SJ-03" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">SJ-04: NK mua hàng (S03a3-DN)</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/sj_04_purchase.png" alt="SJ-04" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">SJ-05: Sổ tổng hợp chữ T</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/sj_05_t_account.png" alt="SJ-05" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">SL-01: Sổ quỹ tiền mặt (S07-DN)</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/sl_01_cash_book.png" alt="SL-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">SL-02: Sổ tiền gửi ngân hàng (S08-DN)</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/sl_02_bank_book.png" alt="SL-02" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">SL-03: Sổ chi tiết bán hàng (S35-DN)</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/sl_03_sales_detail.png" alt="SL-03" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">FIN-01: BC tình hình tài chính (B01-DN)</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/fin_01_balance_sheet.png" alt="FIN-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">FIN-02: BC kết quả SXKD (B02-DN)</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/fin_02_pnl.png" alt="FIN-02" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">FIN-03: BC dòng tiền trực tiếp (B03-DN)</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/fin_03_cashflow_direct.png" alt="FIN-03" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">FIN-04: BC dòng tiền gián tiếp (B03-DN)</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/fin_04_cashflow_indirect.png" alt="FIN-04" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">FIN-05: Tờ khai thuế GTGT (01-GTGT)</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/fin_05_vat.png" alt="FIN-05" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">FIN-06: Bảng tính giá thành</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/fin_06_cost.png" alt="FIN-06" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">CTGS-01: Khai báo CTGS</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/ctgs_01_create.png" alt="CTGS-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">CTGS-02: Đăng ký CTGS</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/ctgs_02_register.png" alt="CTGS-02" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">CTGS-03: Kiểm tra CTGS</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/ctgs_03_check.png" alt="CTGS-03" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">CTGS-04: Bảng kê S04-H</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/ctgs_04_schedule.png" alt="CTGS-04" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">TOOL-01: Phân bổ cuối kỳ</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/tool_01_allocation.png" alt="TOOL-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">TOOL-02: KK kết chuyển cuối kỳ</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/tool_02_closing.png" alt="TOOL-02" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">TOOL-03: Đánh lại số chứng từ</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/tool_03_renumber.png" alt="TOOL-03" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">TOOL-04: Chuyển số dư năm sau</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/tool_04_carry_forward.png" alt="TOOL-04" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">TOOL-05: Dư ban đầu KH</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/tool_05_cust_ob.png" alt="TOOL-05" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">TOOL-06: Dư ban đầu HĐ</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/tool_06_inv_ob.png" alt="TOOL-06" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">MD-01: Hệ thống tài khoản</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/md_01_coa.png" alt="MD-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">MD-02: Bộ phận hạch toán</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/md_02_department.png" alt="MD-02" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">MD-03: Khách hàng</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/md_03_customers.png" alt="MD-03" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">MD-04: Nhà cung cấp</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/md_04_vendors.png" alt="MD-04" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">MD-05: Hàng hóa</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/md_05_products.png" alt="MD-05" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">SALE-01: Danh sách hóa đơn bán</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/sale_01_list.png" alt="SALE-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">SALE-02: Tạo hóa đơn bán</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/sale_02_create.png" alt="SALE-02" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">PUR-01: Danh sách phiếu nhập mua</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/pur_01_list.png" alt="PUR-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">PUR-02: Tạo phiếu nhập mua</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/pur_02_create.png" alt="PUR-02" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">INV-01: Phiếu nhập xuất</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/inv_01_stock.png" alt="INV-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">INV-02: Tổng quan kho</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/inv_02_dashboard.png" alt="INV-02" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">INV-03: Thẻ kho</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/inv_03_stock_card.png" alt="INV-03" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">ASSET-01: Tài sản cố định</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/asset_01_list.png" alt="ASSET-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">ASSET-02: Tính khấu hao</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/asset_02_depreciation.png" alt="ASSET-02" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">HR-01: Nhân viên</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/hr_01_employees.png" alt="HR-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">HR-02: Hợp đồng lao động</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/hr_02_contracts.png" alt="HR-02" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">HR-03: Tính lương</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/hr_03_payroll.png" alt="HR-03" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">HR-04: BHXH</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/hr_04_insurance.png" alt="HR-04" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">HR-05: BC D62</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/hr_05_d62.png" alt="HR-05" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">HR-06: BC thuế TNCN</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/hr_06_pit.png" alt="HR-06" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">CRM-01: Khách tiềm năng</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/crm_01_leads.png" alt="CRM-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">CRM-02: Cơ hội bán hàng</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/crm_02_opportunities.png" alt="CRM-02" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">PRJ-01: Quản lý dự án</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/prj_01_projects.png" alt="PRJ-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">BANK-01: Tài khoản ngân hàng</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/bank_01_accounts.png" alt="BANK-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">BANK-02: Đối soát ngân hàng</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/bank_02_reconcile.png" alt="BANK-02" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">EINV-01: Hóa đơn điện tử</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/einv_01_list.png" alt="EINV-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">CON-01: Danh sách hợp đồng</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/con_01_list.png" alt="CON-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">CON-02: Mẫu hợp đồng</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/con_02_templates.png" alt="CON-02" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">CON-03: Wizard tạo hợp đồng</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/con_03_wizard.png" alt="CON-03" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">RBAC-01: Sales truy cap vouchers</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/rbac_01_sales_vouchers.png" alt="RBAC-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">RBAC-02: Sales truy cap sales duoc phep</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/rbac_02_sales_allowed.png" alt="RBAC-02" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">HELP-01: Trang trợ giúp</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/help_01_kb.png" alt="HELP-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">SYS-01: Hồ sơ công ty</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/sys_01_company.png" alt="SYS-01" loading="lazy">
+</div>
+
+<div class="test-case">
+  <div class="test-case-header">
+    <span class="test-case-id">SYS-02: Vai trò & phân quyền</span>
+    <span class="badge badge-pass">PASS</span>
+  </div>
+  <img class="screenshot" src="test-evidence/sys_02_roles.png" alt="SYS-02" loading="lazy">
+</div>
+
+</body>
+</html>
