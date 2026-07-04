@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff mypy django-stubs
+      - run: ruff check apps/
+      - run: ruff format --check apps/
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: rootpass
+          MARIADB_DATABASE: pmketoan_test
+          MARIADB_USER: pmketoan
+          MARIADB_PASSWORD: testpass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.test
+      DB_NAME: pmketoan_test
+      DB_USER: root
+      DB_PASSWORD: rootpass
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      SECRET_KEY: ci-secret-key-for-testing-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config libmariadb-dev \
+            libxml2-dev libxslt1-dev libpango-1.0-0 libpangoft2-1.0-0 \
+            libffi-dev libcairo2 libgdk-pixbuf-2.0-0
+      - name: Install Python deps
+        run: pip install -r requirements.txt
+      - name: Run migrations
+        run: python manage.py migrate --run-syncdb
+      - name: Run tests
+        run: pytest -n auto --no-cov -q
+        timeout-minutes: 15
+
+  security:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pip-audit
+        run: pip install pip-audit
+      - name: Audit dependencies
+        run: pip-audit -r requirements.txt --ignore-vuln GHSA-XXXX
+        continue-on-error: true
