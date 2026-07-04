@@ -227,17 +227,25 @@ def _make_voucher_with_input_tax(company, seeded, tax_amount=Decimal("100000")):
 
 
 def test_post_input_tax_creates_1331(company, seeded):
-    """VAL-M1-005: INPUT tax lines generate TK 1331 debit."""
+    """VAL-M1-005 (updated): INPUT tax lines do NOT auto-generate TK 1331 debit.
+
+    Tax fields on VoucherLine are metadata for VAT reporting (M2), not a
+    trigger for separate posting lines. The user-entered main lines already
+    account for the full invoice amount.
+    """
     v = _make_voucher_with_input_tax(company, seeded)
     VoucherPostingService().post(v)
     tax_lines = VoucherLine.objects.filter(voucher=v, account_code="1331")
-    assert tax_lines.count() >= 1
-    total = sum(tl.debit_vnd for tl in tax_lines)
-    assert total == Decimal("100000")
+    assert tax_lines.count() == 0
+    assert VoucherLine.objects.filter(voucher=v, is_auto_tax_posting=True).count() == 0
 
 
 def test_post_output_tax_creates_33311(company, seeded):
-    """VAL-M1-005: OUTPUT tax lines generate TK 33311 credit."""
+    """VAL-M1-005 (updated): OUTPUT tax lines do NOT auto-generate TK 33311 credit.
+
+    Tax fields on VoucherLine are metadata for VAT reporting (M2), not a
+    trigger for separate posting lines.
+    """
     grp_output = InvoiceGroup.objects.get(code="5")
     v = AccountingVoucher.objects.create(
         company=company,
@@ -266,30 +274,34 @@ def test_post_output_tax_creates_33311(company, seeded):
     )
     VoucherPostingService().post(v)
     tax_lines = VoucherLine.objects.filter(voucher=v, account_code="33311")
-    assert tax_lines.count() >= 1
-    total = sum(tl.credit_vnd for tl in tax_lines)
-    assert total == Decimal("100000")
+    assert tax_lines.count() == 0
+    assert VoucherLine.objects.filter(voucher=v, is_auto_tax_posting=True).count() == 0
 
 
 def test_unpost_removes_tax_postings(company, seeded):
-    """VAL-M1-008: unpost removes auto-generated 1331/33311 lines."""
+    """VAL-M1-008 (updated): unpost reverts balances; no auto tax lines ever created."""
     v = _make_voucher_with_input_tax(company, seeded)
     service = VoucherPostingService()
     service.post(v)
-    assert VoucherLine.objects.filter(voucher=v, account_code="1331").exists()
-
-    service.unpost(v)
-
+    # No auto tax lines are created during posting
     assert VoucherLine.objects.filter(voucher=v, account_code="1331").count() == 0
     assert VoucherLine.objects.filter(voucher=v, is_auto_tax_posting=True).count() == 0
 
-    bal = AccountPeriodBalance.objects.get(
+    service.unpost(v)
+
+    # Still no auto tax lines
+    assert VoucherLine.objects.filter(voucher=v, account_code="1331").count() == 0
+    assert VoucherLine.objects.filter(voucher=v, is_auto_tax_posting=True).count() == 0
+
+    # User-entered lines (642) reverted
+    bal = AccountPeriodBalance.objects.filter(
         company=company,
         fiscal_year=2026,
         period=6,
-        account_code="1331",
-    )
-    assert bal.period_debit == Decimal("0")
+        account_code="642",
+    ).first()
+    if bal:
+        assert bal.period_debit == Decimal("0")
     v.refresh_from_db()
     assert not v.is_posted
 
@@ -326,30 +338,47 @@ def test_post_without_tax_lines_no_extra_lines(company, seeded):
 
 
 def test_post_idempotent_on_repost(company, seeded):
-    """VAL-M1-007: reposting should be idempotent (no double counting)."""
+    """VAL-M1-007 (updated): reposting is idempotent; no auto tax lines created."""
     v = _make_voucher_with_input_tax(company, seeded)
     service = VoucherPostingService()
     service.post(v)
     # Unpost then post again
     service.unpost(v)
     service.post(v)
+    # No auto tax lines created
     tax_lines = VoucherLine.objects.filter(voucher=v, account_code="1331")
-    assert tax_lines.count() == 1
-    assert tax_lines.first().debit_vnd == Decimal("100000")
+    assert tax_lines.count() == 0
+    assert VoucherLine.objects.filter(voucher=v, is_auto_tax_posting=True).count() == 0
 
-
-def test_trial_balance_reflects_tax_posting(company, seeded):
-    """VAL-M1-006: AccountPeriodBalance for 1331 has period_debit."""
-    v = _make_voucher_with_input_tax(company, seeded)
-    VoucherPostingService().post(v)
+    # User-entered 642 line balance is correct (1.1M debit)
     bal = AccountPeriodBalance.objects.get(
         company=company,
         fiscal_year=2026,
         period=6,
-        account_code="1331",
+        account_code="642",
     )
-    assert bal.period_debit == Decimal("100000")
-    assert bal.closing_debit == Decimal("100000")
+    assert bal.period_debit == Decimal("1100000")
+
+
+def test_trial_balance_reflects_tax_posting(company, seeded):
+    """VAL-M1-006 (updated): no auto 1331 balance; user-entered lines only."""
+    v = _make_voucher_with_input_tax(company, seeded)
+    VoucherPostingService().post(v)
+    # No auto 1331 balance row created (since no auto tax posting)
+    assert not AccountPeriodBalance.objects.filter(
+        company=company,
+        fiscal_year=2026,
+        period=6,
+        account_code="1331",
+    ).exists()
+    # User-entered 642 line is balanced correctly
+    bal642 = AccountPeriodBalance.objects.get(
+        company=company,
+        fiscal_year=2026,
+        period=6,
+        account_code="642",
+    )
+    assert bal642.period_debit == Decimal("1100000")
 
 
 def test_post_zero_tax_amount_no_line(company, seeded):
