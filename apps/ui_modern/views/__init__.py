@@ -185,6 +185,7 @@ from .stock_views import (
     StockVoucherListView,
 )
 from .treasury_views import CashPaymentCreateView, CashReceiptCreateView
+from .vat_xml_views import VATXmlView
 from .vendor_views import (
     VendorCreateView,
     VendorDeleteView,
@@ -274,6 +275,7 @@ __all__ = [
     "BalanceSheetView",
     "PnLView",
     "VATReturnView",
+    "VATXmlView",
     "GeneralJournalView",
     "GeneralLedgerView",
     "CustomerListView",
