@@ -175,6 +175,28 @@ class TestSeedFinancialReportLines:
 
         assert count1 == count2, f"Seed not idempotent: {count1} -> {count2}"
 
+    def test_130b_uses_3311_not_1331(self, db):
+        """Line 130b 'Trả trước cho người bán ngắn hạn' aggregates TK 3311*
+        (prepayment to suppliers), NOT 1331* which duplicates 150b and
+        double-counts deductible VAT in total assets.
+        """
+        call_command("seed_financial_report_lines")
+        line_130b = FinancialReportLine.objects.get(report_type="B01-DN", ma_so="130b")
+        assert line_130b.tk_no_pattern == "3311*", (
+            f"130b should use tk_no_pattern='3311*', got '{line_130b.tk_no_pattern}'"
+        )
+        assert line_130b.tk_no_pattern != "1331*", (
+            "130b must NOT use 1331* (would duplicate line 150b)"
+        )
+
+    def test_150b_still_uses_1331(self, db):
+        """Line 150b 'Thuế GTGT được khấu trừ' must still aggregate 1331*."""
+        call_command("seed_financial_report_lines")
+        line_150b = FinancialReportLine.objects.get(report_type="B01-DN", ma_so="150b")
+        assert line_150b.tk_no_pattern == "1331*", (
+            f"150b should keep tk_no_pattern='1331*', got '{line_150b.tk_no_pattern}'"
+        )
+
 
 # ---------------------------------------------------------------------------
 # Formula parser tests (VAL-M1-035)
