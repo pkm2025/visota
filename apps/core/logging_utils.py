@@ -18,19 +18,21 @@ PII_PATTERNS = [
     (re.compile(r"\b\d{9,12}\b"), "[TAX_ID]"),
 ]
 
-PII_KEYS = frozenset({
-    "password",
-    "secret",
-    "token",
-    "api_key",
-    "apikey",
-    "private_key",
-    "credit_card",
-    "card_number",
-    "cvv",
-    "ssn",
-    "tax_code",
-})
+PII_KEYS = frozenset(
+    {
+        "password",
+        "secret",
+        "token",
+        "api_key",
+        "apikey",
+        "private_key",
+        "credit_card",
+        "card_number",
+        "cvv",
+        "ssn",
+        "tax_code",
+    }
+)
 
 
 def scrub_value(val: Any) -> Any:
@@ -40,7 +42,9 @@ def scrub_value(val: Any) -> Any:
             val = pattern.sub(replacement, val)
         return val
     if isinstance(val, dict):
-        return {k: "[REDACTED]" if k.lower() in PII_KEYS else scrub_value(v) for k, v in val.items()}
+        return {
+            k: "[REDACTED]" if k.lower() in PII_KEYS else scrub_value(v) for k, v in val.items()
+        }
     if isinstance(val, (list, tuple)):
         return [scrub_value(v) for v in val]
     return val

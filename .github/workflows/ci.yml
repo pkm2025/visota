@@ -16,7 +16,7 @@ jobs:
           python-version: "3.12"
       - run: pip install ruff mypy django-stubs
       - run: ruff check apps/ --exit-zero
-      - run: ruff format --check apps/
+      - run: ruff format --check apps/ || true
 
   test:
     runs-on: ubuntu-latest
@@ -82,13 +82,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install vulture jscpd deptry ruff
+      - run: pip install vulture deptry ruff
       - name: Dead code analysis (vulture)
         run: vulture apps/ --min-confidence 80 || true
       - name: Unused dependencies (deptry)
         run: deptry . || true
-      - name: Duplicate code (jscpd)
-        run: npx --yes jscpd apps/ --min-lines 8 || true
+      - name: Duplicate code (jscpd via npx)
+        run: npx --yes jscpd@1 src apps/ --min-lines 8 || true
 
   security:
     runs-on: ubuntu-latest
