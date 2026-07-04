@@ -36,6 +36,33 @@
         <div class="col-lg-8">
             <div class="card">
                 <div class="card-body">
+                    {% if config_lines %}
+                    <table class="table table-sm table-bordered mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:8%">STT</th>
+                                <th style="width:12%">Mã số</th>
+                                <th style="width:55%">Chỉ tiêu</th>
+                                <th class="text-end">Trong kỳ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in config_lines %}
+                            <tr class="{% if r.is_header %}table-light fw-bold{% endif %}">
+                                <td class="font-mono">{{ r.stt }}</td>
+                                <td class="font-mono">{{ r.ma_so }}</td>
+                                <td>{{ r.chi_tieu }}</td>
+                                <td class="text-end font-mono">
+                                    {% if r.is_header and r.value %}{{ r.value|vnd }}
+                                    {% elif r.is_header %}&nbsp;
+                                    {% else %}{{ r.value|vnd }}{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    {# Legacy rendering for when no config is seeded #}
                     {% if method == "direct" %}
                     <h4>I. Dòng tiền từ HĐKD</h4>
                     <table class="table table-sm">
@@ -104,6 +131,7 @@
                             <th class="text-end font-mono">{{ closing_cash|vnd }}</th>
                         </tr>
                     </table>
+                    {% endif %}
                 </div>
             </div>
         </div>

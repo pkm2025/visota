@@ -1,19 +1,23 @@
-"""Cash flow statement (B03-DN) generators — direct and indirect methods.
+"""Cash flow statement (B03-DN) generators - direct and indirect methods.
 
-Direct method: lists actual cash receipts and payments by category.
-Indirect method: starts from net income and adjusts for non-cash items.
-
-Account mapping (TT133):
-  Operating activities:   TK 111, 112 (cash/bank) excluding investing/financing
-  Investing activities:   TK 111/112 movements tied to 211, 212, 221, 222, 228
-  Financing activities:   TK 111/112 movements tied to 341, 343, 411
+Config-driven: reads ``FinancialReportLine`` rows for the direct and
+indirect report types and evaluates them via ``ReportEngine``.  Falls
+back to the legacy hard-coded logic when no config rows exist.
 """
 
+from __future__ import annotations
+
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from django.db.models import Q, Sum
 
 from apps.ledger.models import AccountPeriodBalance, VoucherLine
+from apps.reporting.models import FinancialReportLine
+from apps.reporting.services.formula_parser import ReportEngine
+
+if TYPE_CHECKING:
+    from apps.core.models import Company
 
 
 class CashFlowService:
@@ -22,28 +26,122 @@ class CashFlowService:
     INVESTING_PREFIXES = ["211", "212", "221", "222", "228"]
     FINANCING_PREFIXES = ["341", "343", "411"]
 
-    def __init__(self, company):
+    DIRECT_TYPE = "B03-DN-direct"
+    INDIRECT_TYPE = "B03-DN-indirect"
+
+    def __init__(self, company: Company | None):
         self.company = company
 
+    # ====================================================================
+    # Direct method
+    # ====================================================================
+
     def generate_direct(self, fiscal_year: int, period: int) -> dict:
-        """Direct method: cash receipts minus cash payments by activity."""
+        has_config = FinancialReportLine.objects.filter(report_type=self.DIRECT_TYPE).exists()
+
+        if has_config:
+            return self._generate_from_config(self.DIRECT_TYPE, fiscal_year, period, "direct")
+        return self._generate_direct_legacy(fiscal_year, period)
+
+    def _generate_from_config(
+        self, report_type: str, fiscal_year: int, period: int, method: str
+    ) -> dict:
+        engine = ReportEngine(self.company, fiscal_year, period)
+        lines = engine.generate(report_type, use_closing=False)
+        vals: dict[str, Decimal] = {}
+        for ln in lines:
+            if ln.ma_so:
+                vals[ln.ma_so] = ln.value or Decimal("0")
+
+        def _g(key: str) -> Decimal:
+            return vals.get(key, Decimal("0"))
+
+        # Direct method well-known ma_so mapping (matches seed)
+        if method == "direct":
+            result = {
+                "method": "direct",
+                "config_lines": lines,
+                "fiscal_year": fiscal_year,
+                "period": period,
+                "operating_in": _g("01"),
+                "operating_out": _g("02"),
+                "net_operating": _g("03"),
+                "investing_in": _g("04"),
+                "investing_out": _g("05"),
+                "net_investing": _g("06"),
+                "financing_in": _g("07"),
+                "financing_out": _g("08"),
+                "net_financing": _g("09"),
+                "net_change": _g("10"),
+            }
+        else:
+            result = {
+                "method": "indirect",
+                "config_lines": lines,
+                "fiscal_year": fiscal_year,
+                "period": period,
+                "net_income": _g("01"),
+                "dep_exp": _g("02"),
+                "delta_ar": _g("03"),
+                "delta_ap": _g("04"),
+                "delta_inv": _g("05"),
+                "delta_prepaid": _g("06"),
+                "net_operating": _g("07"),
+                "net_investing": _g("08"),
+                "net_financing": _g("09"),
+                "net_change": _g("10"),
+            }
+
+        # Compute opening / closing cash from raw voucher data
+        opening_cash = self._compute_opening_cash(fiscal_year, period)
+        result["opening_cash"] = opening_cash
+        result["closing_cash"] = opening_cash + (result.get("net_change") or Decimal("0"))
+        return result
+
+    def _compute_opening_cash(self, fiscal_year: int, period: int) -> Decimal:
+        cash_q = Q(account_code__startswith="111") | Q(account_code__startswith="112")
+        prior = VoucherLine.objects.filter(
+            voucher__fiscal_year=fiscal_year,
+            voucher__period__lt=period,
+            voucher__status__gte=2,
+        ).filter(cash_q)
+        if self.company is not None:
+            prior = prior.filter(voucher__company=self.company)
+        prior_totals = prior.aggregate(d=Sum("debit_vnd"), c=Sum("credit_vnd"))
+        return (prior_totals["d"] or Decimal("0")) - (prior_totals["c"] or Decimal("0"))
+
+    # ====================================================================
+    # Indirect method
+    # ====================================================================
+
+    def generate_indirect(self, fiscal_year: int, period: int) -> dict:
+        has_config = FinancialReportLine.objects.filter(report_type=self.INDIRECT_TYPE).exists()
+
+        if has_config:
+            return self._generate_from_config(self.INDIRECT_TYPE, fiscal_year, period, "indirect")
+        return self._generate_indirect_legacy(fiscal_year, period)
+
+    # ====================================================================
+    # Legacy implementations (used when no config rows seeded)
+    # ====================================================================
+
+    def _generate_direct_legacy(self, fiscal_year: int, period: int) -> dict:
         cash_prefixes = ["111", "112"]
 
-        # All cash lines in the period
         cash_q = Q()
         for prefix in cash_prefixes:
             cash_q |= Q(account_code__startswith=prefix)
 
         lines = VoucherLine.objects.filter(
-            voucher__company=self.company,
             voucher__fiscal_year=fiscal_year,
             voucher__period=period,
             voucher__status__gte=2,
         ).select_related("voucher")
+        if self.company is not None:
+            lines = lines.filter(voucher__company=self.company)
 
         cash_lines = lines.filter(cash_q)
 
-        # Categorize: find offset account on same voucher
         operating_in = Decimal("0")
         operating_out = Decimal("0")
         investing_in = Decimal("0")
@@ -52,14 +150,12 @@ class CashFlowService:
         financing_out = Decimal("0")
 
         for cl in cash_lines:
-            # Determine the offset account from the same voucher
             offsets = lines.filter(voucher_id=cl.voucher_id).exclude(pk=cl.pk)
             offset_codes = [o.account_code for o in offsets]
 
             amount = cl.debit_vnd or cl.credit_vnd or Decimal("0")
-            is_inflow = (cl.debit_vnd or 0) > 0  # debit to cash = inflow
+            is_inflow = (cl.debit_vnd or 0) > 0
 
-            # Classify by offset account
             category = "operating"
             for code in offset_codes:
                 if any(code.startswith(p) for p in self.INVESTING_PREFIXES):
@@ -90,18 +186,13 @@ class CashFlowService:
         net_financing = financing_in - financing_out
         net_change = net_operating + net_investing + net_financing
 
-        # Opening cash balance
-        prior = VoucherLine.objects.filter(
-            voucher__company=self.company,
-            voucher__fiscal_year=fiscal_year,
-            voucher__period__lt=period,
-            voucher__status__gte=2,
-        ).filter(cash_q)
-        prior_totals = prior.aggregate(d=Sum("debit_vnd"), c=Sum("credit_vnd"))
-        opening_cash = (prior_totals["d"] or Decimal("0")) - (prior_totals["c"] or Decimal("0"))
+        opening_cash = self._compute_opening_cash(fiscal_year, period)
 
         return {
             "method": "direct",
+            "config_lines": [],
+            "fiscal_year": fiscal_year,
+            "period": period,
             "operating_in": operating_in,
             "operating_out": operating_out,
             "net_operating": net_operating,
@@ -116,13 +207,13 @@ class CashFlowService:
             "closing_cash": opening_cash + net_change,
         }
 
-    def generate_indirect(self, fiscal_year: int, period: int) -> dict:
-        """Indirect method: net income adjusted for non-cash items."""
+    def _generate_indirect_legacy(self, fiscal_year: int, period: int) -> dict:
         balances = AccountPeriodBalance.objects.filter(
-            company=self.company,
             fiscal_year=fiscal_year,
             period=period,
         )
+        if self.company is not None:
+            balances = balances.filter(company=self.company)
 
         def get_period_amount(prefix):
             r = balances.filter(account_code__startswith=prefix).aggregate(
@@ -130,7 +221,6 @@ class CashFlowService:
             )
             return (r["d"] or Decimal("0")), (r["c"] or Decimal("0"))
 
-        # Net income: revenue (511) - expenses (632, 641, 642, 635, 811) + other income (711, 515)
         rev_d, rev_c = get_period_amount("511")
         revenue = rev_c
         cogs_d, _ = get_period_amount("632")
@@ -154,10 +244,8 @@ class CashFlowService:
             - tax_d
         )
 
-        # Adjustments: depreciation (non-cash)
         dep_d, _ = get_period_amount("214")
         dep_exp = dep_d
-        # Changes in working capital
         ar_d, ar_c = get_period_amount("131")
         ap_d, ap_c = get_period_amount("331")
         inv_d, inv_c = get_period_amount("152")
@@ -170,34 +258,25 @@ class CashFlowService:
 
         net_operating = net_income + dep_exp - delta_ar + delta_ap - delta_inv - delta_prepaid
 
-        # Investing: capex (211 debit), investments
         capex_d, _ = get_period_amount("211")
         net_investing = -(capex_d)
 
-        # Financing: loans (341), equity (411)
         loan_d, loan_c = get_period_amount("341")
         equity_d, equity_c = get_period_amount("411")
         net_financing = (loan_c - loan_d) + (equity_c - equity_d)
 
-        # Dividends paid (421 debit)
         div_d, _ = get_period_amount("421")
         net_financing -= div_d
 
         net_change = net_operating + net_investing + net_financing
 
-        # Opening cash
-        cash_q = Q(account_code__startswith="111") | Q(account_code__startswith="112")
-        prior = VoucherLine.objects.filter(
-            voucher__company=self.company,
-            voucher__fiscal_year=fiscal_year,
-            voucher__period__lt=period,
-            voucher__status__gte=2,
-        ).filter(cash_q)
-        prior_totals = prior.aggregate(d=Sum("debit_vnd"), c=Sum("credit_vnd"))
-        opening_cash = (prior_totals["d"] or Decimal("0")) - (prior_totals["c"] or Decimal("0"))
+        opening_cash = self._compute_opening_cash(fiscal_year, period)
 
         return {
             "method": "indirect",
+            "config_lines": [],
+            "fiscal_year": fiscal_year,
+            "period": period,
             "net_income": net_income,
             "dep_exp": dep_exp,
             "delta_ar": delta_ar,

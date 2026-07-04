@@ -1,34 +1,90 @@
-"""P&L Statement (B02a-DN) generator."""
+"""P&L Statement (B02-DN) generator - config-driven.
+
+Reads ``FinancialReportLine`` config rows for ``report_type='B02-DN'``
+and evaluates each line via the shared ``ReportEngine`` using period
+debit/credit movements.  Falls back to the legacy hard-coded account-
+prefix logic when no config rows exist.
+"""
+
+from __future__ import annotations
 
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from apps.ledger.models import AccountPeriodBalance
+from apps.reporting.models import FinancialReportLine
+from apps.reporting.services.formula_parser import ReportEngine, ReportLine
+
+if TYPE_CHECKING:
+    from apps.core.models import Company
 
 
 class PnLService:
-    """Generate P&L data from AccountPeriodBalance period movements.
+    """Generate P&L data from ``FinancialReportLine`` config or legacy logic."""
 
-    Account mapping per TT133:
-      - 5xx  → Revenue (515 financial income is a 5xx; handled below as financial income)
-      - 632  → COGS (Giá vốn hàng bán)
-      - 641  → Selling expense (Chi phí bán hàng)
-      - 642  → Admin expense (Chi phí quản lý DN)
-      - 515  → Financial income (Doanh thu hoạt động tài chính)
-      - 635  → Financial expense (Chi phí tài chính)
-      - 711  → Other income (Thu nhập khác)
-      - 811  → Other expense (Chi phí khác)
-      - 821  → PIT (Chi phí thuế TNDN)
-    """
+    REPORT_TYPE = "B02-DN"
 
-    def __init__(self, company):
+    def __init__(self, company: Company | None):
         self.company = company
 
     def generate(self, fiscal_year: int, period: int) -> dict:
+        has_config = FinancialReportLine.objects.filter(report_type=self.REPORT_TYPE).exists()
+
+        if has_config:
+            return self._generate_from_config(fiscal_year, period)
+        return self._generate_legacy(fiscal_year, period)
+
+    # -- config-driven path ----------------------------------------------
+
+    def _values_by_ma_so(self, lines: list[ReportLine]) -> dict[str, Decimal]:
+        """Map ma_so -> computed Decimal value for formula lookup."""
+        out: dict[str, Decimal] = {}
+        for ln in lines:
+            if ln.ma_so:
+                out[ln.ma_so] = ln.value or Decimal("0")
+        return out
+
+    def _generate_from_config(self, fiscal_year: int, period: int) -> dict:
+        engine = ReportEngine(self.company, fiscal_year, period)
+        lines = engine.generate(self.REPORT_TYPE, use_closing=False)
+        vals = self._values_by_ma_so(lines)
+
+        # Provide backward-compatible named keys by reading well-known
+        # ma_so codes from the config.  If the seed uses different codes
+        # the template relies on ``config_lines`` instead.
+        def _g(key: str) -> Decimal:
+            return vals.get(key, Decimal("0"))
+
+        return {
+            "fiscal_year": fiscal_year,
+            "period": period,
+            "config_lines": lines,
+            "revenue": _g("01"),
+            "revenue_net": _g("01"),
+            "cogs": _g("02"),
+            "gross_profit": _g("03"),
+            "financial_income": _g("04"),
+            "financial_expense": _g("05"),
+            "selling_expense": _g("06"),
+            "admin_expense": _g("07"),
+            "operating_profit": _g("08"),
+            "other_income": _g("09"),
+            "other_expense": _g("10"),
+            "other_profit": _g("11"),
+            "profit_before_tax": _g("12"),
+            "pit_expense": _g("13"),
+            "profit_after_tax": _g("14"),
+        }
+
+    # -- legacy fallback -------------------------------------------------
+
+    def _generate_legacy(self, fiscal_year: int, period: int) -> dict:
         balances = AccountPeriodBalance.objects.filter(
-            company=self.company,
             fiscal_year=fiscal_year,
             period=period,
         )
+        if self.company is not None:
+            balances = balances.filter(company=self.company)
 
         revenue = Decimal("0")
         cogs = Decimal("0")
@@ -45,36 +101,26 @@ class PnLService:
             period_d = b.period_debit or 0
             period_c = b.period_credit or 0
 
-            # Financial income: 515 (subset of 5xx — check first)
             if code.startswith("515"):
                 financial_income += period_c - period_d
-            # Revenue: 5xx except 515 (511, 512, etc.)
             elif code.startswith("5"):
                 revenue += period_c - period_d
-            # COGS: 632
             elif code.startswith("632"):
                 cogs += period_d - period_c
-            # Selling: 641
             elif code.startswith("641"):
                 selling_expense += period_d - period_c
-            # Admin: 642
             elif code.startswith("642"):
                 admin_expense += period_d - period_c
-            # Financial expense: 635
             elif code.startswith("635"):
                 financial_expense += period_d - period_c
-            # Other income: 711
             elif code.startswith("711"):
                 other_income += period_c - period_d
-            # Other expense: 811
             elif code.startswith("811"):
                 other_expense += period_d - period_c
-            # PIT: 821
             elif code.startswith("821"):
                 pit_expense += period_d - period_c
 
-        revenue_net = revenue
-        gross_profit = revenue_net - cogs
+        gross_profit = revenue - cogs
         operating_profit = (
             gross_profit + financial_income - financial_expense - selling_expense - admin_expense
         )
@@ -85,8 +131,9 @@ class PnLService:
         return {
             "fiscal_year": fiscal_year,
             "period": period,
+            "config_lines": [],
             "revenue": revenue,
-            "revenue_net": revenue_net,
+            "revenue_net": revenue,
             "cogs": cogs,
             "gross_profit": gross_profit,
             "selling_expense": selling_expense,

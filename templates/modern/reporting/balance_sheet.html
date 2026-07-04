@@ -39,27 +39,45 @@
                     <table class="table table-sm table-bordered mb-0 align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th style="width:20%">Mã TK</th>
+                                <th style="width:8%">STT</th>
+                                <th style="width:12%">Mã số</th>
                                 <th>Chỉ tiêu</th>
-                                <th class="text-end">Số tiền</th>
+                                <th class="text-end">Số cuối kỳ</th>
                             </tr>
                         </thead>
                         <tbody>
+                            {% if config_lines %}
+                            {% for r in config_lines %}
+                            {% if r.parent_ma_so == 'A' or r.parent_ma_so == '' %}
+                            <tr class="{% if r.is_header %}table-light fw-bold{% endif %}">
+                                <td class="font-mono">{{ r.stt }}</td>
+                                <td class="font-mono">{{ r.ma_so }}</td>
+                                <td>{{ r.chi_tieu }}</td>
+                                <td class="text-end font-mono">
+                                    {% if r.is_header and r.value %}{{ r.value|vnd }}
+                                    {% elif r.is_header %}&nbsp;
+                                    {% else %}{{ r.value|vnd }}{% endif %}
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                            {% else %}
                             {% for r in assets.rows %}
                             <tr>
                                 <td class="font-mono">{{ r.account_code }}</td>
-                                <td>Tài sản — TK {{ r.account_code }}</td>
+                                <td colspan="2">Tài sản — TK {{ r.account_code }}</td>
                                 <td class="text-end font-mono">{{ r.amount|vnd }}</td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="3" class="text-center text-muted py-3">
+                            <tr><td colspan="4" class="text-center text-muted py-3">
                                 <i class="bi bi-inbox d-block"></i> Không có dữ liệu
                             </td></tr>
                             {% endfor %}
+                            {% endif %}
                         </tbody>
                         <tfoot class="table-light fw-bold">
                             <tr>
-                                <td colspan="2">TỔNG CỘNG TÀI SẢN</td>
+                                <td colspan="3">TỔNG CỘNG TÀI SẢN</td>
                                 <td class="text-end font-mono">{{ assets.total|vnd }}</td>
                             </tr>
                         </tfoot>
@@ -75,40 +93,58 @@
                     <table class="table table-sm table-bordered mb-0 align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th style="width:20%">Mã TK</th>
+                                <th style="width:8%">STT</th>
+                                <th style="width:12%">Mã số</th>
                                 <th>Chỉ tiêu</th>
-                                <th class="text-end">Số tiền</th>
+                                <th class="text-end">Số cuối kỳ</th>
                             </tr>
                         </thead>
                         <tbody>
+                            {% if config_lines %}
+                            {% for r in config_lines %}
+                            {% if r.parent_ma_so == 'L' or r.parent_ma_so == 'E' %}
+                            <tr class="{% if r.is_header %}table-light fw-bold{% endif %}">
+                                <td class="font-mono">{{ r.stt }}</td>
+                                <td class="font-mono">{{ r.ma_so }}</td>
+                                <td>{{ r.chi_tieu }}</td>
+                                <td class="text-end font-mono">
+                                    {% if r.is_header and r.value %}{{ r.value|vnd }}
+                                    {% elif r.is_header %}&nbsp;
+                                    {% else %}{{ r.value|vnd }}{% endif %}
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                            {% else %}
                             <tr class="table-light">
-                                <td colspan="3" class="fw-bold">I. Nợ phải trả</td>
+                                <td colspan="4" class="fw-bold">I. Nợ phải trả</td>
                             </tr>
                             {% for r in liabilities_equity.liabilities %}
                             <tr>
                                 <td class="font-mono">{{ r.account_code }}</td>
-                                <td>Nợ phải trả — TK {{ r.account_code }}</td>
+                                <td colspan="2">Nợ phải trả — TK {{ r.account_code }}</td>
                                 <td class="text-end font-mono">{{ r.amount|vnd }}</td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="3" class="text-center text-muted py-2 small">—</td></tr>
+                            <tr><td colspan="4" class="text-center text-muted py-2 small">—</td></tr>
                             {% endfor %}
                             <tr class="table-light">
-                                <td colspan="3" class="fw-bold">II. Vốn chủ sở hữu</td>
+                                <td colspan="4" class="fw-bold">II. Vốn chủ sở hữu</td>
                             </tr>
                             {% for r in liabilities_equity.equity %}
                             <tr>
                                 <td class="font-mono">{{ r.account_code }}</td>
-                                <td>Vốn — TK {{ r.account_code }}</td>
+                                <td colspan="2">Vốn — TK {{ r.account_code }}</td>
                                 <td class="text-end font-mono">{{ r.amount|vnd }}</td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="3" class="text-center text-muted py-2 small">—</td></tr>
+                            <tr><td colspan="4" class="text-center text-muted py-2 small">—</td></tr>
                             {% endfor %}
+                            {% endif %}
                         </tbody>
                         <tfoot class="table-light fw-bold">
                             <tr>
-                                <td colspan="2">TỔNG CỘNG NGUỒN VỐN</td>
+                                <td colspan="3">TỔNG CỘNG NGUỒN VỐN</td>
                                 <td class="text-end font-mono">{{ liabilities_equity.total|vnd }}</td>
                             </tr>
                         </tfoot>
