@@ -13,7 +13,11 @@ from apps.core.models import Company
 from apps.ledger.models import AccountingVoucher, VoucherLine
 from apps.ledger.services import VoucherPostingService
 from apps.ledger.services.voucher_posting_service import VoucherNotBalancedError
-from apps.ui_modern.forms import VoucherHeaderForm, VoucherLineFormSet
+from apps.ui_modern.forms import (
+    VoucherHeaderForm,
+    VoucherLineFormSet,
+    VoucherTaxLineFormSet,
+)
 
 from ._export_utils import autosize, new_workbook, style_header, xlsx_response
 
@@ -67,6 +71,7 @@ class VoucherCreateView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         header_form = VoucherHeaderForm()
         line_formset = VoucherLineFormSet(prefix="lines")
+        tax_formset = VoucherTaxLineFormSet(prefix="taxes")
         from apps.core.models import Company
         from apps.master_data.models import ChartOfAccounts
 
@@ -87,6 +92,7 @@ class VoucherCreateView(LoginRequiredMixin, View):
                 "page_title": "Tạo phiếu kế toán",
                 "header_form": header_form,
                 "line_formset": line_formset,
+                "tax_formset": tax_formset,
                 "accounts": accounts,
                 "is_new": True,
             },
@@ -95,6 +101,13 @@ class VoucherCreateView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         header_form = VoucherHeaderForm(request.POST)
         line_formset = VoucherLineFormSet(request.POST, prefix="lines")
+        # Tax formset is optional — gracefully handle missing management form data.
+        if "taxes-TOTAL_FORMS" in request.POST:
+            tax_formset = VoucherTaxLineFormSet(request.POST, prefix="taxes")
+            tax_formset_valid = tax_formset.is_valid()
+        else:
+            tax_formset = VoucherTaxLineFormSet(prefix="taxes")
+            tax_formset_valid = True  # unbound = no tax data submitted
 
         from apps.core.models import Company
         from apps.master_data.models import ChartOfAccounts
@@ -114,11 +127,12 @@ class VoucherCreateView(LoginRequiredMixin, View):
             "page_title": "Tạo phiếu kế toán",
             "header_form": header_form,
             "line_formset": line_formset,
+            "tax_formset": tax_formset,
             "accounts": accounts,
             "is_new": True,
         }
 
-        if not header_form.is_valid() or not line_formset.is_valid():
+        if not header_form.is_valid() or not line_formset.is_valid() or not tax_formset_valid:
             return render(request, self.template_name, ctx_base, status=200)
 
         # Filter to non-empty lines (skip rows without account_code)
@@ -192,6 +206,10 @@ class VoucherCreateView(LoginRequiredMixin, View):
             )
             line_no += 1
 
+        # Save tax lines (under "Thuế" tab)
+        if tax_formset_valid and tax_formset.is_bound:
+            line_no = self._save_tax_lines(voucher, tax_formset, line_no)
+
         # Auto-post
         try:
             VoucherPostingService().post(voucher)
@@ -200,6 +218,36 @@ class VoucherCreateView(LoginRequiredMixin, View):
             messages.error(request, str(e))
 
         return redirect("ui_modern:voucher_list")
+
+    def _save_tax_lines(self, voucher, tax_formset, line_no):
+        """Persist non-empty tax lines from the tax formset. Returns next line_no."""
+        for tax_form in tax_formset:
+            cd_tax = tax_form.cleaned_data
+            if cd_tax.get("DELETE"):
+                continue
+            invoice_no = cd_tax.get("invoice_no", "")
+            if not invoice_no and not cd_tax.get("goods_amount_vnd"):
+                continue  # skip empty rows
+            VoucherLine.objects.create(
+                voucher=voucher,
+                line_no=line_no,
+                account_code=cd_tax.get("offset_account_code") or "",
+                invoice_no=invoice_no,
+                invoice_date=cd_tax.get("invoice_date"),
+                invoice_form=cd_tax.get("invoice_form") or "",
+                invoice_symbol=cd_tax.get("invoice_symbol") or "",
+                invoice_serial=cd_tax.get("invoice_serial") or "",
+                tax_code=cd_tax.get("tax_code"),
+                tax_rate=cd_tax.get("tax_rate") or Decimal("0"),
+                goods_amount_vnd=cd_tax.get("goods_amount_vnd") or Decimal("0"),
+                tax_amount_vnd=cd_tax.get("tax_amount_vnd") or Decimal("0"),
+                offset_account_code=cd_tax.get("offset_account_code") or "",
+                invoice_group_code=cd_tax.get("invoice_group_code"),
+                object_address=cd_tax.get("object_address") or "",
+                description=f"Tax line — {invoice_no}" if invoice_no else "Tax line",
+            )
+            line_no += 1
+        return line_no
 
 
 class VoucherDetailView(LoginRequiredMixin, DetailView):

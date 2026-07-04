@@ -2,9 +2,9 @@
 
 from decimal import Decimal
 
-from django.db import transaction
+from django.db import models, transaction
 
-from apps.ledger.models import AccountingVoucher, AccountPeriodBalance
+from apps.ledger.models import AccountingVoucher, AccountPeriodBalance, VoucherLine
 
 
 class VoucherNotBalancedError(Exception):
@@ -35,6 +35,7 @@ class VoucherPostingService:
             raise VoucherLockedError(f"Voucher {voucher.voucher_no} is locked")
 
         self._validate_balanced(voucher)
+        self._generate_tax_postings(voucher)
         self._update_balances(voucher, sign=+1)
 
         voucher.status = AccountingVoucher.Status.LEDGER
@@ -69,15 +70,16 @@ class VoucherPostingService:
             return  # idempotent — already unposted
 
         self._update_balances(voucher, sign=-1)
+        self._remove_tax_postings(voucher)
 
         voucher.status = AccountingVoucher.Status.DRAFT
         voucher.save(update_fields=["status", "updated_at"])
 
     def _validate_balanced(self, voucher: AccountingVoucher) -> None:
-        """Verify total debit == total credit."""
+        """Verify total debit == total credit on user-entered lines (excludes auto-tax)."""
         total_debit = Decimal("0")
         total_credit = Decimal("0")
-        for line in voucher.lines.all():
+        for line in voucher.lines.filter(is_auto_tax_posting=False):
             total_debit += line.debit_vnd or Decimal("0")
             total_credit += line.credit_vnd or Decimal("0")
 
@@ -86,7 +88,10 @@ class VoucherPostingService:
 
         # Also update voucher totals
         voucher.total_vnd = total_debit
-        voucher.total_fc = sum((line.debit_fc or 0 for line in voucher.lines.all()), Decimal("0"))
+        voucher.total_fc = sum(
+            (line.debit_fc or 0 for line in voucher.lines.filter(is_auto_tax_posting=False)),
+            Decimal("0"),
+        )
 
     def _update_balances(self, voucher: AccountingVoucher, sign: int) -> None:
         """Update AccountPeriodBalance for each line. sign=+1 for post, -1 for unpost."""
@@ -129,3 +134,71 @@ class VoucherPostingService:
             balance.transaction_count = max(0, (balance.transaction_count or 0) - 1)
 
         balance.save()
+
+    # ── Tax posting helpers (M1) ────────────────────────────────────────
+    # Constants for auto-generated tax ledger lines.
+    INPUT_TAX_ACCOUNT = "1331"  # Thuế GTGT đầu vào được khấu trừ
+    OUTPUT_TAX_ACCOUNT = "33311"  # Thuế GTGT đầu ra phải nộp
+    INPUT_GROUP_CODE = "4"  # InvoiceGroup code for INPUT invoices
+    OUTPUT_GROUP_CODE = "5"  # InvoiceGroup code for OUTPUT invoices
+
+    def _generate_tax_postings(self, voucher: AccountingVoucher) -> None:
+        """Create auto VoucherLine rows for TK 1331 (input) / 33311 (output).
+
+        For each user-entered line that has invoice_group_code set and a
+        non-zero tax_amount_vnd, generate a single-sided ledger line:
+
+        - invoice_group #4 (INPUT): debit TK 1331 for tax_amount_vnd
+        - invoice_group #5 (OUTPUT): credit TK 33311 for tax_amount_vnd
+
+        Idempotent: re-running post() after a previous post removes stale
+        auto lines first via _remove_tax_postings.
+        """
+        # Clean up any prior auto tax lines so repost is idempotent.
+        self._remove_tax_postings(voucher)
+
+        # Determine the next line_no to use for auto-generated rows.
+        existing_max = voucher.lines.aggregate(max_no=models.Max("line_no"))["max_no"] or 0
+
+        next_line_no = max(existing_max + 1, 9000)
+        new_lines = []
+
+        for line in voucher.lines.filter(is_auto_tax_posting=False):
+            group = line.invoice_group_code
+            tax_amount = line.tax_amount_vnd or Decimal("0")
+            if tax_amount == 0 or not group:
+                continue
+
+            if group.code == self.INPUT_GROUP_CODE:
+                new_lines.append(
+                    VoucherLine(
+                        voucher=voucher,
+                        line_no=next_line_no,
+                        account_code=self.INPUT_TAX_ACCOUNT,
+                        debit_vnd=tax_amount,
+                        credit_vnd=Decimal("0"),
+                        description=f"VAT đầu vào (auto) — {line.invoice_no or ''}".strip(),
+                        is_auto_tax_posting=True,
+                    )
+                )
+                next_line_no += 1
+            elif group.code == self.OUTPUT_GROUP_CODE:
+                new_lines.append(
+                    VoucherLine(
+                        voucher=voucher,
+                        line_no=next_line_no,
+                        account_code=self.OUTPUT_TAX_ACCOUNT,
+                        debit_vnd=Decimal("0"),
+                        credit_vnd=tax_amount,
+                        description=f"VAT đầu ra (auto) — {line.invoice_no or ''}".strip(),
+                        is_auto_tax_posting=True,
+                    )
+                )
+                next_line_no += 1
+
+        if new_lines:
+            VoucherLine.objects.bulk_create(new_lines)
+
+    def _remove_tax_postings(self, voucher: AccountingVoucher) -> None:
+        """Delete all auto-generated tax posting lines for a voucher."""
+        voucher.lines.filter(is_auto_tax_posting=True).delete()

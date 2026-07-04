@@ -4,6 +4,8 @@ from .voucher_form import (
     VoucherHeaderForm,
     VoucherLineForm,
     VoucherLineFormSet,
+    VoucherTaxLineForm,
+    VoucherTaxLineFormSet,
 )
 
 __all__ = [
@@ -13,4 +15,6 @@ __all__ = [
     "VoucherHeaderForm",
     "VoucherLineForm",
     "VoucherLineFormSet",
+    "VoucherTaxLineForm",
+    "VoucherTaxLineFormSet",
 ]

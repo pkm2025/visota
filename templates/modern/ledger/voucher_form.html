@@ -65,7 +65,26 @@
             </div>
         </div>
 
-        <div class="card mb-3" x-data="voucherLines()">
+        <ul class="nav nav-tabs mb-0" id="voucherTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="detail-tab" data-bs-toggle="tab"
+                        data-bs-target="#detail-pane" type="button" role="tab"
+                        aria-controls="detail-pane" aria-selected="true">
+                    Chi tiết
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tax-tab" data-bs-toggle="tab"
+                        data-bs-target="#tax-pane" type="button" role="tab"
+                        aria-controls="tax-pane" aria-selected="false">
+                    Thuế
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content mb-3">
+          <div class="tab-pane fade show active card" id="detail-pane" role="tabpanel"
+               aria-labelledby="detail-tab" x-data="voucherLines()">
             <div class="card-header py-2 d-flex justify-content-between align-items-center">
                 <strong>Bút toán</strong>
                 <span class="text-muted small">Tối thiểu 2 dòng</span>
@@ -122,6 +141,58 @@
                     <i class="bi bi-plus"></i> Thêm dòng
                 </button>
             </div>
+          </div>
+
+          <div class="tab-pane fade card" id="tax-pane" role="tabpanel" aria-labelledby="tax-tab">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <strong>Thuế GTGT (hóa đơn)</strong>
+                <span class="text-muted small">Tùy chọn</span>
+            </div>
+            <div class="card-body p-0">
+                {{ tax_formset.management_form }}
+              <div class="table-responsive">
+                <table class="table table-sm mb-0" id="tax-line-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 110px;">Số HĐ</th>
+                            <th style="width: 130px;">Ngày HĐ</th>
+                            <th style="width: 100px;">Mẫu HĐ</th>
+                            <th style="width: 100px;">Ký hiệu</th>
+                            <th style="width: 110px;">Mã thuế</th>
+                            <th style="width: 80px;" class="text-end">Tỷ lệ</th>
+                            <th style="width: 140px;" class="text-end">Tiền hàng</th>
+                            <th style="width: 140px;" class="text-end">Tiền thuế</th>
+                            <th style="width: 110px;">TK đối ứng</th>
+                            <th style="width: 130px;">Nhóm HĐ</th>
+                            <th style="width: 40px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for form in tax_formset %}
+                        <tr class="tax-line-row">
+                            <td>{{ form.invoice_no }}</td>
+                            <td>{{ form.invoice_date }}</td>
+                            <td>{{ form.invoice_form }}</td>
+                            <td>{{ form.invoice_symbol }}</td>
+                            <td>{{ form.tax_code }}</td>
+                            <td>{{ form.tax_rate }}</td>
+                            <td>{{ form.goods_amount_vnd }}</td>
+                            <td>{{ form.tax_amount_vnd }}</td>
+                            <td>{{ form.offset_account_code }}</td>
+                            <td>{{ form.invoice_group_code }}</td>
+                            <td>{{ form.DELETE }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="p-2">
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="addTaxLine()">
+                    <i class="bi bi-plus"></i> Thêm dòng thuế
+                </button>
+            </div>
+          </div>
         </div>
 
         <div class="d-flex justify-content-end gap-2">
@@ -134,18 +205,17 @@
 </div>
 
 <script>
-function addVoucherLine() {
-    const card = document.querySelector('[x-data^="voucherLines"]');
-    const tbody = card ? card.querySelector('tbody') : document.querySelector('tbody');
+function _addFormRow(prefix, tableSelector) {
+    const table = document.querySelector(tableSelector);
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
     if (!tbody) return;
     const lastRow = tbody.querySelector('tr:last-child');
     if (!lastRow) return;
 
-    const totalFormsInput = document.querySelector('[name$="-TOTAL_FORMS"]');
+    const totalFormsInput = document.querySelector(`[name="${prefix}-TOTAL_FORMS"]`);
     if (!totalFormsInput) return;
 
-    const m = totalFormsInput.name.match(/^(.+)-TOTAL_FORMS$/);
-    const prefix = m ? m[1] : 'form';
     const newIndex = parseInt(totalFormsInput.value, 10) || 0;
     totalFormsInput.value = newIndex + 1;
 
@@ -171,6 +241,46 @@ function addVoucherLine() {
     tbody.appendChild(newRow);
 }
 
+function addVoucherLine() {
+    _addFormRow('lines', '#detail-pane table');
+}
+
+function addTaxLine() {
+    _addFormRow('taxes', '#tax-line-table');
+}
+
+// Auto-calc tax_amount = goods_amount * tax_rate / 100 on blur (VAL-M1-004)
+document.addEventListener('focusin', (e) => {
+    e.target.datasetHadFocus = true;
+});
+document.addEventListener('change', (e) => {
+    const row = e.target.closest('tr.tax-line-row');
+    if (!row) return;
+    const goodsInput = row.querySelector('input[name$="-goods_amount_vnd"]');
+    const rateInput = row.querySelector('input[name$="-tax_rate"]');
+    const amountInput = row.querySelector('input[name$="-tax_amount_vnd"]');
+    const taxCodeSelect = row.querySelector('select[name$="-tax_code"]');
+    if (!goodsInput || !rateInput || !amountInput) return;
+
+    // When tax_code dropdown changes, sync tax_rate from its data-rate attribute.
+    if (e.target === taxCodeSelect && taxCodeSelect) {
+        const opt = taxCodeSelect.options[taxCodeSelect.selectedIndex];
+        const rate = opt ? opt.getAttribute('data-rate') : null;
+        if (rate) {
+            rateInput.value = rate;
+        }
+    }
+
+    const goods = parseFloat(goodsInput.value) || 0;
+    const rate = parseFloat(rateInput.value) || 0;
+    // Only auto-compute if user hasn't manually overridden amount
+    const expected = Math.round(goods * rate / 100 * 100) / 100;
+    const current = parseFloat(amountInput.value) || 0;
+    if (e.target !== amountInput && (current === 0 || Math.abs(current - expected) < 0.01)) {
+        amountInput.value = expected.toFixed(2);
+    }
+});
+
 function voucherLines() {
     return {
         totalDebit: 0,
@@ -179,10 +289,10 @@ function voucherLines() {
         init() {
             const recalc = () => {
                 let d = 0, c = 0;
-                document.querySelectorAll('input[name*="debit_vnd"]').forEach(input => {
+                document.querySelectorAll('#detail-pane input[name*="debit_vnd"]').forEach(input => {
                     d += parseFloat(input.value) || 0;
                 });
-                document.querySelectorAll('input[name*="credit_vnd"]').forEach(input => {
+                document.querySelectorAll('#detail-pane input[name*="credit_vnd"]').forEach(input => {
                     c += parseFloat(input.value) || 0;
                 });
                 this.totalDebit = d;

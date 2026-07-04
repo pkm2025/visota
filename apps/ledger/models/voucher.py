@@ -135,6 +135,48 @@ class VoucherLine(models.Model):
     cost_center_code = models.CharField(max_length=50, blank=True, default="")
     project_code = models.CharField(max_length=50, blank=True, default="")
 
+    # ── Tax fields (M1) ─────────────────────────────────────────────────
+    invoice_no = models.CharField(max_length=50, blank=True, default="")
+    invoice_date = models.DateField(null=True, blank=True)
+    invoice_form = models.CharField(max_length=20, blank=True, default="")
+    invoice_symbol = models.CharField(max_length=20, blank=True, default="")
+    invoice_serial = models.CharField(max_length=50, blank=True, default="")
+    tax_code = models.ForeignKey(
+        "master_data.TaxRateCode",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="voucher_lines",
+    )
+    tax_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+    )
+    goods_amount_vnd = models.DecimalField(
+        max_digits=20,
+        decimal_places=4,
+        default=0,
+    )
+    tax_amount_vnd = models.DecimalField(
+        max_digits=20,
+        decimal_places=4,
+        default=0,
+    )
+    offset_account_code = models.CharField(max_length=20, blank=True, default="")
+    invoice_group_code = models.ForeignKey(
+        "master_data.InvoiceGroup",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="voucher_lines",
+    )
+    object_address = models.CharField(max_length=500, blank=True, default="")
+    is_auto_tax_posting = models.BooleanField(
+        default=False,
+        help_text="True nếu dòng này được VoucherPostingService tự động tạo cho TK 1331/33311",
+    )
+
     class Meta:
         db_table = "voucher_line"
         unique_together = [("voucher", "line_no")]
