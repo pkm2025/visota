@@ -162,6 +162,8 @@ from .views import (
     TrialBalanceView,
     VATReturnView,
     VATXmlView,
+    VATInputListView,
+    VATOutputListView,
     VendorCreateView,
     VendorDeleteView,
     VendorExportView,
@@ -538,6 +540,16 @@ urlpatterns = [
         "reports/vat-return-xml/",
         login_required(VATXmlView.as_view()),
         name="vat_return_xml",
+    ),
+    path(
+        "reports/vat-input-list/",
+        login_required(VATInputListView.as_view()),
+        name="vat_input_list",
+    ),
+    path(
+        "reports/vat-output-list/",
+        login_required(VATOutputListView.as_view()),
+        name="vat_output_list",
     ),
     path(
         "reports/general-journal/",
