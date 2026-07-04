@@ -82,3 +82,87 @@ class FinancialReportLine(models.Model):
 
     def __str__(self):
         return f"[{self.report_type}] {self.ma_so} - {self.chi_tieu[:50]}"
+
+
+class VATReportLine(models.Model):
+    """Configuration row for a single line on the VAT return (TT80/2021).
+
+    Each row describes how to compute the value displayed at a given
+    line code (e.g. ``21``, ``22``, ``28``).  The TT80 form layout is:
+
+        Section A — Thông tin chung (header only, no data lines)
+        Section B — Kê khai thuế GTGT
+            I  — Hàng hóa, dịch vụ mua vào (input VAT)
+            II — Hàng hóa, dịch vụ bán ra (output VAT)
+        Section C — Thuế GTGT của hoạt động SXKD (payable / credit)
+
+    Line value resolution (in precedence order):
+
+    1. ``cong_thuc`` — formula expression like ``[25]+[26]-[27]``
+       referencing sibling ``line_code`` values.  Constants are also
+       supported (rarely used on TT80).
+    2. Direct aggregation — sum ``tax_amount_vnd`` (or
+       ``goods_amount_vnd`` for goods-value lines) over the posted
+       ``VoucherLine`` rows that match the three filters below.
+    3. Header / pure-label lines (``is_header=True`` and no formula or
+       filters) — value is ``None`` (blank).
+    """
+
+    SECTIONS = [
+        ("A", "A — Thông tin chung"),
+        ("B-I", "B.I — Hàng hóa dịch vụ mua vào"),
+        ("B-II", "B.II — Hàng hóa dịch vụ bán ra"),
+        ("C", "C — Thuế GTGT của hoạt động SXKD"),
+    ]
+
+    line_code = models.CharField(
+        max_length=20,
+        unique=True,
+        help_text="Mã dòng trên tờ khai, e.g. '21', '22', '40'.",
+    )
+    section = models.CharField(max_length=10, choices=SECTIONS, default="A")
+    stt = models.CharField(max_length=20, blank=True, default="")
+    chi_tieu = models.CharField(max_length=300)
+    thuyet_minh = models.CharField(max_length=500, blank=True, default="")
+
+    # Account-code wildcard (e.g. ``1331*`` or ``33311``).  Matches the
+    # ``account_code`` column on ``VoucherLine``.
+    tk_filter = models.CharField(max_length=100, blank=True, default="")
+    # Invoice-group code (e.g. ``4`` INPUT or ``5`` OUTPUT).  Matches
+    # ``invoice_group_code_id`` on ``VoucherLine``.  Empty = any group.
+    invoice_group_filter = models.CharField(max_length=10, blank=True, default="")
+    # Tax-rate code (e.g. ``00``, ``05``, ``10``).  Matches
+    # ``tax_code_id`` on ``VoucherLine``.  Empty = any rate.
+    tax_code_filter = models.CharField(max_length=10, blank=True, default="")
+
+    # Which VoucherLine amount column to aggregate.
+    AMOUNT_FIELD_CHOICES = [
+        ("tax_amount_vnd", "Tiền thuế GTGT"),
+        ("goods_amount_vnd", "Tiền hàng hóa/dịch vụ"),
+        ("debit_vnd", "PS Nợ"),
+        ("credit_vnd", "PS Có"),
+    ]
+    amount_field = models.CharField(
+        max_length=30,
+        choices=AMOUNT_FIELD_CHOICES,
+        default="tax_amount_vnd",
+    )
+
+    # Formula referencing sibling line codes, e.g. ``[25]+[26]-[27]``.
+    cong_thuc = models.CharField(max_length=500, blank=True, default="")
+
+    is_header = models.BooleanField(default=False)
+    display_order = models.PositiveIntegerField(default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "reporting_vat_report_line"
+        ordering = ["display_order"]
+        indexes = [
+            models.Index(fields=["display_order"]),
+        ]
+
+    def __str__(self):
+        return f"[{self.line_code}] {self.chi_tieu[:60]}"

@@ -184,9 +184,10 @@ class VATReturnView(LoginRequiredMixin, TemplateView):
             period = today.month
 
         company = Company.objects.first()
-        if company:
-            data = VATReturnService(company=company).generate(fiscal_year, period)
-            ctx.update(data)
+        # Compute unconditionally so empty periods render zeros (VAL-M2-011)
+        # and the recalculate button always re-runs the engine (VAL-M2-010).
+        data = VATReturnService(company=company).generate(fiscal_year, period)
+        ctx.update(data)
 
         ctx.update(
             {

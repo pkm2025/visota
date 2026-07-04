@@ -27,14 +27,19 @@
                 <option value="{{ p }}" {% if p == period %}selected{% endif %}>Tháng {{ p }}</option>
                 {% endfor %}
             </select>
-            <button type="submit" class="btn btn-primary btn-sm">Xem</button>
+            <button type="submit" name="recalculate" value="1" class="btn btn-primary btn-sm" title="Tính lại toàn bộ chỉ tiêu">
+                <i class="bi bi-arrow-repeat"></i> Tính lại
+            </button>
         </form>
     </div>
 
     <div class="card">
-        <div class="card-header bg-light">
-            <strong>Mẫu số 01/GTGT</strong>
-            <span class="text-muted">(Ban hành kèm Thông tư số 219/2013/TT-BTC)</span>
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <div>
+                <strong>Mẫu số 01/GTGT</strong>
+                <span class="text-muted">(Ban hành kèm Thông tư 80/2021/TT-BTC)</span>
+            </div>
+            <small class="text-muted">Cơ cấu TT80: A / B(I,II) / C</small>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -47,39 +52,21 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td class="text-center">[01]</td>
-                            <td>Doanh thu bán hàng và cung cấp dịch vụ hàng hóa, dịch vụ chịu thuế GTGT</td>
-                            <td class="text-end font-mono">{{ vat_output|vnd }}</td>
-                        </tr>
-                        <tr class="table-light fw-bold">
-                            <td class="text-center">[20]</td>
-                            <td>Thuế GTGT đầu ra phát sinh trong kỳ (TK 33311 Có)</td>
-                            <td class="text-end font-mono">{{ vat_output|vnd }}</td>
-                        </tr>
-                        <tr>
-                            <td class="text-center">[23]</td>
-                            <td>Thuế GTGT đầu vào phát sinh trong kỳ (TK 1331 Nợ)</td>
-                            <td class="text-end font-mono">{{ vat_input_credit|vnd }}</td>
-                        </tr>
-                        <tr class="table-light fw-bold">
-                            <td class="text-center">[25]</td>
-                            <td>Thuế GTGT đầu vào được khấu trừ (= [23])</td>
-                            <td class="text-end font-mono">{{ vat_input_credit|vnd }}</td>
-                        </tr>
-                        {% if is_payable %}
-                        <tr class="table-warning fw-bold">
-                            <td class="text-center">[40]</td>
-                            <td>THUẾ GTGT CÒN PHẢI NỘP TRONG KỲ (= [20] − [25])</td>
-                            <td class="text-end font-mono">{{ vat_payable|vnd }}</td>
+                        {% for line in lines %}
+                        {% if line.is_header %}
+                        <tr class="table-secondary fw-bold">
+                            <td class="text-center">{{ line.stt }}</td>
+                            <td>{{ line.chi_tieu }}</td>
+                            <td class="text-end font-mono"></td>
                         </tr>
                         {% else %}
-                        <tr class="table-info fw-bold">
-                            <td class="text-center">[42]</td>
-                            <td>THUẾ GTGT ĐƯỢC KHẤU TRỪ/kỳ trước chuyển sang (= [25] − [20])</td>
-                            <td class="text-end font-mono">{{ vat_credit|vnd }}</td>
+                        <tr>
+                            <td class="text-center">[{{ line.line_code }}]</td>
+                            <td>{{ line.chi_tieu }}</td>
+                            <td class="text-end font-mono">{{ line.value|vnd }}</td>
                         </tr>
                         {% endif %}
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
