@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING
 
 from django.db.models import Q, Sum
 
-from apps.ledger.models import AccountPeriodBalance
+from apps.ledger.models import AccountPeriodBalance, VoucherLine
 from apps.reporting.models import FinancialReportLine
 
 if TYPE_CHECKING:
@@ -117,6 +117,7 @@ class ReportEngine:
         self.fiscal_year = fiscal_year
         self.period = period
         self._balance_cache: dict[str, tuple[Decimal, Decimal]] = {}
+        self._offset_cache: dict[str, Decimal] = {}
 
     # -- account-pattern aggregation -------------------------------------
 
@@ -159,6 +160,64 @@ class ReportEngine:
         c = agg["c"] or Decimal("0")
         self._balance_cache[key] = (d, c)
         return d if field_prefix == "debit" else c
+
+    # -- cash-flow direct: offset-based aggregation ---------------------
+
+    def _aggregate_cash_with_offset(
+        self,
+        cash_pattern: str,
+        offset_pattern: str,
+        side: str = "debit",
+    ) -> Decimal:
+        """Aggregate cash-account movements filtered by counterpart account.
+
+        Used by the cash-flow direct method.  Given a cash-account pattern
+        (e.g. ``111*,112*``) and an offset (counterpart) account pattern
+        (e.g. ``511*,131*`` for cash received from customers), this method:
+
+        1. Finds posted vouchers in this period that have at least one
+           line whose ``account_code`` matches ``offset_pattern``.
+        2. From those same vouchers, sums the ``debit_vnd`` (if
+           ``side='debit'``) or ``credit_vnd`` (if ``side='credit'``) of
+           lines whose ``account_code`` matches ``cash_pattern``.
+
+        ``side='debit'`` captures **inflows** (cash received, DR cash).
+        ``side='credit'`` captures **outflows** (cash paid, CR cash).
+
+        This directional split lets overlapping offset patterns (e.g.
+        lines 04 and 05 both reference ``211*``) produce distinct values
+        because line 04 (inflow) sums cash debits while line 05 (outflow)
+        sums cash credits.
+        """
+        cache_key = f"{side}:{cash_pattern}|{offset_pattern}"
+        if cache_key in self._offset_cache:
+            return self._offset_cache[cache_key]
+
+        # Vouchers in this period that have at least one offset-matching line.
+        offset_voucher_ids = set(
+            VoucherLine.objects.filter(
+                voucher__fiscal_year=self.fiscal_year,
+                voucher__period=self.period,
+                voucher__status__gte=2,
+            )
+            .filter(_expand_pattern(offset_pattern))
+            .values_list("voucher_id", flat=True)
+        )
+
+        if not offset_voucher_ids:
+            self._offset_cache[cache_key] = Decimal("0")
+            return Decimal("0")
+
+        cash_lines = VoucherLine.objects.filter(
+            voucher_id__in=offset_voucher_ids,
+        ).filter(_expand_pattern(cash_pattern))
+
+        amount_field = "debit_vnd" if side == "debit" else "credit_vnd"
+        total = cash_lines.aggregate(s=Sum(amount_field))
+        result = total["s"] or Decimal("0")
+
+        self._offset_cache[cache_key] = result
+        return result
 
     # -- line evaluation -------------------------------------------------
 
@@ -203,6 +262,24 @@ class ReportEngine:
         # Formula takes precedence.
         if line.cong_thuc.strip():
             return self._eval_cong_thuc(line.cong_thuc, values)
+
+        # Cash-flow direct method: when an offset (counterpart) pattern is
+        # present, aggregate cash movements filtered by the counterpart
+        # account instead of using raw account-period balances.
+        #
+        # Direction is encoded by which cash pattern is set:
+        #   - tk_no_pattern  -> sum cash DEBIT  (inflows, money received)
+        #   - tk_co_pattern  -> sum cash CREDIT (outflows, money paid)
+        if line.tk_doi_ung_pattern.strip():
+            if line.tk_co_pattern:
+                cash_pattern = line.tk_co_pattern
+                side = "credit"
+            else:
+                cash_pattern = line.tk_no_pattern or "111*,112*"
+                side = "debit"
+            return self._aggregate_cash_with_offset(
+                cash_pattern, line.tk_doi_ung_pattern.strip(), side=side
+            )
 
         # Header lines with no data source -> blank.
         if line.is_header and not line.tk_no_pattern and not line.tk_co_pattern:

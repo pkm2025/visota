@@ -48,6 +48,15 @@ class FinancialReportLine(models.Model):
     tk_no_pattern = models.CharField(max_length=100, blank=True, default="")
     tk_co_pattern = models.CharField(max_length=100, blank=True, default="")
 
+    # Counterpart (offsetting) account-code pattern for the cash-flow
+    # direct method.  A direct-method line aggregates the cash leg
+    # (TK 111*/112*) but only for vouchers whose *other* leg hits an
+    # account matching this pattern.  Comma-separated wildcards allowed,
+    # e.g. ``511*,131*`` (cash from customers) or ``331*,152*`` (cash
+    # paid to suppliers).  Empty means "no offset filter" (legacy
+    # behaviour - aggregate the cash accounts unconditionally).
+    tk_doi_ung_pattern = models.CharField(max_length=200, blank=True, default="")
+
     # Formula expression referencing other ``ma_so`` codes.
     # e.g. ``110+120+130+140`` or ``=511-632``.
     cong_thuc = models.CharField(max_length=500, blank=True, default="")

@@ -204,26 +204,169 @@ B02_DN = [
 
 B03_DIRECT = [
     # Direct method cash flow: ma_so 01-10
-    # Cash flow direct method tracks cash movements via TK 111/112.
-    ("I", "", "Dòng tiền từ HĐKD", "", "", "", "", "", True, ""),
-    ("1", "01", "Tiền thu từ khách hàng, người mua", "", "111*,112*", "", "", "", False, ""),
-    ("2", "02", "Tiền trả cho người cung cấp", "", "111*,112*", "", "", "", False, ""),
-    ("3", "02a", "Tiền trả cho cán bộ công nhân viên", "", "111*,112*", "", "", "", False, ""),
-    ("4", "02b", "Tiền nộp thuế và các khoản khác", "", "111*,112*", "", "", "", False, ""),
-    ("5", "03", "Tiền thuần từ HĐKD", "", "", "", "=01-02-02a-02b", "", True, ""),
-    ("II", "", "Dòng tiền từ HĐ đầu tư", "", "", "", "", "", True, ""),
-    ("6", "04", "Tiền thu từ thanh lý, nhượng bán TS", "", "111*,112*", "", "", "", False, ""),
-    ("7", "05", "Tiền chi mua sắm, xây dựng TS dài hạn", "", "111*,112*", "", "", "", False, ""),
-    ("8", "05a", "Tiền cho vay, đầu tư chứng khoán", "", "111*,112*", "", "", "", False, ""),
-    ("9", "06", "Tiền thuần từ HĐ đầu tư", "", "", "", "=04-05-05a", "", True, ""),
-    ("III", "", "Dòng tiền từ HĐ tài chính", "", "", "", "", "", True, ""),
-    ("10", "07", "Tiền thu từ đi vay, phát hành TP", "", "111*,112*", "", "", "", False, ""),
-    ("11", "08", "Tiền trả nợ vay, trả vốn góp", "", "111*,112*", "", "", "", False, ""),
-    ("12", "08a", "Tiền trả cổ tức, lợi nhuận", "", "111*,112*", "", "", "", False, ""),
-    ("13", "09", "Tiền thuần từ HĐ tài chính", "", "", "", "=07-08-08a", "", True, ""),
-    ("", "10", "Tăng/giảm tiền thuần trong kỳ", "", "", "", "=03+06+09", "", True, ""),
-    ("", "10a", "Tiền đầu kỳ", "", "", "", "", "", False, ""),
-    ("", "10b", "Tiền cuối kỳ", "", "", "", "=10+10a", "", True, ""),
+    # Each data line aggregates the cash leg (TK 111*/112*) but only for
+    # vouchers whose counterpart (offset) line hits the account pattern in
+    # ``tk_doi_ung``.  This produces a DIFFERENT value per line instead of
+    # the identical meaningless value the old shared ``111*,112*`` pattern
+    # produced.
+    #
+    # Direction convention:
+    #   - Inflow lines  (01, 04, 07): use tk_no_pattern (sum cash DEBIT)
+    #   - Outflow lines (02, 02a, 02b, 05, 05a, 08, 08a):
+    #                    use tk_co_pattern (sum cash CREDIT)
+    #
+    # Tuple format: (stt, ma_so, chi_tieu, thuyet_minh, tk_no, tk_co,
+    #                 cong_thuc, tinh_giam_tru, is_header, parent,
+    #                 tk_doi_ung)
+    ("I", "", "Dòng tiền từ HĐKD", "", "", "", "", "", True, "", ""),
+    # 01 inflow: cash received from customers
+    (
+        "1",
+        "01",
+        "Tiền thu từ khách hàng, người mua",
+        "",
+        "111*,112*",
+        "",
+        "",
+        "",
+        False,
+        "",
+        "511*,131*",
+    ),
+    # 02 outflow: cash paid to suppliers
+    (
+        "2",
+        "02",
+        "Tiền trả cho người cung cấp",
+        "",
+        "",
+        "111*,112*",
+        "",
+        "",
+        False,
+        "",
+        "531*,331*,152*,156*",
+    ),
+    # 02a outflow: cash paid to employees
+    (
+        "3",
+        "02a",
+        "Tiền trả cho cán bộ công nhân viên",
+        "",
+        "",
+        "111*,112*",
+        "",
+        "",
+        False,
+        "",
+        "334*",
+    ),
+    # 02b outflow: tax and other payments
+    (
+        "4",
+        "02b",
+        "Tiền nộp thuế và các khoản khác",
+        "",
+        "",
+        "111*,112*",
+        "",
+        "",
+        False,
+        "",
+        "3334*,3331*,821*",
+    ),
+    ("5", "03", "Tiền thuần từ HĐKD", "", "", "", "=01-02-02a-02b", "", True, "", ""),
+    ("II", "", "Dòng tiền từ HĐ đầu tư", "", "", "", "", "", True, "", ""),
+    # 04 inflow: cash from asset disposal
+    (
+        "6",
+        "04",
+        "Tiền thu từ thanh lý, nhượng bán TS",
+        "",
+        "111*,112*",
+        "",
+        "",
+        "",
+        False,
+        "",
+        "211*,212*,213*,711*",
+    ),
+    # 05 outflow: cash paid to buy fixed assets
+    (
+        "7",
+        "05",
+        "Tiền chi mua sắm, xây dựng TS dài hạn",
+        "",
+        "",
+        "111*,112*",
+        "",
+        "",
+        False,
+        "",
+        "211*,212*,213*,241*",
+    ),
+    # 05a outflow: cash lent / invested in securities
+    (
+        "8",
+        "05a",
+        "Tiền cho vay, đầu tư chứng khoán",
+        "",
+        "",
+        "111*,112*",
+        "",
+        "",
+        False,
+        "",
+        "121*,228*",
+    ),
+    ("9", "06", "Tiền thuần từ HĐ đầu tư", "", "", "", "=04-05-05a", "", True, "", ""),
+    ("III", "", "Dòng tiền từ HĐ tài chính", "", "", "", "", "", True, "", ""),
+    # 07 inflow: cash from borrowing / issuing shares
+    (
+        "10",
+        "07",
+        "Tiền thu từ đi vay, phát hành TP",
+        "",
+        "111*,112*",
+        "",
+        "",
+        "",
+        False,
+        "",
+        "341*,411*",
+    ),
+    # 08 outflow: cash paid to repay loans / return capital
+    (
+        "11",
+        "08",
+        "Tiền trả nợ vay, trả vốn góp",
+        "",
+        "",
+        "111*,112*",
+        "",
+        "",
+        False,
+        "",
+        "341*,411*",
+    ),
+    # 08a outflow: cash paid for dividends / profit distribution
+    (
+        "12",
+        "08a",
+        "Tiền trả cổ tức, lợi nhuận",
+        "",
+        "",
+        "111*,112*",
+        "",
+        "",
+        False,
+        "",
+        "421*,3531*",
+    ),
+    ("13", "09", "Tiền thuần từ HĐ tài chính", "", "", "", "=07-08-08a", "", True, "", ""),
+    ("", "10", "Tăng/giảm tiền thuần trong kỳ", "", "", "", "=03+06+09", "", True, "", ""),
+    ("", "10a", "Tiền đầu kỳ", "", "", "", "", "", False, "", ""),
+    ("", "10b", "Tiền cuối kỳ", "", "", "", "=10+10a", "", True, "", ""),
 ]
 
 B03_INDIRECT = [
@@ -253,12 +396,31 @@ B03_INDIRECT = [
 
 
 def _build_rows(report_type: str, data: list) -> list[dict]:
-    """Convert raw tuple data into FinancialReportLine field dicts."""
+    """Convert raw tuple data into FinancialReportLine field dicts.
+
+    Tuple format (10 or 11 elements):
+        (stt, ma_so, chi_tieu, thuyet_minh, tk_no, tk_co,
+         cong_thuc, tinh_giam_tru, is_header, parent [, tk_doi_ung])
+
+    The optional 11th element ``tk_doi_ung`` sets the
+    ``tk_doi_ung_pattern`` field (counterpart account pattern for the
+    cash-flow direct method).  Older tuples without it default to ``""``.
+    """
     rows = []
     for idx, item in enumerate(data):
-        stt, ma_so, chi_tieu, thuyet_minh, tk_no, tk_co, cong_thuc, giam_tru, is_header, parent = (
-            item
-        )
+        (
+            stt,
+            ma_so,
+            chi_tieu,
+            thuyet_minh,
+            tk_no,
+            tk_co,
+            cong_thuc,
+            giam_tru,
+            is_header,
+            parent,
+        ) = item[:10]
+        tk_doi_ung = item[10] if len(item) > 10 else ""
         rows.append(
             {
                 "report_type": report_type,
@@ -272,6 +434,7 @@ def _build_rows(report_type: str, data: list) -> list[dict]:
                 "tinh_giam_tru": giam_tru,
                 "is_header": is_header,
                 "parent_ma_so": parent,
+                "tk_doi_ung_pattern": tk_doi_ung,
                 "display_order": idx,
             }
         )
