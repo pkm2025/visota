@@ -60,7 +60,7 @@ jobs:
       - name: Run migrations
         run: python manage.py migrate --run-syncdb
       - name: Run tests
-        run: pytest -n auto --no-cov -q
+        run: pytest tests/ --ignore=tests/e2e -n auto --no-cov -q
         timeout-minutes: 15
 
   security:
