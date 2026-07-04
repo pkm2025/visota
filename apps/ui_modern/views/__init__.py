@@ -352,8 +352,17 @@ __all__ = [
     "CampaignListView",
     "CampaignCreateView",
 ]
-from .help_views import HelpDetailView, HelpIndexView
+from .cash_flow_views import CashFlowDirectView, CashFlowIndirectView
 from .costing_views import CostReportView
+from .ctgs_views import (
+    CTGSCheckView,
+    CTGSCreateView,
+    CTGSRegisterView,
+    DepartmentMasterView,
+    SourceDocScheduleView,
+)
+from .detail_book_views import BankBookView, CashBookView, SalesDetailView
+from .help_views import HelpDetailView, HelpIndexView
 from .report_views import BookEntryRegisterView
 from .specialized_journal_views import (
     CashPaymentJournalView,
@@ -362,8 +371,6 @@ from .specialized_journal_views import (
     SalesJournalView,
     TAccountSummaryView,
 )
-from .detail_book_views import CashBookView, BankBookView, SalesDetailView
-from .cash_flow_views import CashFlowDirectView, CashFlowIndirectView
 from .tool_views import (
     ClosingEntryDeclarationView,
     CustomerOpeningBalanceView,
@@ -371,11 +378,4 @@ from .tool_views import (
     PeriodAllocationView,
     VoucherRenumberView,
     YearEndCarryForwardView,
-)
-from .ctgs_views import (
-    CTGSCheckView,
-    CTGSCreateView,
-    CTGSRegisterView,
-    DepartmentMasterView,
-    SourceDocScheduleView,
 )

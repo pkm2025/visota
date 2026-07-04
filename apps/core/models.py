@@ -323,3 +323,29 @@ class TaxType(models.Model):
 
     def __str__(self):
         return f"{self.code} — {self.name}"
+
+
+class FeatureFlag(models.Model):
+    """Feature flag for safe rollouts. Per-company or global (company=null)."""
+
+    key = models.CharField(max_length=100, db_index=True)
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="feature_flags",
+    )
+    enabled = models.BooleanField(default=False)
+    description = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "feature_flag"
+        unique_together = [("key", "company")]
+        indexes = [models.Index(fields=["key", "enabled"])]
+
+    def __str__(self):
+        scope = self.company.code if self.company else "global"
+        return f"{self.key} ({scope}): {'ON' if self.enabled else 'OFF'}"

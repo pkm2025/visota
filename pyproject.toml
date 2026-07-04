@@ -37,18 +37,53 @@ dev = [
     "ipdb>=0.13",
 ]
 
-[tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "config.settings.test"
-python_files = ["tests.py", "test_*.py", "*_tests.py"]
-addopts = "-v --cov=apps --cov-report=term-missing --reuse-db"
-
 [tool.ruff]
 line-length = 100
 target-version = "py312"
 extend-exclude = ["migrations", "manage.py"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "N", "B", "C4", "RET", "SIM"]
+select = ["E", "F", "W", "I", "N", "B", "C4", "C90", "RET", "SIM", "T20", "TD"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
+[tool.ruff.lint.pylint]
+max-args = 10
+
+# Tech debt: require TODO comments to reference an issue
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.vulture]
+min_confidence = 80
+paths = ["apps/"]
+
+[tool.jscpd]
+min-lines = 8
+format = ["python"]
+ignore = ["**/migrations/**", "**/__pycache__/**"]
+
+[tool.importlinter]
+root_packages = ["apps"]
+[[tool.importlinter.contracts]]
+name = "Layered architecture"
+type = "layers"
+layers = [
+    "apps.ui_modern",
+    "apps.banking | apps.bidding | apps.budget | apps.contracts | apps.crm | apps.einvoice | apps.fx | apps.guarantees | apps.inventory | apps.loans | apps.notifications | apps.payroll | apps.projects | apps.public | apps.purchasing | apps.recurring | apps.sales | apps.input_docs",
+    "apps.ledger | apps.reporting | apps.costing | apps.hr | apps.assets | apps.documents | apps.approvals",
+    "apps.master_data | apps.core | apps.identity",
+]
+
+[tool.deptry]
+known_first_party = ["apps"]
+exclude = ["migrations", "tests", ".venv"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+addopts = "-v --cov=apps --cov-report=term-missing --cov-fail-under=30 --reuse-db"
 
 [tool.mypy]
 python_version = "3.12"

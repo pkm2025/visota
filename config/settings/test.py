@@ -52,3 +52,13 @@ AXES_FAILURE_LIMIT = 100000
 AXES_COOLOFF_TIME = 0
 AXES_NEVER_LOCKOUT_WHITELIST = True
 AXES_IP_WHITELIST = ["127.0.0.1", "::1"]
+
+# N+1 query detection (nplusone, if installed)
+try:
+    import nplusone.ext.django  # noqa: F401
+    if "nplusone.ext.django" not in INSTALLED_APPS:  # noqa: F405
+        INSTALLED_APPS = INSTALLED_APPS + ["nplusone.ext.django"]  # noqa: F405
+        MIDDLEWARE = MIDDLEWARE + ["nplusone.ext.django.NPlusOneMiddleware"]  # noqa: F405
+        NPLUSONE_RAISE = True
+except ImportError:
+    pass

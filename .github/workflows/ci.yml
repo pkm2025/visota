@@ -59,9 +59,36 @@ jobs:
         run: pip install -r requirements.txt
       - name: Run migrations
         run: python manage.py migrate --run-syncdb
-      - name: Run tests
-        run: pytest tests/ --ignore=tests/e2e -n auto --no-cov -q
+      - name: Run tests with timing
+        run: pytest tests/ --ignore=tests/e2e -n auto --no-cov -q --durations=20
         timeout-minutes: 15
+
+      - name: Check coverage threshold
+        run: pytest tests/ --ignore=tests/e2e --cov=apps --cov-fail-under=30 --cov-report=term-missing -q --no-header
+        timeout-minutes: 15
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: .pytest_cache/
+          retention-days: 30
+
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install vulture jscpd deptry ruff
+      - name: Dead code analysis (vulture)
+        run: vulture apps/ --min-confidence 80 || true
+      - name: Unused dependencies (deptry)
+        run: deptry . || true
+      - name: Duplicate code (jscpd)
+        run: npx --yes jscpd apps/ --min-lines 8 || true
 
   security:
     runs-on: ubuntu-latest

@@ -1,0 +1,19 @@
+# Track large files with Git LFS
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.pdf filter=lfs diff=lfs merge=lfs -text
+*.xlsx filter=lfs diff=lfs merge=lfs -text
+*.docx filter=lfs diff=lfs merge=lfs -text
+
+# Ensure text files have consistent line endings
+*.py text eol=lf
+*.html text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+
+# Binary files
+*.woff2 binary
+*.woff binary
+*.ttf binary

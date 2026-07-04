@@ -1,0 +1,20 @@
+name: Sentry Issue Tracking
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  sentry-link:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, 'from-sentry')
+    steps:
+      - name: Notify Sentry of issue triage
+        run: |
+          echo "Issue from Sentry: ${{ github.event.issue.title }}"
+          echo "Link: ${{ github.event.issue.html_url }}"
+
+# Configure in Sentry Dashboard:
+# Settings > Integrations > GitHub > Add Repository
+# Enable "Create GitHub issues for new errors" rule
+# Set SENTRY_ORG and SENTRY_PROJECT in GitHub Secrets for deploy tracking

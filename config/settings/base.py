@@ -67,6 +67,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'axes.middleware.AxesMiddleware',
+    'apps.identity.middleware_request_id.RequestIDMiddleware',
     'apps.core.middleware.TenantMiddleware',
     'apps.core.middleware.BrandingMiddleware',
     'apps.identity.middleware.ModulePermissionMiddleware',

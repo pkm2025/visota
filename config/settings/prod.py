@@ -88,7 +88,7 @@ CACHES = {
     }
 }
 
-# ===== Logging (stdout for Docker) =====
+# ===== Logging (structured JSON with PII scrubbing) =====
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -108,6 +108,14 @@ LOGGING = {
         'gunicorn': {'handlers': ['console'], 'level': 'INFO', 'propagate': True},
     },
 }
+
+# Enable structured JSON logging with PII scrubbing in production
+if os.environ.get('STRUCTURED_LOGGING', 'true').lower() in ('true', '1', 'yes'):
+    from apps.core.logging_utils import configure_structured_logging
+    configure_structured_logging()
+
+# ===== Metrics (Prometheus format via /metrics endpoint) =====
+PROMETHEUS_METRICS_ENABLED = os.environ.get('PROMETHEUS_METRICS_ENABLED', 'false').lower() in ('true', '1')
 
 # ===== Sentry (optional) =====
 if sentry_dsn := os.environ.get('SENTRY_DSN'):

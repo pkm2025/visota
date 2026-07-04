@@ -1,0 +1,61 @@
+# Pre-commit hooks for PMKetoan
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.0
+    hooks:
+      - id: ruff
+        args: [--exit-zero]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: detect-private-key
+      - id: check-case-conflict
+      - id: mixed-line-ending
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [django-stubs]
+        args: [--ignore-missing-imports]
+        pass_filenames: false
+
+  # Tech debt: scan for TODO/FIXME without issue reference
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: no-commit-to-branch
+        args: [--branch, main]
+
+  # Dead code detection
+  - repo: local
+    hooks:
+      - id: vulture
+        name: vulture (dead code)
+        entry: vulture
+        language: system
+        types: [python]
+        args: [--min-confidence, "80", apps/]
+        pass_filenames: false
+
+  # Duplicate code detection
+  - repo: local
+    hooks:
+      - id: jscpd
+        name: jscpd (duplicate code)
+        entry: npx --yes jscpd
+        language: system
+        types: [python]
+        args: [apps/, --min-lines, "8", --format, python]
+        pass_filenames: false
