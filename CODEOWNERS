@@ -1,0 +1,9 @@
+# Code owners for PMKetoan / Visota
+
+* Default owner for all code
+* @pkm2025
+
+# By directory (customize as team grows)
+# /apps/ledger/     @accountant
+# /apps/hr/         @hr-dev
+# /apps/einvoice/   @einv-dev

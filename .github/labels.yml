@@ -1,0 +1,50 @@
+# PMKetoan issue/PR labels
+# Import via: gh label create --filename .github/labels.yml (or manual setup)
+
+- name: bug
+  description: Something isn't working
+  color: d73a4a
+
+- name: enhancement
+  description: New feature or improvement
+  color: a2eeef
+
+- name: dependencies
+  description: Dependency updates (Dependabot)
+  color: 0366d6
+
+- name: python
+  description: Python-related changes
+  color: 3572A5
+
+- name: ci
+  description: CI/CD related changes
+  color: 0052cc
+
+- name: triage
+  description: Needs initial assessment
+  color: fbca04
+
+- name: P0
+  description: Critical - blocker for release
+  color: b60205
+
+- name: P1
+  description: High priority
+  color: d93f0b
+
+- name: P2
+  description: Medium priority
+  color: e99695
+
+- name: P3
+  description: Low priority
+  color: c5def5
+
+- name: docs
+  description: Documentation changes
+  color: 0075ca
+
+- name: security
+  description: Security-related issue or fix
+  color: d73a4a
