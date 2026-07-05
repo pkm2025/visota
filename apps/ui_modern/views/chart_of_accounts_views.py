@@ -1,8 +1,13 @@
 """Chart of accounts list view — TT133 account tree."""
 
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import ListView
+from django.db import transaction
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import get_object_or_404, redirect
+from django.views.generic import ListView, View
 
+from apps.ledger.models import AccountPeriodBalance, VoucherLine
 from apps.master_data.models import ChartOfAccounts
 
 
@@ -35,3 +40,101 @@ class ChartOfAccountsListView(LoginRequiredMixin, ListView):
             .order_by("account_type")
         )
         return ctx
+
+
+class ChartOfAccountsChangeCodeView(LoginRequiredMixin, View):
+    """Đổi mã tài khoản (Change account code).
+
+    GET renders a form with a ``new_code`` field showing the current code.
+    POST validates ``new_code`` (non-empty and unique within the company) and,
+    inside a single transaction, cascades the change to:
+
+    * ``ChartOfAccounts.account_code`` (and ``parent_account_code`` references
+      from children)
+    * ``VoucherLine.account_code``
+    * ``AccountPeriodBalance.account_code``
+
+    URL: /modern/chart-of-accounts/<pk>/change-code/
+    """
+
+    login_url = "/auth/login/"
+    template_name = "modern/ledger/change_account_code.html"
+
+    def get(self, request: HttpRequest, pk: int, *args, **kwargs) -> HttpResponse:
+        account = get_object_or_404(ChartOfAccounts, pk=pk)
+        return self._render_form(request, account, error=None)
+
+    def post(self, request: HttpRequest, pk: int, *args, **kwargs) -> HttpResponse:
+        account = get_object_or_404(ChartOfAccounts, pk=pk)
+        new_code = (request.POST.get("new_code") or "").strip()
+
+        # ── Validations ───────────────────────────────────────────────
+        if not new_code:
+            return self._render_form(
+                request, account, error="Mã tài khoản mới không được để trống."
+            )
+
+        if new_code == account.account_code:
+            # No-op: stay on the form without error.
+            return self._render_form(request, account, error=None)
+
+        if (
+            ChartOfAccounts.objects.filter(company_id=account.company_id, account_code=new_code)
+            .exclude(pk=account.pk)
+            .exists()
+        ):
+            return self._render_form(
+                request,
+                account,
+                error=f"Mã tài khoản '{new_code}' đã tồn tại trong công ty.",
+            )
+
+        # ── Cascade update in single transaction ──────────────────────
+        old_code = account.account_code
+        with transaction.atomic():
+            # 1. Update VoucherLine.account_code
+            VoucherLine.objects.filter(account_code=old_code).update(account_code=new_code)
+            # 2. Update AccountPeriodBalance.account_code (same company scope)
+            AccountPeriodBalance.objects.filter(
+                company_id=account.company_id, account_code=old_code
+            ).update(account_code=new_code)
+            # 3. Update child ChartOfAccounts.parent_account_code references
+            ChartOfAccounts.objects.filter(
+                company_id=account.company_id, parent_account_code=old_code
+            ).update(parent_account_code=new_code)
+            # 4. Finally update the account itself
+            account.account_code = new_code
+            account.save(update_fields=["account_code", "updated_at"])
+
+        # Recompute running balances for the new code to keep S07/S08 consistent.
+        try:
+            from apps.ledger.services import VoucherPostingService
+
+            VoucherPostingService._recompute_running_balances_for_codes(account.company, [new_code])
+        except Exception:  # noqa: BLE001 — best-effort, do not block the change
+            pass
+
+        messages.success(
+            request,
+            f"Đã đổi mã tài khoản từ '{old_code}' thành '{new_code}'.",
+        )
+        return redirect("ui_modern:chart_of_accounts_list")
+
+    # ------------------------------------------------------------------
+    def _render_form(
+        self,
+        request: HttpRequest,
+        account: ChartOfAccounts,
+        error: str | None,
+    ) -> HttpResponse:
+        from django.shortcuts import render
+
+        return render(
+            request,
+            self.template_name,
+            {
+                "account": account,
+                "page_title": "Đổi mã tài khoản",
+                "error": error,
+            },
+        )

@@ -67,7 +67,7 @@ from .attachment_views import (
     AttachmentUploadView,
 )
 from .auth_views import PMKetoanLoginView, PMKetoanLogoutView
-from .chart_of_accounts_views import ChartOfAccountsListView
+from .chart_of_accounts_views import ChartOfAccountsListView, ChartOfAccountsChangeCodeView
 from .closing_views import PeriodClosingView
 from .company_views import CompanyProfileView
 from .contract_template_views import (
@@ -200,6 +200,7 @@ __all__ = [
     "DashboardView",
     "QuickExpenseView",
     "ChartOfAccountsListView",
+    "ChartOfAccountsChangeCodeView",
     "PMKetoanLoginView",
     "PMKetoanLogoutView",
     "CompanyProfileView",

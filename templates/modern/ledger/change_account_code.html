@@ -1,0 +1,72 @@
+{% extends 'modern/base/layout.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:chart_of_accounts_list' %}">Hệ thống tài khoản</a></li>
+                    <li class="breadcrumb-item active">Đổi mã tài khoản</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-3"><i class="bi bi-arrow-left-right"></i> {{ page_title }}</h1>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <p class="text-muted mb-1">Tài khoản cần đổi mã:</p>
+                    <h4 class="mb-3">
+                        <code class="fs-5">{{ account.account_code }}</code>
+                        — {{ account.account_name }}
+                    </h4>
+
+                    {% if error %}
+                    <div class="alert alert-danger py-2" role="alert">
+                        <i class="bi bi-exclamation-triangle"></i> {{ error }}
+                    </div>
+                    {% endif %}
+
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="new_code" class="form-label">Mã tài khoản mới</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="new_code"
+                                name="new_code"
+                                maxlength="20"
+                                placeholder="Nhập mã tài khoản mới..."
+                                value="{{ request.POST.new_code|default:'' }}"
+                                autofocus
+                                required>
+                            <div class="form-text">
+                                Mã mới phải là duy nhất trong công ty. Các bút toán và
+                                số dư kỳ sẽ được cập nhật theo.
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'ui_modern:chart_of_accounts_list' %}"
+                               class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Huỷ
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg"></i> Lưu thay đổi
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="alert alert-warning mt-3 small" role="alert">
+                <i class="bi bi-info-circle"></i>
+                Lưu ý: thao tác này sẽ cập nhật toàn bộ bút toán (VoucherLine) và số dư
+                kỳ (AccountPeriodBalance) đang dùng mã <code>{{ account.account_code }}</code>
+                sang mã mới trong một giao dịch duy nhất.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
