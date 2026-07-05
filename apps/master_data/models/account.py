@@ -42,6 +42,12 @@ class AccountType(models.Model):
 class ChartOfAccounts(CompanyOwnedModel):
     """Chart of accounts entry. Tree via parent_account_code (string FK)."""
 
+    class ExchangeRateMethod(models.TextChoices):
+        NONE = "NONE", "Không áp dụng"
+        AVG = "AVG", "Bình quân"
+        ENDING = "ENDING", "Cuối kỳ"
+        SPOT = "SPOT", "Giao dịch"
+
     company = models.ForeignKey(
         "core.Company",
         on_delete=models.CASCADE,
@@ -60,6 +66,19 @@ class ChartOfAccounts(CompanyOwnedModel):
         db_index=True,
     )
     currency_code = models.CharField(max_length=3, default="VND")
+
+    exchange_rate_method_debit = models.CharField(
+        max_length=10,
+        choices=ExchangeRateMethod.choices,
+        default=ExchangeRateMethod.NONE,
+        help_text="Phương pháp tính tỷ giá cho bên Nợ",
+    )
+    exchange_rate_method_credit = models.CharField(
+        max_length=10,
+        choices=ExchangeRateMethod.choices,
+        default=ExchangeRateMethod.NONE,
+        help_text="Phương pháp tính tỷ giá cho bên Có",
+    )
 
     account_level = models.PositiveSmallIntegerField(default=1)
     account_type = models.ForeignKey(

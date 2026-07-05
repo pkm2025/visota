@@ -187,6 +187,15 @@ class Command(BaseCommand):
             allows_obj,
             allows_cc,
         ) in ACCOUNTS:
+            # Default exchange-rate method: NONE for VND accounts, AVG for
+            # foreign-currency accounts (those whose TT133 name contains
+            # "Ngoại tệ", e.g. 1112, 1122).
+            is_foreign_currency = "Ngoại tệ" in name
+            ex_rate_method = (
+                ChartOfAccounts.ExchangeRateMethod.AVG
+                if is_foreign_currency
+                else ChartOfAccounts.ExchangeRateMethod.NONE
+            )
             _, created = ChartOfAccounts.objects.update_or_create(
                 company=company,
                 account_code=acc_code,
@@ -199,6 +208,9 @@ class Command(BaseCommand):
                     "is_general_ledger_account": is_gl,
                     "allows_object_code": allows_obj,
                     "allows_cost_center": allows_cc,
+                    "currency_code": "USD" if is_foreign_currency else "VND",
+                    "exchange_rate_method_debit": ex_rate_method,
+                    "exchange_rate_method_credit": ex_rate_method,
                 },
             )
             if created:

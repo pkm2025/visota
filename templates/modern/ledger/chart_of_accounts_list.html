@@ -45,6 +45,8 @@
                             <th style="width: 120px;">Loại</th>
                             <th style="width: 80px;">Cấp</th>
                             <th style="width: 100px;">Loại TK</th>
+                            <th style="width: 110px;">PP tỷ giá nợ</th>
+                            <th style="width: 110px;">PP tỷ giá có</th>
                             <th style="width: 100px;" class="text-end">Hạch toán</th>
                         </tr>
                     </thead>
@@ -56,6 +58,8 @@
                             <td><span class="badge bg-secondary">{{ acc.account_type }}</span></td>
                             <td>{{ acc.account_level }}</td>
                             <td>{% if acc.is_posting_account %}Cấp{% else %} Tổng hợp {% endif %}</td>
+                            <td>{{ acc.exchange_rate_method_debit }}</td>
+                            <td>{{ acc.exchange_rate_method_credit }}</td>
                             <td class="text-end">
                                 {% if acc.is_posting_account %}
                                     <span class="badge bg-success">Có</span>
@@ -66,7 +70,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">Không có tài khoản nào.</td>
+                            <td colspan="8" class="text-center text-muted py-4">Không có tài khoản nào.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
