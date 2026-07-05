@@ -20,7 +20,12 @@ def _get_company(request):
 
 
 def _build_detail_book(request, account_prefixes, page_title, form_code, template):
-    """Build a detail book for given account prefixes (cash/bank/sales)."""
+    """Build a detail book for given account prefixes (cash/bank/sales).
+
+    Running balance is read directly from VoucherLine.running_balance_debit and
+    VoucherLine.running_balance_credit (computed by VoucherPostingService on
+    post/unpost) instead of being computed in the view.
+    """
     fy, period = _parse_period_kwargs(request)
     company = _get_company(request)
 
@@ -40,7 +45,7 @@ def _build_detail_book(request, account_prefixes, page_title, form_code, templat
     prior_totals = prior_qs.aggregate(d=Sum("debit_vnd"), c=Sum("credit_vnd"))
     opening = (prior_totals["d"] or Decimal("0")) - (prior_totals["c"] or Decimal("0"))
 
-    # Current period lines
+    # Current period lines — running balance comes from VoucherLine fields
     lines_qs = (
         VoucherLine.objects.select_related("voucher")
         .filter(
@@ -54,15 +59,19 @@ def _build_detail_book(request, account_prefixes, page_title, form_code, templat
     )
 
     rows = []
-    running = opening
     total_debit = Decimal("0")
     total_credit = Decimal("0")
+    last_running = opening
     for line in lines_qs:
         debit = line.debit_vnd or Decimal("0")
         credit = line.credit_vnd or Decimal("0")
-        running += debit - credit
         total_debit += debit
         total_credit += credit
+        # Running balance read directly from VoucherLine (computed on post)
+        running = (line.running_balance_debit or Decimal("0")) - (
+            line.running_balance_credit or Decimal("0")
+        )
+        last_running = running
         rows.append(
             {
                 "voucher_no": line.voucher.voucher_no,
@@ -81,7 +90,7 @@ def _build_detail_book(request, account_prefixes, page_title, form_code, templat
         "fiscal_year": fy,
         "period": period,
         "opening_balance": opening,
-        "closing_balance": running,
+        "closing_balance": last_running,
         "rows": rows,
         "total_debit": total_debit,
         "total_credit": total_credit,

@@ -1,10 +1,11 @@
 """VoucherPostingService: post/unpost voucher → updates AccountPeriodBalance."""
 
+from collections import defaultdict
 from decimal import Decimal
 
 from django.db import transaction
 
-from apps.ledger.models import AccountingVoucher, AccountPeriodBalance
+from apps.ledger.models import AccountingVoucher, AccountPeriodBalance, VoucherLine
 
 
 class VoucherNotBalancedError(Exception):
@@ -40,6 +41,9 @@ class VoucherPostingService:
         voucher.status = AccountingVoucher.Status.LEDGER
         voucher.save(update_fields=["status", "total_vnd", "total_fc", "updated_at"])
 
+        # Recompute running balances for affected account codes
+        self._recompute_running_balances(voucher)
+
         # Fire-and-forget notification to all superusers (KTT alerts)
         try:
             from apps.notifications.services import NotificationService
@@ -72,6 +76,15 @@ class VoucherPostingService:
 
         voucher.status = AccountingVoucher.Status.DRAFT
         voucher.save(update_fields=["status", "updated_at"])
+
+        # Clear running balance on the unposted voucher's own lines, then
+        # recompute for all other lines sharing the affected account codes.
+        affected_codes = list(voucher.lines.values_list("account_code", flat=True).distinct())
+        voucher.lines.update(
+            running_balance_debit=Decimal("0"),
+            running_balance_credit=Decimal("0"),
+        )
+        self._recompute_running_balances_for_codes(voucher.company, affected_codes)
 
     def _validate_balanced(self, voucher: AccountingVoucher) -> None:
         """Verify total debit == total credit on user-entered lines."""
@@ -132,3 +145,56 @@ class VoucherPostingService:
             balance.transaction_count = max(0, (balance.transaction_count or 0) - 1)
 
         balance.save()
+
+    def _recompute_running_balances(self, voucher: AccountingVoucher) -> None:
+        """Recompute running balances for all account codes touched by this voucher."""
+        affected_codes = list(voucher.lines.values_list("account_code", flat=True).distinct())
+        self._recompute_running_balances_for_codes(voucher.company, affected_codes)
+
+    @staticmethod
+    def _recompute_running_balances_for_codes(company: object, account_codes: list[str]) -> None:
+        """Recompute cumulative debit/credit running balances for given account codes.
+
+        For each account_code, all posted VoucherLine rows (across all fiscal years
+        and periods of the same company) are ordered by (voucher_date, voucher_id,
+        line_no) and a cumulative debit and cumulative credit total is stored on
+        each line's running_balance_debit / running_balance_credit fields.
+        """
+        if not account_codes:
+            return
+
+        # Only lines belonging to posted vouchers participate in the running balance.
+        lines = (
+            VoucherLine.objects.select_related("voucher")
+            .filter(
+                voucher__company=company,
+                voucher__status__gte=AccountingVoucher.Status.LEDGER,
+                account_code__in=account_codes,
+            )
+            .order_by("account_code", "voucher__voucher_date", "voucher__id", "line_no")
+            .only(
+                "id",
+                "account_code",
+                "debit_vnd",
+                "credit_vnd",
+                "voucher__voucher_date",
+                "voucher__id",
+            )
+        )
+
+        cumulative_debit: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+        cumulative_credit: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+        updates: list[tuple[int, Decimal, Decimal]] = []
+        for line in lines:
+            code = line.account_code
+            cumulative_debit[code] += line.debit_vnd or Decimal("0")
+            cumulative_credit[code] += line.credit_vnd or Decimal("0")
+            updates.append((line.pk, cumulative_debit[code], cumulative_credit[code]))
+
+        # Bulk-update each line. We use individual save() calls in a single
+        # transaction (already wrapped) since each line has a distinct value.
+        for pk, rbd, rbc in updates:
+            VoucherLine.objects.filter(pk=pk).update(
+                running_balance_debit=rbd,
+                running_balance_credit=rbc,
+            )

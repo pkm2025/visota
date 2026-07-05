@@ -177,6 +177,20 @@ class VoucherLine(models.Model):
         help_text="True nếu dòng này được VoucherPostingService tự động tạo cho TK 1331/33311",
     )
 
+    # ── Running balance (M3) ────────────────────────────────────────────
+    # Cumulative debit/credit for this account_code up to and including this line,
+    # ordered by (voucher_date, voucher_id, line_no). Computed by VoucherPostingService.
+    running_balance_debit = models.DecimalField(
+        max_digits=20,
+        decimal_places=4,
+        default=0,
+    )
+    running_balance_credit = models.DecimalField(
+        max_digits=20,
+        decimal_places=4,
+        default=0,
+    )
+
     class Meta:
         db_table = "voucher_line"
         unique_together = [("voucher", "line_no")]
