@@ -30,6 +30,19 @@
 <body class="layout-modern" x-data="initSidebar()" x-init="init()"
       :class="{ 'sidebar-collapsed': sidebarCollapsed, 'right-collapsed': rightCollapsed }"
       style="--brand-primary: {{ brand.primary_color }}; --brand-accent: {{ brand.accent_color }};">
+    <!-- Mobile sidebar: default collapsed to prevent covering content on <768px.
+         Inline so it runs synchronously before first paint and avoids FOUC.
+         Alpine's initSidebar() re-derives the same value and toggles take over. -->
+    <script>
+    (function () {
+        try {
+            var isMobile = window.matchMedia('(max-width: 768px)').matches;
+            var userPref = localStorage.getItem('sidebarCollapsed');
+            var collapsed = userPref !== null ? userPref === 'true' : isMobile;
+            if (collapsed) document.body.classList.add('sidebar-collapsed');
+        } catch (e) { /* no-op; Alpine fallback inits the class */ }
+    })();
+    </script>
     <!-- Top bar -->
     <header class="topbar">
         <div class="topbar-left" style="display:flex; align-items:center; gap:8px;">

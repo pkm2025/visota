@@ -1,7 +1,15 @@
 // Sidebar toggle — persists in localStorage
+// Mobile default: viewport < 768px starts collapsed unless user explicitly expanded.
 function initSidebar() {
+    // Detect mobile (matches the @media (max-width: 768px) CSS breakpoint)
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    const userPref = localStorage.getItem('sidebarCollapsed');
+    const sidebarCollapsed = userPref !== null
+        ? userPref === 'true'
+        : isMobile; // default: collapsed on mobile, expanded on desktop
+
     return {
-        sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true',
+        sidebarCollapsed: sidebarCollapsed,
         rightCollapsed: localStorage.getItem('rightCollapsed') !== 'false', // default: collapsed
 
         toggleSidebar() {
