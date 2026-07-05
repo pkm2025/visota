@@ -48,6 +48,7 @@
                             <th style="width: 110px;">PP tỷ giá nợ</th>
                             <th style="width: 110px;">PP tỷ giá có</th>
                             <th style="width: 100px;" class="text-end">Hạch toán</th>
+                            <th style="width: 110px;">Hành động</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -67,10 +68,17 @@
                                     <span class="badge bg-light text-dark">Không</span>
                                 {% endif %}
                             </td>
+                            <td>
+                                <a href="{% url 'ui_modern:chart_of_accounts_change_code' pk=acc.pk %}"
+                                   class="btn btn-sm btn-outline-primary"
+                                   title="Đổi mã tài khoản">
+                                    <i class="bi bi-pencil"></i> Đổi mã
+                                </a>
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">Không có tài khoản nào.</td>
+                            <td colspan="9" class="text-center text-muted py-4">Không có tài khoản nào.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
