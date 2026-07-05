@@ -526,6 +526,9 @@ class SubLedgerView(LoginRequiredMixin, TemplateView):
         except (TypeError, ValueError):
             period = today.month
         account_code = self.request.GET.get("account_code", "131").strip()
+        # template=vnd|fc — fc adds foreign-currency columns
+        tmpl = (self.request.GET.get("template") or "vnd").strip().lower()
+        tmpl = "fc" if tmpl == "fc" else "vnd"
 
         company = getattr(self.request, "current_company", None) or Company.objects.first()
 
@@ -544,7 +547,12 @@ class SubLedgerView(LoginRequiredMixin, TemplateView):
         from collections import OrderedDict
 
         parties = OrderedDict()
-        totals = {"debit": Decimal("0"), "credit": Decimal("0")}
+        totals = {
+            "debit": Decimal("0"),
+            "credit": Decimal("0"),
+            "debit_fc": Decimal("0"),
+            "credit_fc": Decimal("0"),
+        }
         for line in lines_qs:
             code = line.object_code or "(không rõ)"
             if code not in parties:
@@ -553,15 +561,23 @@ class SubLedgerView(LoginRequiredMixin, TemplateView):
                     "lines": [],
                     "debit": Decimal("0"),
                     "credit": Decimal("0"),
+                    "debit_fc": Decimal("0"),
+                    "credit_fc": Decimal("0"),
                     "balance": Decimal("0"),
                 }
             parties[code]["lines"].append(line)
             debit = line.debit_vnd or Decimal("0")
             credit = line.credit_vnd or Decimal("0")
+            debit_fc = line.debit_fc or Decimal("0")
+            credit_fc = line.credit_fc or Decimal("0")
             parties[code]["debit"] += debit
             parties[code]["credit"] += credit
+            parties[code]["debit_fc"] += debit_fc
+            parties[code]["credit_fc"] += credit_fc
             totals["debit"] += debit
             totals["credit"] += credit
+            totals["debit_fc"] += debit_fc
+            totals["credit_fc"] += credit_fc
 
         # Compute running balance per party
         for p in parties.values():
@@ -578,6 +594,8 @@ class SubLedgerView(LoginRequiredMixin, TemplateView):
                 "fiscal_year": fiscal_year,
                 "period": period,
                 "account_code": account_code,
+                "template": tmpl,
+                "is_fc": tmpl == "fc",
                 "parties": parties,
                 "totals": totals,
                 **_common_period_choices(),

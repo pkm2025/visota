@@ -36,6 +36,11 @@
                         <tr>
                             <th>Ngày</th><th>Số CT</th><th>Diễn giải</th>
                             <th class="text-end">Nợ</th><th class="text-end">Có</th>
+                            {% if is_fc %}
+                            <th class="text-end">Ps nợ n.tệ</th>
+                            <th class="text-end">Ps có n.tệ</th>
+                            <th class="text-end">Tỷ giá</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
@@ -46,6 +51,11 @@
                             <td>{{ line.description|truncatechars:50 }}</td>
                             <td class="text-end font-mono">{% if line.debit_vnd %}{{ line.debit_vnd|floatformat:0|intcomma }}{% endif %}</td>
                             <td class="text-end font-mono">{% if line.credit_vnd %}{{ line.credit_vnd|floatformat:0|intcomma }}{% endif %}</td>
+                            {% if is_fc %}
+                            <td class="text-end font-mono">{% if line.debit_fc %}{{ line.debit_fc|floatformat:2 }}{% endif %}</td>
+                            <td class="text-end font-mono">{% if line.credit_fc %}{{ line.credit_fc|floatformat:2 }}{% endif %}</td>
+                            <td class="text-end font-mono">{{ line.voucher.exchange_rate|floatformat:2 }}</td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -54,6 +64,11 @@
                             <th colspan="3">Cộng</th>
                             <th class="text-end font-mono">{{ party.debit|floatformat:0|intcomma }}</th>
                             <th class="text-end font-mono">{{ party.credit|floatformat:0|intcomma }}</th>
+                            {% if is_fc %}
+                            <th class="text-end font-mono">{{ party.debit_fc|floatformat:2 }}</th>
+                            <th class="text-end font-mono">{{ party.credit_fc|floatformat:2 }}</th>
+                            <th></th>
+                            {% endif %}
                         </tr>
                     </tfoot>
                 </table>
