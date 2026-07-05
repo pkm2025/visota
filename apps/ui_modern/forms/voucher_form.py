@@ -1,10 +1,17 @@
 """Forms for voucher creation."""
 
+from typing import TYPE_CHECKING, Any
+
 from django import forms
 from django.forms import BaseFormSet, formset_factory
 
 from apps.ledger.models import AccountingVoucher
 from apps.master_data.models import InvoiceGroup, TaxRateCode
+
+if TYPE_CHECKING:
+    _BaseFormSet = BaseFormSet[Any]
+else:
+    _BaseFormSet = BaseFormSet
 
 
 class VoucherHeaderForm(forms.Form):
@@ -97,12 +104,12 @@ class VoucherLineForm(forms.Form):
     )
 
 
-class VoucherLineFormSet(BaseFormSet):
+class _VoucherLineFormSet(_BaseFormSet):
     """Formset for voucher lines — labels the auto-added DELETE checkbox."""
 
     delete_aria_label = "Xóa dòng bút toán"
 
-    def add_fields(self, form, index):
+    def add_fields(self, form: Any, index: int | None) -> None:
         super().add_fields(form, index)
         delete_field = form.fields.get("DELETE")
         if delete_field is not None:
@@ -111,7 +118,7 @@ class VoucherLineFormSet(BaseFormSet):
 
 VoucherLineFormSet = formset_factory(
     VoucherLineForm,
-    formset=VoucherLineFormSet,
+    formset=_VoucherLineFormSet,
     extra=2,
     min_num=2,
     validate_min=True,
@@ -242,8 +249,8 @@ class VoucherTaxLineForm(forms.Form):
         ),
     )
 
-    def clean(self):
-        cleaned = super().clean()
+    def clean(self) -> dict[str, Any]:
+        cleaned = super().clean() or {}
         goods = cleaned.get("goods_amount_vnd")
         tax_amt = cleaned.get("tax_amount_vnd")
         # VAL-M1-009: validation prevents negative tax_amount when goods positive
@@ -254,12 +261,12 @@ class VoucherTaxLineForm(forms.Form):
         return cleaned
 
 
-class VoucherTaxLineFormSet(BaseFormSet):
+class _VoucherTaxLineFormSet(_BaseFormSet):
     """Formset for tax lines — labels the auto-added DELETE checkbox."""
 
     delete_aria_label = "Xóa dòng thuế"
 
-    def add_fields(self, form, index):
+    def add_fields(self, form: Any, index: int | None) -> None:
         super().add_fields(form, index)
         delete_field = form.fields.get("DELETE")
         if delete_field is not None:
@@ -268,7 +275,7 @@ class VoucherTaxLineFormSet(BaseFormSet):
 
 VoucherTaxLineFormSet = formset_factory(
     VoucherTaxLineForm,
-    formset=VoucherTaxLineFormSet,
+    formset=_VoucherTaxLineFormSet,
     extra=1,
     min_num=0,
     validate_min=False,

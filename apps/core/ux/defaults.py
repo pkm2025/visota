@@ -1,5 +1,7 @@
 """Smart UX defaults by user role and layout availability."""
 
+from typing import Any
+
 ROLE_DEFAULT_UX = {
     "admin": {"layout": "modern", "style": "standard"},
     "chief_accountant": {"layout": "modern", "style": "standard"},
@@ -37,7 +39,7 @@ def suggest_ux_for_role(role_code: str) -> dict[str, str]:
     return ux
 
 
-def get_available_layouts() -> list[dict]:
+def get_available_layouts() -> list[dict[str, Any]]:
     """Return list of available layout packs (for switcher UI).
 
     Only layouts with actual URL routes are returned, so the footer switcher

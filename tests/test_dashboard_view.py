@@ -34,14 +34,19 @@ def test_dashboard_loads_for_authenticated_user():
 
 @pytest.mark.django_db
 def test_dashboard_has_layout_switcher():
-    """Dashboard renders layout switcher."""
+    """Dashboard does not show layout switcher when only one layout has routes.
+
+    VAL-UX-001: Dead layout switcher links (/classic/, /mobile/, /portal/) removed.
+    Only 'modern' layout has URL routes, so switcher is hidden.
+    """
     user = User.objects.create_superuser(
         username="alice", password="Secret123", email="alice@test.local"
     )
     client = Client()
     client.force_login(user)
     response = client.get("/modern/")
-    assert b"layout-switcher" in response.content
+    # Switcher should not render when only 1 layout available
+    assert b"layout-switcher" not in response.content
 
 
 @pytest.mark.django_db
