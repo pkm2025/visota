@@ -138,6 +138,7 @@ from .views import (
     ProjectTogglePhaseView,
     PurchaseInvoiceCreateView,
     PurchaseInvoiceListView,
+    ReportExportView,
     PurchaseJournalView,
     QuickExpenseView,
     RecurringListView,
@@ -961,6 +962,12 @@ urlpatterns = [
         "reports/cash-flow/indirect/",
         login_required(CashFlowIndirectView.as_view()),
         name="report_cash_flow_indirect",
+    ),
+    # Generic report export (PDF/Excel) — VAL-M3-008..015
+    path(
+        "reports/export/",
+        login_required(ReportExportView.as_view()),
+        name="report_export",
     ),
     # Period tools
     path(

@@ -159,6 +159,7 @@ from .purchase_views import (
     PurchaseInvoiceListView,
 )
 from .recurring_views import RecurringListView, RecurringRunView
+from .report_export_views import ReportExportView
 from .report_views import (
     BalanceSheetView,
     D62ReportView,
@@ -279,6 +280,7 @@ __all__ = [
     "VATXmlView",
     "VATInputListView",
     "VATOutputListView",
+    "ReportExportView",
     "GeneralJournalView",
     "GeneralLedgerView",
     "CustomerListView",
