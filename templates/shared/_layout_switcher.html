@@ -1,3 +1,4 @@
+{% if available_layouts|length > 1 %}
 <div class="layout-switcher">
     {% for layout in available_layouts %}
     <a href="{{ layout.url_prefix }}"
@@ -8,3 +9,4 @@
     </a>
     {% endfor %}
 </div>
+{% endif %}

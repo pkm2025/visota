@@ -442,7 +442,7 @@
                 <div class="nav-section" x-data="{ open: localStorage.getItem('nav_TOOL') === 'true' }"
                      {% has_module_access "ledger" as can_ledger_4 %}{% if not can_ledger_4 %}style="display:none"{% endif %}>
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_TOOL', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-                        <span>Cập nhật số liệu</span>
+                        <span>Công cụ cuối kỳ</span>
                         <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
                     </div>
                     <div x-show="open" x-collapse>

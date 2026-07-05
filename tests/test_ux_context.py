@@ -59,8 +59,9 @@ def test_suggest_ux_for_role_admin():
 
 
 def test_suggest_ux_for_role_customer_is_portal():
+    # /portal/ route doesn't exist - customer role falls back to default 'modern'
     ux = suggest_ux_for_role('customer')
-    assert ux['layout'] == 'portal'
+    assert ux['layout'] == 'modern'
 
 
 def test_suggest_ux_for_unknown_role_falls_back_to_default():
@@ -70,12 +71,13 @@ def test_suggest_ux_for_unknown_role_falls_back_to_default():
 
 
 def test_get_available_layouts():
+    # Only layouts with actual URL routes are exposed (no dead links)
     layouts = get_available_layouts()
     codes = [l['code'] for l in layouts]
     assert 'modern' in codes
-    assert 'classic' in codes
-    assert 'mobile' in codes
-    assert 'portal' in codes
+    assert 'classic' not in codes
+    assert 'mobile' not in codes
+    assert 'portal' not in codes
 
 
 def test_ux_context_from_request(rf):
