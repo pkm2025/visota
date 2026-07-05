@@ -1,7 +1,7 @@
 """Forms for voucher creation."""
 
 from django import forms
-from django.forms import formset_factory
+from django.forms import BaseFormSet, formset_factory
 
 from apps.ledger.models import AccountingVoucher
 from apps.master_data.models import InvoiceGroup, TaxRateCode
@@ -70,6 +70,7 @@ class VoucherLineForm(forms.Form):
             attrs={
                 "class": "form-control form-control-sm text-end font-mono",
                 "step": "0.0001",
+                "aria-label": "Nợ VND",
             }
         ),
     )
@@ -81,6 +82,7 @@ class VoucherLineForm(forms.Form):
             attrs={
                 "class": "form-control form-control-sm text-end font-mono",
                 "step": "0.0001",
+                "aria-label": "Có VND",
             }
         ),
     )
@@ -95,8 +97,21 @@ class VoucherLineForm(forms.Form):
     )
 
 
+class VoucherLineFormSet(BaseFormSet):
+    """Formset for voucher lines — labels the auto-added DELETE checkbox."""
+
+    delete_aria_label = "Xóa dòng bút toán"
+
+    def add_fields(self, form, index):
+        super().add_fields(form, index)
+        delete_field = form.fields.get("DELETE")
+        if delete_field is not None:
+            delete_field.widget.attrs.setdefault("aria-label", self.delete_aria_label)
+
+
 VoucherLineFormSet = formset_factory(
     VoucherLineForm,
+    formset=VoucherLineFormSet,
     extra=2,
     min_num=2,
     validate_min=True,
@@ -120,7 +135,11 @@ class VoucherTaxLineForm(forms.Form):
     invoice_date = forms.DateField(
         required=False,
         widget=forms.DateInput(
-            attrs={"class": "form-control form-control-sm", "type": "date"},
+            attrs={
+                "class": "form-control form-control-sm",
+                "type": "date",
+                "aria-label": "Ngày hóa đơn",
+            },
         ),
     )
     invoice_form = forms.CharField(
@@ -156,7 +175,7 @@ class VoucherTaxLineForm(forms.Form):
     tax_code = forms.ModelChoiceField(
         queryset=TaxRateCode.objects.filter(is_active=True),
         required=False,
-        widget=forms.Select(attrs={"class": "form-select form-select-sm"}),
+        widget=forms.Select(attrs={"class": "form-select form-select-sm", "aria-label": "Mã thuế"}),
     )
     tax_rate = forms.DecimalField(
         required=False,
@@ -166,6 +185,7 @@ class VoucherTaxLineForm(forms.Form):
             attrs={
                 "class": "form-control form-control-sm text-end font-mono",
                 "step": "0.01",
+                "aria-label": "Tỷ lệ thuế (%)",
             }
         ),
     )
@@ -177,6 +197,7 @@ class VoucherTaxLineForm(forms.Form):
             attrs={
                 "class": "form-control form-control-sm text-end font-mono tax-goods",
                 "step": "0.0001",
+                "aria-label": "Tiền hàng VND",
             }
         ),
     )
@@ -188,6 +209,7 @@ class VoucherTaxLineForm(forms.Form):
             attrs={
                 "class": "form-control form-control-sm text-end font-mono tax-amount",
                 "step": "0.0001",
+                "aria-label": "Tiền thuế VND",
             }
         ),
     )
@@ -205,7 +227,9 @@ class VoucherTaxLineForm(forms.Form):
     invoice_group_code = forms.ModelChoiceField(
         queryset=InvoiceGroup.objects.all(),
         required=False,
-        widget=forms.Select(attrs={"class": "form-select form-select-sm"}),
+        widget=forms.Select(
+            attrs={"class": "form-select form-select-sm", "aria-label": "Nhóm hóa đơn"},
+        ),
     )
     object_address = forms.CharField(
         required=False,
@@ -230,8 +254,21 @@ class VoucherTaxLineForm(forms.Form):
         return cleaned
 
 
+class VoucherTaxLineFormSet(BaseFormSet):
+    """Formset for tax lines — labels the auto-added DELETE checkbox."""
+
+    delete_aria_label = "Xóa dòng thuế"
+
+    def add_fields(self, form, index):
+        super().add_fields(form, index)
+        delete_field = form.fields.get("DELETE")
+        if delete_field is not None:
+            delete_field.widget.attrs.setdefault("aria-label", self.delete_aria_label)
+
+
 VoucherTaxLineFormSet = formset_factory(
     VoucherTaxLineForm,
+    formset=VoucherTaxLineFormSet,
     extra=1,
     min_num=0,
     validate_min=False,

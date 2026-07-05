@@ -46,19 +46,19 @@
             <div class="card-body">
                 <div class="row g-2">
                     <div class="col-md-2">
-                        <label class="form-label small">Ngày sổ cái *</label>
+                        <label for="{{ header_form.voucher_date.id_for_label }}" class="form-label small">Ngày sổ cái *</label>
                         {{ header_form.voucher_date }}
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label small">Số CT</label>
+                        <label for="{{ header_form.voucher_no.id_for_label }}" class="form-label small">Số CT</label>
                         {{ header_form.voucher_no }}
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label small">Loại CT</label>
+                        <label for="{{ header_form.voucher_type.id_for_label }}" class="form-label small">Loại CT</label>
                         {{ header_form.voucher_type }}
                     </div>
                     <div class="col-md-5">
-                        <label class="form-label small">Diễn giải</label>
+                        <label for="{{ header_form.description.id_for_label }}" class="form-label small">Diễn giải</label>
                         {{ header_form.description }}
                     </div>
                 </div>
