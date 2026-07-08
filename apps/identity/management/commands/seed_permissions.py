@@ -3,6 +3,9 @@
 Each business module gets a single <module>.access permission (module-level
 granularity, per product decision 2026-06-20). Old CRUD permissions are
 removed to keep the catalog clean.
+
+PKM module additionally has fine-grained permissions (pkm.notes.manage,
+pkm.documents.manage, pkm.qa.use) for feature-level access control.
 """
 
 from django.core.management.base import BaseCommand
@@ -37,7 +40,19 @@ MODULE_PERMISSIONS = [
     ("einvoice", "Hóa đơn điện tử", "HĐĐT TT78/2021, XML/JSON, BC01/BC26"),
     ("approvals", "Phê duyệt", "Chuỗi duyệt phiếu/hóa đơn theo quy tắc"),
     ("notifications", "Thông báo", "Hộp thư thông báo hệ thống"),
+    ("pkm", "Quản lý tri thức cá nhân", "PKM - Notes, RAG documents, Q&A AI"),
 ]
+
+# Fine-grained permissions for the PKM module (beyond the standard .access).
+# These enable feature-level checks within the PKM module.
+PKM_FINE_GRAINED_PERMISSIONS = [
+    ("pkm.notes.manage", "pkm", "Quản lý ghi chú", "Tạo/sửa/xóa ghi chú cá nhân"),
+    ("pkm.documents.manage", "pkm", "Quản lý tài liệu", "Upload/xử lý/xóa tài liệu RAG"),
+    ("pkm.qa.use", "pkm", "Sử dụng Q&A AI", "Hỏi đáp AI với RAG"),
+]
+
+# Permission codes that are intentionally NOT .access and must survive cleanup
+FINE_GRAINED_CODES = {code for code, _, _, _ in PKM_FINE_GRAINED_PERMISSIONS}
 
 
 SYSTEM_ROLES = [
@@ -164,8 +179,25 @@ class Command(BaseCommand):
             marker = "+" if created else "="
             self.stdout.write(f"  {marker} {perm.code}  ({name_vi})")
 
+        # 1b. Upsert PKM fine-grained permissions
+        self.stdout.write("Seeding PKM fine-grained permissions...")
+        for code, module, name_vi, desc in PKM_FINE_GRAINED_PERMISSIONS:
+            perm, created = Permission.objects.update_or_create(
+                code=code,
+                defaults={
+                    "module": module,
+                    "name": name_vi,
+                    "description": desc,
+                },
+            )
+            marker = "+" if created else "="
+            self.stdout.write(f"  {marker} {perm.code}  ({name_vi})")
+
         # Clean up obsolete CRUD permissions from earlier seed
-        obsolete = Permission.objects.exclude(code__endswith=".access")
+        # (preserve PKM fine-grained codes that don't end with .access)
+        obsolete = Permission.objects.exclude(code__endswith=".access").exclude(
+            code__in=FINE_GRAINED_CODES
+        )
         obsolete_count = obsolete.count()
         if obsolete_count:
             obsolete.delete()
@@ -175,6 +207,14 @@ class Command(BaseCommand):
         self.stdout.write("")
         self.stdout.write("Seeding system roles...")
         company = Company.objects.first()
+
+        # Build a lookup for fine-grained permission objects by code
+        fine_grained_perms = {
+            p.code: p for p in Permission.objects.filter(code__in=FINE_GRAINED_CODES)
+        }
+
+        # Modules that include pkm get the fine-grained PKM permissions too
+        pkm_fine_codes = [code for code, _, _, _ in PKM_FINE_GRAINED_PERMISSIONS]
 
         for code, name_vi, desc, modules, is_system in SYSTEM_ROLES:
             role, created = Role.objects.update_or_create(
@@ -186,7 +226,12 @@ class Command(BaseCommand):
                     "is_system": is_system,
                 },
             )
-            role.permissions.set([perm_map[m] for m in modules])
+            perms = [perm_map[m] for m in modules]
+            if "pkm" in modules:
+                perms.extend(
+                    fine_grained_perms[c] for c in pkm_fine_codes if c in fine_grained_perms
+                )
+            role.permissions.set(perms)
             marker = "+" if created else "="
             self.stdout.write(
                 f"  {marker} {role.code:<18} ({role.name}) — {len(modules)} module(s)"

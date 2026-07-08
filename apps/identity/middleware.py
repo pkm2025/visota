@@ -44,6 +44,7 @@ PATH_MODULE_MAP = [
     ("/modern/fx/", "fx"),
     ("/modern/einvoices/", "einvoice"),
     ("/modern/approvals/", "approvals"),
+    ("/modern/knowledge/", "pkm"),
 ]
 
 EXEMPT_PREFIXES = (
