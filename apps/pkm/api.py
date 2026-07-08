@@ -25,6 +25,9 @@ Endpoints:
     POST   /api/v1/pkm/documents/{id}/reprocess/  # Re-queue RAG pipeline
     GET    /api/v1/pkm/documents/{id}/status/     # Processing status
 
+    POST   /api/v1/pkm/qa/ask/               # RAG Q&A (returns answer + sources)
+    GET    /api/v1/pkm/qa/history/           # Q&A history (paginated)
+
 All endpoints require ``auth=get_current_user`` (session or API key).
 """
 
@@ -45,8 +48,8 @@ from ninja.files import UploadedFile
 from ninja.pagination import paginate
 
 from apps.core.api import get_current_company, get_current_user
-from apps.pkm.models import KnowledgeNote, PKMDocument, Tag, UserLLMConfig
-from apps.pkm.services import encryption_service, llm_service, rag_pipeline
+from apps.pkm.models import KnowledgeNote, PKMDocument, QAHistory, Tag, UserLLMConfig
+from apps.pkm.services import encryption_service, llm_service, qa_service, rag_pipeline
 
 router = Router(tags=["PKM"])
 
@@ -746,3 +749,117 @@ def get_document_status(request: HttpRequest, doc_id: int) -> dict[str, Any]:
         "status": doc.status,
         "error_message": doc.error_message,
     }
+
+
+# ===========================================================================
+# Q&A (RAG-powered Question Answering)
+# ===========================================================================
+
+
+class AskQuestionSchema(Schema):
+    """Request body for the Q&A ask endpoint."""
+
+    question: str = Field(..., min_length=1, description="The question to ask")
+
+
+class SourceSchema(Schema):
+    """A source reference cited in the Q&A answer."""
+
+    chunk_id: int | None = None
+    embedding_id: int | None = None
+    note_id: int | None = None
+    document_title: str = ""
+    content_preview: str = ""
+    distance: float | None = None
+    source_type: str
+
+
+class ContextUsedSchema(Schema):
+    """A context item used to build the Q&A prompt."""
+
+    type: str
+    chunk_id: int | None = None
+    note_id: int | None = None
+    document_title: str | None = None
+    title: str | None = None
+    distance: float | None = None
+
+
+class AskResponseSchema(Schema):
+    """Response for the Q&A ask endpoint."""
+
+    answer: str
+    sources: list[SourceSchema] = []
+    context_used: list[ContextUsedSchema] = []
+
+
+class QAHistorySchema(Schema):
+    """A Q&A history record."""
+
+    id: int
+    question: str
+    answer: str
+    sources: list[dict[str, Any]] = []
+    context_used: list[dict[str, Any]] = []
+    created_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Q&A endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post("/qa/ask/", response=AskResponseSchema, auth=get_current_user)
+def ask_question(request: HttpRequest, payload: AskQuestionSchema) -> dict[str, Any]:
+    """Answer a question using RAG (Retrieval-Augmented Generation).
+
+    Accepts a question, embeds it, searches for relevant document chunks and
+    notes, builds a context prompt, and calls the LLM for an answer.
+
+    Requires an active LLM configuration. If the user has no active config,
+    returns 400 with a message directing them to configure a provider first.
+
+    Returns:
+        The generated answer, source references, and context used.
+    """
+    company = get_current_company(request)
+
+    # Check for active LLM config before delegating to the service.
+    # This provides a clear 400 (not a 500) when the user hasn't configured
+    # a provider yet.
+    active_config = UserLLMConfig.objects.filter(
+        user=request.user,
+        company=company,
+        is_active=True,
+    ).exists()
+    if not active_config:
+        raise HttpError(
+            400,
+            "Chua co cau hinh LLM nao hoat dong. "
+            "Vui long cau hinh provider (OpenAI, Anthropic, v.v.) truoc khi "
+            "su dung Q&A. Truy cap /api/v1/pkm/llm-configs/ de cau hinh.",
+        )
+
+    # Delegate to the service (LLM calls are mocked in tests)
+    try:
+        result = qa_service.answer_question(
+            user=request.user,
+            company=company,
+            question=payload.question,
+        )
+    except ValueError as exc:
+        # The service raises ValueError for empty/whitespace questions.
+        # Return a clean 400 instead of letting it bubble up as a 500.
+        raise HttpError(400, str(exc)) from exc
+    return result
+
+
+@router.get("/qa/history/", response=list[QAHistorySchema], auth=get_current_user)
+@paginate
+def list_qa_history(request: HttpRequest) -> Any:
+    """List the authenticated user's Q&A history, scoped by company.
+
+    Results are ordered by most recent first and paginated.
+    """
+    company = get_current_company(request)
+    return QAHistory.objects.filter(user=request.user, company=company)
