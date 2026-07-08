@@ -67,7 +67,7 @@ from .attachment_views import (
     AttachmentUploadView,
 )
 from .auth_views import PMKetoanLoginView, PMKetoanLogoutView
-from .chart_of_accounts_views import ChartOfAccountsListView, ChartOfAccountsChangeCodeView
+from .chart_of_accounts_views import ChartOfAccountsChangeCodeView, ChartOfAccountsListView
 from .closing_views import PeriodClosingView
 from .company_views import CompanyProfileView
 from .contract_template_views import (
@@ -138,6 +138,15 @@ from .ledger_views import (
 )
 from .migration_views import MigrationTemplateView, MigrationUploadView
 from .payroll_views import PayrollRunView
+from .pkm_views import (
+    KnowledgeNoteCreateView,
+    KnowledgeNoteDeleteView,
+    KnowledgeNoteDetailView,
+    KnowledgeNoteListView,
+    KnowledgeNoteUpdateView,
+    PKMDashboardView,
+    PKMSearchView,
+)
 from .product_views import (
     ProductCreateView,
     ProductDeleteView,
@@ -186,8 +195,8 @@ from .stock_views import (
     StockVoucherListView,
 )
 from .treasury_views import CashPaymentCreateView, CashReceiptCreateView
-from .vat_xml_views import VATXmlView
 from .vat_list_views import VATInputListView, VATOutputListView
+from .vat_xml_views import VATXmlView
 from .vendor_views import (
     VendorCreateView,
     VendorDeleteView,
@@ -359,6 +368,14 @@ __all__ = [
     "TicketCreateView",
     "CampaignListView",
     "CampaignCreateView",
+    # PKM (Personal Knowledge Management)
+    "PKMDashboardView",
+    "KnowledgeNoteListView",
+    "KnowledgeNoteDetailView",
+    "KnowledgeNoteCreateView",
+    "KnowledgeNoteUpdateView",
+    "KnowledgeNoteDeleteView",
+    "PKMSearchView",
 ]
 from .cash_flow_views import CashFlowDirectView, CashFlowIndirectView
 from .costing_views import CostReportView

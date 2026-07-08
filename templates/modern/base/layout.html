@@ -469,6 +469,21 @@
                         {% endif %}
                     </div>
                 </div>
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_PKM') !== 'false' }"
+                     {% has_module_access "pkm" as can_pkm %}
+                     {% if not can_pkm %}style="display:none"{% endif %}>
+                    <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_PKM', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                        <span>Tri thức cá nhân</span>
+                        <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
+                    </div>
+                    <div x-show="open" x-collapse>
+                        {% if can_pkm %}
+                        <a href="{% url 'ui_modern:pkm_dashboard' %}" class="nav-item"><i class="bi bi-house-heart"></i> <span>Tổng quan</span></a>
+                        <a href="{% url 'ui_modern:pkm_note_list' %}" class="nav-item"><i class="bi bi-journal-text"></i> <span>Ghi chú</span></a>
+                        <a href="{% url 'ui_modern:pkm_search' %}" class="nav-item"><i class="bi bi-search"></i> <span>Tìm kiếm</span></a>
+                        {% endif %}
+                    </div>
+                </div>
                 <div class="nav-section" x-data="{ open: localStorage.getItem('nav_SYS') === 'true' }"
                      {% has_module_access "approvals" as can_approvals %}>
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_SYS', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">

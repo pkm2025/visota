@@ -1,0 +1,58 @@
+{% extends 'modern/pkm/base_pkm.html' %}
+
+{% block pkm_content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'ui_modern:pkm_dashboard' %}">Tri thức cá nhân</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'ui_modern:pkm_note_list' %}">Ghi chú</a></li>
+        <li class="breadcrumb-item active">{{ note.title|truncatechars:40 }}</li>
+    </ol>
+</nav>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-1">
+            {% if note.is_pinned %}<i class="bi bi-pin-angle-fill text-warning"></i>{% endif %}
+            {{ note.title }}
+        </h1>
+        <small class="text-muted">
+            Cập nhật lần cuối: {{ note.updated_at|date:"d/m/Y H:i" }}
+        </small>
+    </div>
+    <div class="btn-group">
+        <a href="{% url 'ui_modern:pkm_note_update' note.pk %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-pencil"></i> Sửa
+        </a>
+        <a href="{% url 'ui_modern:pkm_note_delete' note.pk %}" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-trash"></i> Xóa
+        </a>
+    </div>
+</div>
+
+{% if note.tags.all %}
+<div class="mb-3 d-flex gap-1 flex-wrap">
+    {% for tag in note.tags.all %}
+    <a href="{% url 'ui_modern:pkm_note_list' %}?tag={{ tag.name }}" class="badge bg-light text-dark border text-decoration-none">
+        <i class="bi bi-tag"></i> {{ tag.name }}
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if note.role_context %}
+<div class="mb-3">
+    <span class="badge bg-info text-dark">Vai trò: {{ note.role_context }}</span>
+</div>
+{% endif %}
+
+<!-- Rendered markdown content -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body pkm-note-content">
+        {% if rendered_content %}
+        {{ rendered_content|safe }}
+        {% else %}
+        <p class="text-muted">Ghi chú này chưa có nội dung.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
