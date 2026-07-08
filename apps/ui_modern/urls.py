@@ -156,6 +156,7 @@ from .views import (
     PurchaseInvoiceCreateView,
     PurchaseInvoiceListView,
     PurchaseJournalView,
+    QAChatView,
     QuickExpenseView,
     RecurringListView,
     RecurringRunView,
@@ -1193,6 +1194,11 @@ urlpatterns = [
         "knowledge/search/",
         login_required(PKMSearchView.as_view()),
         name="pkm_search",
+    ),
+    path(
+        "knowledge/qa/",
+        login_required(QAChatView.as_view()),
+        name="pkm_qa_chat",
     ),
     # PKM - LLM Config settings
     path(

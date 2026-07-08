@@ -35,8 +35,15 @@ from django.views import View
 from django.views.generic import DeleteView, DetailView, ListView
 
 from apps.core.models import Company
-from apps.pkm.models import DocumentChunk, KnowledgeNote, PKMDocument, Tag, UserLLMConfig
-from apps.pkm.services import encryption_service, llm_service, rag_pipeline
+from apps.pkm.models import (
+    DocumentChunk,
+    KnowledgeNote,
+    PKMDocument,
+    QAHistory,
+    Tag,
+    UserLLMConfig,
+)
+from apps.pkm.services import encryption_service, llm_service, qa_service, rag_pipeline
 
 
 def _get_company(request: HttpRequest) -> Company:
@@ -905,3 +912,114 @@ class DocumentReprocessView(LoginRequiredMixin, View):
             rag_pipeline.schedule_reprocessing(doc.id)
         messages.success(request, f"Đã đưa '{doc.title}' vào hàng đợi xử lý lại.")
         return redirect("ui_modern:pkm_document_detail", pk=doc.pk)
+
+
+# ===========================================================================
+# Q&A Chat View
+# ===========================================================================
+
+
+def _get_qa_history_qs(request: HttpRequest):
+    """Return Q&A history scoped to the current user + company."""
+    company = _get_company(request)
+    return QAHistory.objects.filter(user=request.user, company=company)
+
+
+class QAChatView(LoginRequiredMixin, View):
+    """Q&A chat interface with message history and a question input.
+
+    On GET:
+        - Renders the chat page with recent Q&A history (sidebar/panel).
+        - If the user has no active LLM config, displays a "configure provider
+          first" prompt and disables the input.
+
+    On POST:
+        - Validates the question (non-empty).
+        - Calls ``qa_service.answer_question`` (LLM mocked in tests) via the
+          API service layer.
+        - Renders the answer with source citations.
+        - If the user has no active config, shows the configure-first prompt.
+
+    The page also exposes a JSON endpoint for HTMX/fetch submissions via the
+    API at ``/api/v1/pkm/qa/ask/``. The server-side POST handler here renders
+    the answer HTML fragment for progressive enhancement (no-JS fallback).
+    """
+
+    template_name = "modern/pkm/qa_chat.html"
+    login_url = "/auth/login/"
+
+    #: Number of recent Q&A entries shown in the history panel.
+    _HISTORY_LIMIT: int = 20
+
+    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        context = self._build_context(request)
+        return render(request, self.template_name, context)
+
+    def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        question = request.POST.get("question", "").strip()
+
+        # Validate: empty question is an error
+        if not question:
+            messages.error(request, "Câu hỏi không được để trống.")
+            context = self._build_context(request, question=question)
+            return render(request, self.template_name, context)
+
+        # Check for active LLM config before calling the service
+        if not _has_active_llm_config(request):
+            messages.error(
+                request,
+                "Chưa có cấu hình AI hoạt động. Vui lòng cấu hình nhà cung cấp trước.",
+            )
+            context = self._build_context(request, question=question)
+            return render(request, self.template_name, context)
+
+        # Delegate to the service (LLM calls are mocked in tests)
+        company = _get_company(request)
+        try:
+            result = qa_service.answer_question(
+                user=request.user,
+                company=company,
+                question=question,
+            )
+        except ValueError:
+            messages.error(
+                request,
+                "Chưa có cấu hình AI hoạt động. Vui lòng cấu hình nhà cung cấp trước.",
+            )
+            context = self._build_context(request, question=question)
+            return render(request, self.template_name, context)
+        except Exception:
+            messages.error(
+                request,
+                "Có lỗi xảy ra khi xử lý câu hỏi. Vui lòng thử lại.",
+            )
+            context = self._build_context(request, question=question)
+            return render(request, self.template_name, context)
+
+        # Refresh history (the new Q&A is now saved by the service)
+        context = self._build_context(
+            request,
+            question=question,
+            answer=result.get("answer", ""),
+            sources=result.get("sources", []),
+        )
+        return render(request, self.template_name, context)
+
+    def _build_context(
+        self,
+        request: HttpRequest,
+        *,
+        question: str = "",
+        answer: str = "",
+        sources: list | None = None,
+    ) -> dict:
+        """Build the template context for the Q&A chat page."""
+        return {
+            "page_title": "Hỏi đáp AI",
+            "has_active_config": _has_active_llm_config(request),
+            "history": _get_qa_history_qs(request)[: self._HISTORY_LIMIT],
+            "question": question,
+            "answer": answer,
+            "sources": sources or [],
+            "config_url": "ui_modern:pkm_llm_config_list",
+        }

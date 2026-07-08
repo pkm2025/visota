@@ -1,0 +1,156 @@
+{% extends 'modern/pkm/base_pkm.html' %}
+
+{% block pkm_content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'ui_modern:pkm_dashboard' %}">Tri thức cá nhân</a></li>
+        <li class="breadcrumb-item active">Hỏi đáp AI</li>
+    </ol>
+</nav>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">{{ page_title }}</h1>
+</div>
+
+<!-- No-config state: prompt user to configure a provider first -->
+{% if not has_active_config %}
+<div class="card border-0 shadow-sm" id="qa-disabled-state">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-robot text-muted" style="font-size: 4rem;"></i>
+        <h3 class="mt-3" id="configure-first-prompt">Chưa cấu hình nhà cung cấp AI</h3>
+        <p class="text-muted mb-4">
+            Để sử dụng tính năng Hỏi đáp (Q&A), bạn cần cấu hình nhà cung cấp AI
+            (OpenAI, Anthropic, Gemini, Groq, OpenRouter, hoặc Ollama) trước.
+        </p>
+        <a href="{% url 'ui_modern:pkm_llm_config_list' %}" class="btn btn-primary">
+            <i class="bi bi-gear"></i> Cấu hình nhà cung cấp
+        </a>
+    </div>
+</div>
+{% else %}
+<div class="row g-3">
+    <!-- Chat area -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm" id="qa-chat-container">
+            <div class="card-header bg-transparent d-flex align-items-center">
+                <i class="bi bi-chat-dots text-primary me-2"></i>
+                <strong>Hỏi đáp dựa trên tri thức cá nhân</strong>
+            </div>
+            <div class="card-body" id="qa-chat-messages" style="min-height: 300px;">
+
+                {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-info{% endif %} py-2">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                {% endif %}
+
+                {% if question %}
+                <!-- User question -->
+                <div class="d-flex justify-content-end mb-3">
+                    <div class="bg-primary text-white rounded p-3" style="max-width: 75%;" id="user-question">
+                        {{ question }}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if answer %}
+                <!-- AI response -->
+                <div class="d-flex justify-content-start mb-3">
+                    <div class="bg-light rounded p-3" style="max-width: 75%;" id="ai-response">
+                        <div class="d-flex align-items-start mb-1">
+                            <i class="bi bi-robot text-primary me-2"></i>
+                            <strong>Trợ lý AI</strong>
+                        </div>
+                        <div id="answer-text">{{ answer }}</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if not question and not answer and not messages %}
+                <div class="text-center text-muted py-5" id="qa-empty-state">
+                    <i class="bi bi-chat-quote" style="font-size: 3rem;"></i>
+                    <p class="mt-2">Đặt câu hỏi về tài liệu hoặc ghi chú của bạn để nhận câu trả lời kèm trích dẫn nguồn.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Source citations -->
+            {% if sources %}
+            <div class="card-footer bg-transparent" id="source-citations">
+                <h6 class="mb-2"><i class="bi bi-quote"></i> Nguồn trích dẫn</h6>
+                <ul class="list-group list-group-flush">
+                    {% for source in sources %}
+                    <li class="list-group-item px-0 py-1 small">
+                        <span class="badge {% if source.source_type == 'note' %}bg-info{% else %}bg-secondary{% endif %}">
+                            {% if source.source_type == 'note' %}Ghi chú{% else %}Tài liệu{% endif %}
+                        </span>
+                        <strong>{{ source.document_title }}</strong>
+                        <span class="text-muted">— {{ source.content_preview|truncatechars:120 }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Question input -->
+        <div class="card border-0 shadow-sm mt-3">
+            <div class="card-body">
+                <form method="post" id="qa-ask-form" action="{% url 'ui_modern:pkm_qa_chat' %}">
+                    {% csrf_token %}
+                    <div class="input-group">
+                        <textarea
+                            name="question"
+                            id="qa-question-input"
+                            class="form-control"
+                            rows="2"
+                            placeholder="Nhập câu hỏi của bạn..."
+                            {% if not has_active_config %}disabled{% endif %}
+                        >{{ question }}</textarea>
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                            id="qa-submit-btn"
+                            {% if not has_active_config %}disabled{% endif %}>
+                            <i class="bi bi-send"></i> Gửi
+                        </button>
+                    </div>
+                    <small class="text-muted mt-1 d-block">
+                        Câu hỏi sẽ được tìm kiếm trong tài liệu và ghi chú của bạn để tạo câu trả lời kèm nguồn.
+                    </small>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- History sidebar/panel -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm" id="qa-history-panel">
+            <div class="card-header bg-transparent">
+                <i class="bi bi-clock-history"></i> <strong>Lịch sử hỏi đáp</strong>
+            </div>
+            <div class="card-body p-0">
+                {% if history %}
+                <ul class="list-group list-group-flush" id="qa-history-list">
+                    {% for item in history %}
+                    <li class="list-group-item">
+                        <div class="fw-bold text-truncate">{{ item.question }}</div>
+                        <div class="text-muted small text-truncate">{{ item.answer|default:"(chưa có câu trả lời)" }}</div>
+                        <small class="text-muted">{{ item.created_at|date:"d/m/Y H:i" }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                    <p class="small mt-2 mb-0">Chưa có lịch sử hỏi đáp.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

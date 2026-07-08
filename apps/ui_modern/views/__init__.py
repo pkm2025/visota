@@ -156,6 +156,7 @@ from .pkm_views import (
     LLMConfigUpdateView,
     PKMDashboardView,
     PKMSearchView,
+    QAChatView,
 )
 from .product_views import (
     ProductCreateView,
@@ -386,6 +387,7 @@ __all__ = [
     "KnowledgeNoteUpdateView",
     "KnowledgeNoteDeleteView",
     "PKMSearchView",
+    "QAChatView",
     "LLMConfigListView",
     "LLMConfigCreateView",
     "LLMConfigUpdateView",
