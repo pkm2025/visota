@@ -55,6 +55,7 @@ __all__ = [
     "reprocess_document",
     "delete_document_data",
     "schedule_document_processing",
+    "schedule_reprocessing",
     "TASK_TIMEOUT",
     "TASK_MAX_ATTEMPTS",
 ]
@@ -303,6 +304,28 @@ def schedule_document_processing(document_id: int) -> Any:
 
     return async_task(
         "apps.pkm.services.rag_pipeline.process_document",
+        document_id,
+        timeout=TASK_TIMEOUT,
+    )
+
+
+def schedule_reprocessing(document_id: int) -> Any:
+    """Enqueue ``reprocess_document`` as a django-q2 async task.
+
+    Unlike ``schedule_document_processing``, this calls ``reprocess_document``
+    which first deletes any existing chunks/embeddings before re-running the
+    pipeline. Use this when the user explicitly requests a reprocess action.
+
+    Args:
+        document_id: Primary key of the PKMDocument to reprocess.
+
+    Returns:
+        The result of ``async_task`` (task id or sync result).
+    """
+    from django_q.tasks import async_task
+
+    return async_task(
+        "apps.pkm.services.rag_pipeline.reprocess_document",
         document_id,
         timeout=TASK_TIMEOUT,
     )

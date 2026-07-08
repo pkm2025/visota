@@ -1,7 +1,7 @@
 """django-ninja Router for PKM (Personal Knowledge Management) API.
 
-Provides CRUD endpoints for knowledge notes and LLM configs, scoped by
-``request.user`` and ``request.current_company`` for per-user and
+Provides CRUD endpoints for knowledge notes, LLM configs, and documents,
+scoped by ``request.user`` and ``request.current_company`` for per-user and
 multi-tenant isolation.
 
 Endpoints:
@@ -18,24 +18,35 @@ Endpoints:
     POST   /api/v1/pkm/llm-configs/validate/  # Validate API key without saving
     GET    /api/v1/pkm/providers/             # List available providers
 
+    POST   /api/v1/pkm/documents/             # Upload document (multipart)
+    GET    /api/v1/pkm/documents/             # List documents
+    GET    /api/v1/pkm/documents/{id}/        # Document detail
+    DELETE /api/v1/pkm/documents/{id}/        # Delete document (file + chunks + embeddings)
+    POST   /api/v1/pkm/documents/{id}/reprocess/  # Re-queue RAG pipeline
+    GET    /api/v1/pkm/documents/{id}/status/     # Processing status
+
 All endpoints require ``auth=get_current_user`` (session or API key).
 """
 
 from __future__ import annotations
 
+import hashlib
+import os
+from contextlib import suppress
 from datetime import datetime
 from typing import Any
 
 from django.db import IntegrityError
 from django.db.models import Q
 from django.http import HttpRequest
-from ninja import Field, Router, Schema
+from ninja import Field, Form, Router, Schema
 from ninja.errors import HttpError
+from ninja.files import UploadedFile
 from ninja.pagination import paginate
 
 from apps.core.api import get_current_company, get_current_user
-from apps.pkm.models import KnowledgeNote, Tag, UserLLMConfig
-from apps.pkm.services import encryption_service, llm_service
+from apps.pkm.models import KnowledgeNote, PKMDocument, Tag, UserLLMConfig
+from apps.pkm.services import encryption_service, llm_service, rag_pipeline
 
 router = Router(tags=["PKM"])
 
@@ -429,3 +440,309 @@ def list_providers(request: HttpRequest) -> dict[str, Any]:
         models = llm_service.get_provider_models(value)
         providers.append({"value": value, "label": label, "models": models})
     return {"providers": providers}
+
+
+# ===========================================================================
+# Document Management CRUD
+# ===========================================================================
+
+#: Maximum file size for uploads: 20 MB.
+MAX_FILE_SIZE: int = 20 * 1024 * 1024
+
+#: Allowed file extensions (lowercase, no dot).
+ALLOWED_FILE_TYPES: set[str] = {"pdf", "docx", "txt", "md", "xlsx"}
+
+
+class DocumentSchema(Schema):
+    """Document response schema."""
+
+    id: int
+    title: str
+    file_type: str
+    file_size: int
+    status: str
+    checksum: str = ""
+    error_message: str = ""
+    created_at: datetime
+    updated_at: datetime
+
+
+class DocumentDetailSchema(DocumentSchema):
+    """Document detail schema with additional fields."""
+
+    file_url: str = ""
+    has_file: bool = True
+
+
+class DocumentStatusSchema(Schema):
+    """Lightweight status response."""
+
+    id: int
+    status: str
+    error_message: str = ""
+
+
+class DocumentCreatedSchema(DocumentSchema):
+    """Schema returned after upload (includes duplicate warning)."""
+
+    is_duplicate: bool = False
+    duplicate_message: str = ""
+
+
+class DocumentDeleteSchema(Schema):
+    """Delete response."""
+
+    message: str
+    id: int
+
+
+class ReprocessSchema(Schema):
+    """Reprocess response."""
+
+    message: str
+    id: int
+    status: str
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _get_scoped_document(request: HttpRequest, doc_id: int) -> PKMDocument:
+    """Return a document scoped to the current user + company, or 404."""
+    company = get_current_company(request)
+    doc = PKMDocument.objects.filter(id=doc_id, user=request.user, company=company).first()
+    if doc is None:
+        raise HttpError(404, "Document not found")
+    return doc
+
+
+def _validate_file_type(filename: str) -> str:
+    """Validate the file extension and return the normalised type.
+
+    Raises 400 if the extension is not in ``ALLOWED_FILE_TYPES``.
+    """
+    ext = os.path.splitext(filename)[1].lstrip(".").lower()
+    if ext not in ALLOWED_FILE_TYPES:
+        raise HttpError(
+            400,
+            f"File type '.{ext}' is not allowed. "
+            f"Supported types: {', '.join(sorted(ALLOWED_FILE_TYPES))}.",
+        )
+    return ext
+
+
+def _validate_file_size(file: UploadedFile) -> int:
+    """Validate file size and return the size in bytes.
+
+    Raises 400 if the file exceeds ``MAX_FILE_SIZE``.
+    """
+    file.seek(0, 2)  # seek to end
+    size: int = file.tell()
+    file.seek(0)  # reset
+    if size > MAX_FILE_SIZE:
+        max_mb = MAX_FILE_SIZE // (1024 * 1024)
+        raise HttpError(
+            400,
+            f"File size {size} bytes exceeds the {max_mb}MB limit.",
+        )
+    return size
+
+
+def _compute_checksum(file: UploadedFile) -> str:
+    """Compute SHA-256 checksum of the uploaded file.
+
+    Reads the file in chunks to avoid loading the entire file into memory.
+    """
+    sha256 = hashlib.sha256()
+    file.seek(0)
+    for chunk in iter(lambda: file.read(8192), b""):
+        sha256.update(chunk)
+    file.seek(0)
+    return sha256.hexdigest()
+
+
+def _serialize_document(doc: PKMDocument) -> dict[str, Any]:
+    """Build a plain dict from a PKMDocument for schema serialization."""
+    return {
+        "id": doc.id,
+        "title": doc.title,
+        "file_type": doc.file_type,
+        "file_size": doc.file_size,
+        "status": doc.status,
+        "checksum": doc.checksum,
+        "error_message": doc.error_message,
+        "created_at": doc.created_at,
+        "updated_at": doc.updated_at,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Document endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/documents/",
+    response={201: DocumentCreatedSchema},
+    auth=get_current_user,
+)
+def upload_document(
+    request: HttpRequest,
+    file: UploadedFile,
+    title: str = Form(""),
+) -> dict[str, Any]:
+    """Upload a document for RAG processing.
+
+    Accepts a multipart file upload. Validates the file type (pdf, docx, txt,
+    md, xlsx) and size (max 20MB). Computes a SHA-256 checksum for dedup
+    detection. Creates a ``PKMDocument`` record (status=pending) and enqueues
+    an async task for RAG processing.
+
+    A duplicate warning is returned (200) if a document with the same checksum
+    already exists for the user, but the upload still succeeds (201).
+    """
+    # Validate file type
+    filename = file.name or "unknown"
+    file_type = _validate_file_type(filename)
+
+    # Validate file size
+    file_size = _validate_file_size(file)
+
+    # Compute checksum
+    checksum = _compute_checksum(file)
+
+    # Check for duplicate (same checksum for this user)
+    company = get_current_company(request)
+    existing_dup = PKMDocument.objects.filter(
+        user=request.user,
+        company=company,
+        checksum=checksum,
+    ).first()
+
+    is_duplicate = existing_dup is not None
+
+    # Use provided title or derive from filename
+    doc_title = title.strip() if title.strip() else os.path.splitext(filename)[0]
+
+    # Create the document record
+    document = PKMDocument.objects.create(
+        user=request.user,
+        company=company,
+        title=doc_title,
+        file=file,
+        file_type=file_type,
+        file_size=file_size,
+        checksum=checksum,
+        status=PKMDocument.Status.PENDING,
+    )
+
+    # Enqueue async processing task
+    rag_pipeline.schedule_document_processing(document.id)
+
+    # Build response
+    result = _serialize_document(document)
+    result["is_duplicate"] = is_duplicate
+    if is_duplicate and existing_dup is not None:
+        result["duplicate_message"] = (
+            f"A document with the same content (checksum) already exists: "
+            f"'{existing_dup.title}' (ID: {existing_dup.id})."
+        )
+    return result
+
+
+@router.get("/documents/", response=list[DocumentSchema], auth=get_current_user)
+@paginate
+def list_documents(
+    request: HttpRequest,
+    status: str | None = None,
+) -> Any:
+    """List the authenticated user's documents, scoped by company.
+
+    Query params:
+        status: Filter by processing status (pending, processing, processed, failed).
+    """
+    company = get_current_company(request)
+    qs = PKMDocument.objects.filter(user=request.user, company=company)
+    if status:
+        qs = qs.filter(status=status)
+    return qs
+
+
+@router.get("/documents/{doc_id}/", response=DocumentDetailSchema, auth=get_current_user)
+def get_document(request: HttpRequest, doc_id: int) -> dict[str, Any]:
+    """Retrieve a single document by ID."""
+    doc = _get_scoped_document(request, doc_id)
+    result = _serialize_document(doc)
+    result["file_url"] = doc.file.url if doc.file else ""
+    result["has_file"] = bool(doc.file)
+    return result
+
+
+@router.delete("/documents/{doc_id}/", response=DocumentDeleteSchema, auth=get_current_user)
+def delete_document(request: HttpRequest, doc_id: int) -> dict[str, Any]:
+    """Delete a document and all related data (file, chunks, embeddings).
+
+    Cascade order:
+        1. Delete chunks + embeddings via ``delete_document_data`` (raw SQL)
+        2. Delete the physical file from storage
+        3. Delete the ``PKMDocument`` record from the database
+    """
+    doc = _get_scoped_document(request, doc_id)
+
+    # Delete chunks and embeddings (raw SQL for VECTOR table)
+    rag_pipeline.delete_document_data(doc.id)
+
+    # Delete the physical file
+    if doc.file:
+        with suppress(Exception):
+            doc.file.delete(save=False)
+
+    # Delete the document record
+    doc.delete()
+
+    return {"message": "Document deleted", "id": doc_id}
+
+
+@router.post(
+    "/documents/{doc_id}/reprocess/",
+    response=ReprocessSchema,
+    auth=get_current_user,
+)
+def reprocess_document(request: HttpRequest, doc_id: int) -> dict[str, Any]:
+    """Re-queue a document for RAG pipeline processing.
+
+    Resets the document status to ``pending`` and enqueues a new async task.
+    The pipeline will delete old chunks/embeddings and re-process from scratch.
+    """
+    doc = _get_scoped_document(request, doc_id)
+
+    # Reset status and error
+    doc.status = PKMDocument.Status.PENDING
+    doc.error_message = ""
+    doc.save(update_fields=["status", "error_message", "updated_at"])
+
+    # Enqueue reprocessing (reprocess_document clears old data + re-runs)
+    rag_pipeline.schedule_reprocessing(doc.id)
+
+    return {
+        "message": "Document re-queued for processing",
+        "id": doc_id,
+        "status": doc.status,
+    }
+
+
+@router.get(
+    "/documents/{doc_id}/status/",
+    response=DocumentStatusSchema,
+    auth=get_current_user,
+)
+def get_document_status(request: HttpRequest, doc_id: int) -> dict[str, Any]:
+    """Return the current processing status of a document."""
+    doc = _get_scoped_document(request, doc_id)
+    return {
+        "id": doc.id,
+        "status": doc.status,
+        "error_message": doc.error_message,
+    }
