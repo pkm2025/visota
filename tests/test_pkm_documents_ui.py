@@ -140,7 +140,9 @@ def other_user(db, company):
         code="pkm.access",
         defaults={"module": "pkm", "name": "PKM Access", "description": "Access PKM module"},
     )
-    role = Role.objects.create(company=company, code="pkm_doc_other_role", name="Other PKM Doc Role")
+    role = Role.objects.create(
+        company=company, code="pkm_doc_other_role", name="Other PKM Doc Role"
+    )
     role.permissions.add(perm)
     UserCompanyRole.objects.create(user=user, company=company, role=role)
     return user
