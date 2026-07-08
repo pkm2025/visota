@@ -8,6 +8,11 @@ Provides:
     KnowledgeNoteUpdateView  - edit form
     KnowledgeNoteDeleteView  - delete confirmation
     PKMSearchView            - unified search across notes
+    DocumentListView         - list of uploaded RAG documents with status badges
+    DocumentUploadView       - drag-drop upload form
+    DocumentDetailView       - single document with status, chunks, reprocess
+    DocumentDeleteView       - delete confirmation
+    DocumentStatusBadgeView  - HTMX partial returning a status badge (polled)
 
 All views require ``LoginRequiredMixin`` and the ``pkm.access`` permission
 (enforced by ``ModulePermissionMiddleware`` on ``/modern/knowledge/`` paths).
@@ -16,6 +21,8 @@ for per-user and multi-tenant isolation.
 """
 
 from __future__ import annotations
+
+from contextlib import suppress
 
 import markdown as md_lib
 from django.contrib import messages
@@ -28,8 +35,8 @@ from django.views import View
 from django.views.generic import DeleteView, DetailView, ListView
 
 from apps.core.models import Company
-from apps.pkm.models import KnowledgeNote, Tag, UserLLMConfig
-from apps.pkm.services import encryption_service, llm_service
+from apps.pkm.models import DocumentChunk, KnowledgeNote, PKMDocument, Tag, UserLLMConfig
+from apps.pkm.services import encryption_service, llm_service, rag_pipeline
 
 
 def _get_company(request: HttpRequest) -> Company:
@@ -56,6 +63,12 @@ def _get_llm_configs_qs(request: HttpRequest):
     """Return LLM configs scoped to the current user + company."""
     company = _get_company(request)
     return UserLLMConfig.objects.filter(user=request.user, company=company)
+
+
+def _get_documents_qs(request: HttpRequest):
+    """Return PKM documents scoped to the current user + company."""
+    company = _get_company(request)
+    return PKMDocument.objects.filter(user=request.user, company=company)
 
 
 def _has_active_llm_config(request: HttpRequest) -> bool:
@@ -85,9 +98,9 @@ class PKMDashboardView(LoginRequiredMixin, View):
 
     def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         notes_qs = _get_notes_qs(request)
+        docs_qs = _get_documents_qs(request)
 
-        # Document count is deferred to the documents feature; show 0 for now.
-        doc_count = 0
+        doc_count = docs_qs.count()
 
         recent_notes = notes_qs[:5]
         pinned_notes = notes_qs.filter(is_pinned=True)[:5]
@@ -622,3 +635,273 @@ class LLMConfigDeleteView(LoginRequiredMixin, DeleteView):
             f"Đã xóa cấu hình {self.object.get_provider_display()}.",
         )
         return super().form_valid(form)
+
+
+# ===========================================================================
+# Document Views
+# ===========================================================================
+
+
+#: Allowed file extensions for upload (must match the API layer).
+_ALLOWED_DOC_TYPES: set[str] = {"pdf", "docx", "txt", "md", "xlsx"}
+
+#: Maximum file size for uploads (20 MB), matching the API layer.
+_MAX_DOC_FILE_SIZE: int = 20 * 1024 * 1024
+
+#: HTMX polling interval (milliseconds) for pending/processing documents.
+_DOC_POLL_INTERVAL_MS: int = 3000
+
+
+def _status_badge_class(status: str) -> str:
+    """Return a Bootstrap badge CSS class for a document status."""
+    mapping = {
+        PKMDocument.Status.PENDING: "bg-secondary",
+        PKMDocument.Status.PROCESSING: "bg-info",
+        PKMDocument.Status.PROCESSED: "bg-success",
+        PKMDocument.Status.FAILED: "bg-danger",
+    }
+    return mapping.get(status, "bg-secondary")
+
+
+def _status_label(status: str) -> str:
+    """Return a Vietnamese label for a document status."""
+    mapping = {
+        PKMDocument.Status.PENDING: "Chờ xử lý",
+        PKMDocument.Status.PROCESSING: "Đang xử lý",
+        PKMDocument.Status.PROCESSED: "Đã xử lý",
+        PKMDocument.Status.FAILED: "Lỗi",
+    }
+    return mapping.get(status, status)
+
+
+def _doc_file_ext(filename: str) -> str:
+    """Return the lowercase extension (without dot) of a filename."""
+    import os
+
+    return os.path.splitext(filename)[1].lstrip(".").lower()
+
+
+def _strip_extension(filename: str) -> str:
+    """Return the filename without its extension."""
+    import os
+
+    return os.path.splitext(filename)[0]
+
+
+class DocumentListView(LoginRequiredMixin, ListView):
+    """Paginated list of the user's documents with status badges.
+
+    Documents that are pending or processing are annotated for client-side
+    HTMX polling so their status badge refreshes every 3 seconds.
+    """
+
+    template_name = "modern/pkm/document_list.html"
+    context_object_name = "documents"
+    paginate_by = 10
+    login_url = "/auth/login/"
+
+    def get_queryset(self):
+        qs = _get_documents_qs(self.request).select_related("user", "company")
+        status = self.request.GET.get("status")
+        if status:
+            qs = qs.filter(status=status)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = "Tài liệu"
+        ctx["status_filter"] = self.request.GET.get("status", "")
+        ctx["poll_interval"] = _DOC_POLL_INTERVAL_MS
+        ctx["status_choices"] = [
+            (PKMDocument.Status.PENDING, _status_label(PKMDocument.Status.PENDING)),
+            (PKMDocument.Status.PROCESSING, _status_label(PKMDocument.Status.PROCESSING)),
+            (PKMDocument.Status.PROCESSED, _status_label(PKMDocument.Status.PROCESSED)),
+            (PKMDocument.Status.FAILED, _status_label(PKMDocument.Status.FAILED)),
+        ]
+        ctx["status_badge_class"] = _status_badge_class
+        ctx["status_label"] = _status_label
+        return ctx
+
+
+class DocumentUploadView(LoginRequiredMixin, View):
+    """Drag-and-drop upload form for RAG documents.
+
+    Validates the file type and size server-side, creates the PKMDocument,
+    and enqueues the async processing pipeline.
+    """
+
+    template_name = "modern/pkm/document_upload.html"
+    login_url = "/auth/login/"
+
+    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        context = {
+            "page_title": "Tải tài liệu lên",
+            "allowed_types": sorted(_ALLOWED_DOC_TYPES),
+            "max_size_mb": _MAX_DOC_FILE_SIZE // (1024 * 1024),
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        uploaded = request.FILES.get("file")
+        title = request.POST.get("title", "").strip()
+
+        errors = self._validate(uploaded, title)
+        if errors:
+            for err in errors:
+                messages.error(request, err)
+            context = {
+                "page_title": "Tải tài liệu lên",
+                "allowed_types": sorted(_ALLOWED_DOC_TYPES),
+                "max_size_mb": _MAX_DOC_FILE_SIZE // (1024 * 1024),
+                "title": title,
+            }
+            return render(request, self.template_name, context)
+
+        assert uploaded is not None  # validated above
+        file_type = _doc_file_ext(uploaded.name)
+        doc_title = title or _strip_extension(uploaded.name)
+
+        company = _get_company(request)
+        document = PKMDocument.objects.create(
+            user=request.user,
+            company=company,
+            title=doc_title,
+            file=uploaded,
+            file_type=file_type,
+            file_size=uploaded.size,
+            status=PKMDocument.Status.PENDING,
+        )
+
+        # Enqueue async processing (never block upload on queue issues)
+        with suppress(Exception):
+            rag_pipeline.schedule_document_processing(document.id)
+
+        messages.success(request, f"Đã tải lên '{document.title}'. Đang xử lý...")
+        return redirect("ui_modern:pkm_document_detail", pk=document.pk)
+
+    @staticmethod
+    def _validate(uploaded, title: str) -> list[str]:
+        """Validate the upload. Returns a list of error messages."""
+        errors: list[str] = []
+        if uploaded is None:
+            errors.append("Vui lòng chọn một tệp để tải lên.")
+            return errors
+
+        ext = _doc_file_ext(uploaded.name)
+        if ext not in _ALLOWED_DOC_TYPES:
+            errors.append(
+                f"Loại tệp '.{ext}' không được hỗ trợ. "
+                f"Chấp nhận: {', '.join(sorted(_ALLOWED_DOC_TYPES))}."
+            )
+
+        if uploaded.size > _MAX_DOC_FILE_SIZE:
+            max_mb = _MAX_DOC_FILE_SIZE // (1024 * 1024)
+            errors.append(f"Tệp vượt quá giới hạn {max_mb}MB.")
+
+        if title and len(title) > 255:
+            errors.append("Tiêu đề không được dài quá 255 ký tự.")
+        return errors
+
+
+class DocumentDetailView(LoginRequiredMixin, DetailView):
+    """Display a single document with status, chunk count, and actions.
+
+    For failed documents, shows the error message and a reprocess button.
+    """
+
+    template_name = "modern/pkm/document_detail.html"
+    context_object_name = "document"
+    pk_url_kwarg = "pk"
+    login_url = "/auth/login/"
+
+    def get_queryset(self):
+        return _get_documents_qs(self.request).select_related("user", "company")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        doc: PKMDocument = self.object
+        ctx["page_title"] = doc.title
+        ctx["chunks_count"] = DocumentChunk.objects.filter(document=doc).count()
+        ctx["status_badge_class"] = _status_badge_class(doc.status)
+        ctx["status_label"] = _status_label(doc.status)
+        ctx["poll_interval"] = _DOC_POLL_INTERVAL_MS
+        ctx["is_polling"] = doc.status in (
+            PKMDocument.Status.PENDING,
+            PKMDocument.Status.PROCESSING,
+        )
+        return ctx
+
+
+class DocumentDeleteView(LoginRequiredMixin, DeleteView):
+    """Delete confirmation page for a document.
+
+    On POST, removes the file, chunks, embeddings, and the document record.
+    """
+
+    template_name = "modern/pkm/document_confirm_delete.html"
+    context_object_name = "document"
+    success_url = reverse_lazy("ui_modern:pkm_document_list")
+    pk_url_kwarg = "pk"
+    login_url = "/auth/login/"
+
+    def get_queryset(self):
+        return _get_documents_qs(self.request)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = f"Xóa: {self.object.title}"
+        return ctx
+
+    def form_valid(self, form):
+        doc = self.object
+        # Remove chunks + embeddings via the pipeline helper (raw SQL)
+        with suppress(Exception):
+            rag_pipeline.delete_document_data(doc.id)
+        messages.success(self.request, f"Đã xóa tài liệu '{doc.title}'.")
+        return super().form_valid(form)
+
+
+class DocumentStatusBadgeView(LoginRequiredMixin, View):
+    """HTMX partial returning a status badge for a single document.
+
+    Polled by the client every ``_DOC_POLL_INTERVAL_MS`` while the document
+    is pending or processing. When the status becomes terminal (processed /
+    failed), the response triggers an ``HX-Trigger`` event so the client can
+    stop polling and refresh actions.
+    """
+
+    login_url = "/auth/login/"
+
+    def get(self, request: HttpRequest, pk: int, *args, **kwargs) -> HttpResponse:
+        doc = get_object_or_404(_get_documents_qs(request), pk=pk)
+        is_polling = doc.status in (
+            PKMDocument.Status.PENDING,
+            PKMDocument.Status.PROCESSING,
+        )
+        context = {
+            "document": doc,
+            "status_badge_class": _status_badge_class(doc.status),
+            "status_label": _status_label(doc.status),
+            "poll_interval": _DOC_POLL_INTERVAL_MS,
+            "is_polling": is_polling,
+        }
+        response = render(request, "modern/pkm/_document_status_badge.html", context)
+        if not is_polling:
+            response.headers["HX-Trigger"] = "status-updated"
+        return response
+
+
+class DocumentReprocessView(LoginRequiredMixin, View):
+    """Re-queue a failed (or any) document for processing via POST."""
+
+    login_url = "/auth/login/"
+
+    def post(self, request: HttpRequest, pk: int, *args, **kwargs) -> HttpResponse:
+        doc = get_object_or_404(_get_documents_qs(request), pk=pk)
+        doc.status = PKMDocument.Status.PENDING
+        doc.error_message = ""
+        doc.save(update_fields=["status", "error_message", "updated_at"])
+        with suppress(Exception):
+            rag_pipeline.schedule_reprocessing(doc.id)
+        messages.success(request, f"Đã đưa '{doc.title}' vào hàng đợi xử lý lại.")
+        return redirect("ui_modern:pkm_document_detail", pk=doc.pk)

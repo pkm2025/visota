@@ -139,6 +139,12 @@ from .ledger_views import (
 from .migration_views import MigrationTemplateView, MigrationUploadView
 from .payroll_views import PayrollRunView
 from .pkm_views import (
+    DocumentDeleteView,
+    DocumentDetailView,
+    DocumentListView,
+    DocumentReprocessView,
+    DocumentStatusBadgeView,
+    DocumentUploadView,
     KnowledgeNoteCreateView,
     KnowledgeNoteDeleteView,
     KnowledgeNoteDetailView,
@@ -384,6 +390,12 @@ __all__ = [
     "LLMConfigCreateView",
     "LLMConfigUpdateView",
     "LLMConfigDeleteView",
+    "DocumentListView",
+    "DocumentUploadView",
+    "DocumentDetailView",
+    "DocumentDeleteView",
+    "DocumentStatusBadgeView",
+    "DocumentReprocessView",
 ]
 from .cash_flow_views import CashFlowDirectView, CashFlowIndirectView
 from .costing_views import CostReportView

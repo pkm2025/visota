@@ -1,0 +1,15 @@
+{# HTMX partial: status badge for a single document, polled while pending/processing. #}
+<span class="badge {{ status_badge_class }} document-status-badge" id="doc-status-{{ document.pk }}">
+    {{ status_label }}
+</span>
+{% if not is_polling %}
+{# Terminal state: also expose actions so the host page can refresh them. #}
+<script>
+if (window.htmx) {
+    var el = document.getElementById('doc-status-{{ document.pk }}');
+    if (el && el.closest('[hx-trigger]')) {
+        el.closest('[hx-trigger]').removeAttribute('hx-trigger');
+    }
+}
+</script>
+{% endif %}

@@ -1,0 +1,120 @@
+{% extends 'modern/pkm/base_pkm.html' %}
+
+{% block pkm_content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'ui_modern:pkm_dashboard' %}">Tri thức cá nhân</a></li>
+        <li class="breadcrumb-item active">Tài liệu</li>
+    </ol>
+</nav>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">{{ page_title }}</h1>
+    <a href="{% url 'ui_modern:pkm_document_upload' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-cloud-upload"></i> Tải tài liệu lên
+    </a>
+</div>
+
+<!-- Status filter bar -->
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-5">
+        <select name="status" class="form-select form-select-sm">
+            <option value="">-- Tất cả trạng thái --</option>
+            {% for value, label in status_choices %}
+            <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>
+                {{ label }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+            <i class="bi bi-funnel"></i> Lọc
+        </button>
+    </div>
+    <div class="col-md-1">
+        <a href="{% url 'ui_modern:pkm_document_list' %}" class="btn btn-outline-secondary btn-sm w-100" title="Xóa lọc">
+            <i class="bi bi-x-lg"></i>
+        </a>
+    </div>
+</form>
+
+{% if documents %}
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+            {% for document in documents %}
+            <div class="list-group-item d-flex justify-content-between align-items-start">
+                <div class="me-auto">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-file-earmark-text text-muted"></i>
+                        <a href="{% url 'ui_modern:pkm_document_detail' document.pk %}" class="text-decoration-none fw-bold">
+                            {{ document.title }}
+                        </a>
+                        {# Status badge - polled via HTMX while pending/processing #}
+                        <span id="doc-status-{{ document.pk }}"
+                              {% if document.status == 'pending' or document.status == 'processing' %}
+                              hx-get="{% url 'ui_modern:pkm_document_status' document.pk %}"
+                              hx-trigger="every {{ poll_interval }}ms"
+                              hx-swap="outerHTML"
+                              {% endif %}>
+                            {% include 'modern/pkm/_document_status_badge.html' with document=document status_badge_class=status_badge_class status_label=status_label is_polling=document.status %}
+                        </span>
+                    </div>
+                    <p class="text-muted small mb-1 mt-1">
+                        <span class="badge bg-light text-dark border text-uppercase">{{ document.file_type }}</span>
+                        {{ document.file_size|filesizeformat }}
+                        {% if document.error_message and document.status == 'failed' %}
+                        <span class="text-danger ms-2"><i class="bi bi-exclamation-triangle"></i> {{ document.error_message|truncatewords:15 }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="text-end">
+                    <small class="text-muted d-block">{{ document.created_at|date:"d/m/Y H:i" }}</small>
+                    <div class="btn-group btn-group-sm mt-1">
+                        <a href="{% url 'ui_modern:pkm_document_detail' document.pk %}" class="btn btn-outline-secondary" title="Chi tiết">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="{% url 'ui_modern:pkm_document_delete' document.pk %}" class="btn btn-outline-danger" title="Xóa">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+<nav class="mt-3">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}">&laquo;</a>
+        </li>
+        {% endif %}
+        <li class="page-item active">
+            <span class="page-link">Trang {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        </li>
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}">&raquo;</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% else %}
+<div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+        <p class="text-muted mt-2 mb-3">Chưa có tài liệu nào.{% if status_filter %} Thử thay đổi bộ lọc.{% endif %}</p>
+        <a href="{% url 'ui_modern:pkm_document_upload' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-cloud-upload"></i> Tải tài liệu lên
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

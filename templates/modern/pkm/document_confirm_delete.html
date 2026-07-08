@@ -1,0 +1,40 @@
+{% extends 'modern/pkm/base_pkm.html' %}
+
+{% block pkm_content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'ui_modern:pkm_dashboard' %}">Tri thức cá nhân</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'ui_modern:pkm_document_list' %}">Tài liệu</a></li>
+        <li class="breadcrumb-item active">Xóa</li>
+    </ol>
+</nav>
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center p-4">
+                <i class="bi bi-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+                <h3 class="mt-2">Xác nhận xóa</h3>
+                <p class="text-muted">
+                    Bạn có chắc muốn xóa tài liệu
+                    <strong class="text-dark">{{ document.title }}</strong>?
+                </p>
+                <p class="text-muted small">
+                    Tệp, các đoạn (chunks) và embedding sẽ bị xóa hết. Hành động này không thể hoàn tác.
+                </p>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2 d-md-flex justify-content-center">
+                        <a href="{% url 'ui_modern:pkm_document_detail' document.pk %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg"></i> Hủy
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash"></i> Xóa vĩnh viễn
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

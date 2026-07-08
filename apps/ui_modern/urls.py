@@ -83,7 +83,12 @@ from .views import (
     DependentListView,
     DepreciationRunView,
     DocumentDeleteView,
+    DocumentDetailView,
     DocumentDownloadView,
+    DocumentListView,
+    DocumentReprocessView,
+    DocumentStatusBadgeView,
+    DocumentUploadView,
     EInvoiceCancelView,
     EInvoiceDetailView,
     EInvoiceIssueFromSalesView,
@@ -1209,5 +1214,36 @@ urlpatterns = [
         "knowledge/settings/<int:pk>/delete/",
         login_required(LLMConfigDeleteView.as_view()),
         name="pkm_llm_config_delete",
+    ),
+    # PKM - Documents
+    path(
+        "knowledge/documents/",
+        login_required(DocumentListView.as_view()),
+        name="pkm_document_list",
+    ),
+    path(
+        "knowledge/documents/upload/",
+        login_required(DocumentUploadView.as_view()),
+        name="pkm_document_upload",
+    ),
+    path(
+        "knowledge/documents/<int:pk>/",
+        login_required(DocumentDetailView.as_view()),
+        name="pkm_document_detail",
+    ),
+    path(
+        "knowledge/documents/<int:pk>/delete/",
+        login_required(DocumentDeleteView.as_view()),
+        name="pkm_document_delete",
+    ),
+    path(
+        "knowledge/documents/<int:pk>/status/",
+        login_required(DocumentStatusBadgeView.as_view()),
+        name="pkm_document_status",
+    ),
+    path(
+        "knowledge/documents/<int:pk>/reprocess/",
+        login_required(DocumentReprocessView.as_view()),
+        name="pkm_document_reprocess",
     ),
 ]

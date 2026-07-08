@@ -1,0 +1,107 @@
+{% extends 'modern/pkm/base_pkm.html' %}
+
+{% block pkm_content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'ui_modern:pkm_dashboard' %}">Tri thức cá nhân</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'ui_modern:pkm_document_list' %}">Tài liệu</a></li>
+        <li class="breadcrumb-item active">Tải lên</li>
+    </ol>
+</nav>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">{{ page_title }}</h1>
+    <a href="{% url 'ui_modern:pkm_document_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Quay lại
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data" id="doc-upload-form">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_title" class="form-label">Tiêu đề <small class="text-muted">(tùy chọn)</small></label>
+                        <input type="text" class="form-control" id="id_title" name="title"
+                               placeholder="Để trống để dùng tên tệp"
+                               value="{{ title|default:'' }}" maxlength="255">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Tệp tài liệu</label>
+                        <div class="dropzone border border-2 border-dashed rounded p-5 text-center"
+                             id="dropzone"
+                             style="cursor:pointer; transition: background-color .2s;">
+                            <i class="bi bi-cloud-upload text-primary" style="font-size: 3rem;"></i>
+                            <p class="mb-1 mt-2">Kéo thả tệp vào đây hoặc <span class="text-primary text-decoration-underline">chọn tệp</span></p>
+                            <p class="text-muted small mb-0">
+                                Các loại hỗ trợ: {{ allowed_types|join:", " }}
+                                &middot; Tối đa {{ max_size_mb }}MB
+                            </p>
+                            <input type="file" name="file" id="file-input" class="d-none"
+                                   accept=".{{ allowed_types|join:",." }}">
+                        </div>
+                        <div id="file-name" class="form-text text-center mt-2"></div>
+                        {% if form.errors.file %}
+                        <div class="invalid-feedback d-block">{{ form.errors.file }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary" id="upload-btn" disabled>
+                            <i class="bi bi-upload"></i> Tải lên và xử lý
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var dropzone = document.getElementById('dropzone');
+    var fileInput = document.getElementById('file-input');
+    var fileName = document.getElementById('file-name');
+    var uploadBtn = document.getElementById('upload-btn');
+
+    function showFileName(file) {
+        if (file) {
+            fileName.textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+            uploadBtn.disabled = false;
+        } else {
+            fileName.textContent = '';
+            uploadBtn.disabled = true;
+        }
+    }
+
+    dropzone.addEventListener('click', function () { fileInput.click(); });
+    fileInput.addEventListener('change', function () {
+        showFileName(this.files[0]);
+    });
+
+    ['dragenter', 'dragover'].forEach(function (evt) {
+        dropzone.addEventListener(evt, function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.add('bg-light');
+        });
+    });
+    ['dragleave', 'drop'].forEach(function (evt) {
+        dropzone.addEventListener(evt, function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.remove('bg-light');
+        });
+    });
+    dropzone.addEventListener('drop', function (e) {
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            showFileName(fileInput.files[0]);
+        }
+    });
+})();
+</script>
+{% endblock %}
