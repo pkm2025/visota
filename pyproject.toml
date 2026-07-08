@@ -72,7 +72,7 @@ type = "layers"
 layers = [
     "apps.ui_modern",
     "apps.banking | apps.bidding | apps.budget | apps.contracts | apps.crm | apps.einvoice | apps.fx | apps.guarantees | apps.inventory | apps.loans | apps.notifications | apps.payroll | apps.projects | apps.public | apps.purchasing | apps.recurring | apps.sales | apps.input_docs",
-    "apps.ledger | apps.reporting | apps.costing | apps.hr | apps.assets | apps.documents | apps.approvals",
+    "apps.ledger | apps.reporting | apps.costing | apps.hr | apps.assets | apps.documents | apps.approvals | apps.pkm",
     "apps.master_data | apps.core | apps.identity",
 ]
 

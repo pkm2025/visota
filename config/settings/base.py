@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'apps.identity',
     'apps.master_data',
     'apps.ledger',
+    'apps.pkm',
     'apps.sales',
     'apps.purchasing',
     'apps.inventory',
