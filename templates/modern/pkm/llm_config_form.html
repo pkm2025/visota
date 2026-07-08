@@ -1,0 +1,247 @@
+{% extends 'modern/pkm/base_pkm.html' %}
+
+{% block pkm_content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'ui_modern:pkm_dashboard' %}">Tri thức cá nhân</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'ui_modern:pkm_llm_config_list' %}">Cấu hình AI</a></li>
+        <li class="breadcrumb-item active">{% if is_new %}Thêm cấu hình{% else %}Sửa cấu hình{% endif %}</li>
+    </ol>
+</nav>
+<h1 class="h3 mb-3">{{ page_title }}</h1>
+
+<form method="post" id="llm-config-form">
+    {% csrf_token %}
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <!-- Provider selection -->
+            <div class="mb-3">
+                <label for="id_provider" class="form-label">
+                    Nhà cung cấp <span class="text-danger">*</span>
+                </label>
+                {% if is_new %}
+                <select class="form-select" id="id_provider" name="provider" required>
+                    <option value="">-- Chọn nhà cung cấp --</option>
+                    {% for value, label in provider_choices %}
+                    <option value="{{ value }}" {% if provider == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">Chọn nhà cung cấp AI bạn muốn sử dụng.</div>
+                {% else %}
+                {# Provider cannot be changed on edit #}
+                <input type="hidden" name="provider" value="{{ provider }}">
+                <input type="text" class="form-control-plaintext" id="id_provider"
+                       value="{{ config.get_provider_display }}" readonly>
+                {% endif %}
+            </div>
+
+            <!-- API Key (password field) -->
+            <div class="mb-3" id="api-key-field">
+                <label for="id_api_key" class="form-label">
+                    API Key
+                    {% if provider != 'ollama' and is_new %}
+                    <span class="text-danger">*</span>
+                    {% endif %}
+                </label>
+                <input type="password" class="form-control" id="id_api_key" name="api_key"
+                       value="" autocomplete="new-password"
+                       placeholder="{% if is_new %}Nhập API key...{% else %}Để trống để giữ key hiện tại{% endif %}">
+                <div class="form-text" id="api-key-help">
+                    {% if is_new %}
+                        {% if provider == 'ollama' %}
+                        Ollama không yêu cầu API key. Để trống trường này.
+                        {% else %}
+                        API key sẽ được mã hóa (Fernet) trước khi lưu.
+                        {% endif %}
+                    {% else %}
+                        Để trống để giữ nguyên API key hiện tại. Nhập key mới để thay đổi.
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Base URL (shown for ollama, openrouter, and custom) -->
+            <div class="mb-3" id="api-base-field">
+                <label for="id_api_base" class="form-label">
+                    API Base URL <small class="text-muted">(tùy chọn)</small>
+                </label>
+                <input type="url" class="form-control" id="id_api_base" name="api_base"
+                       value="{{ api_base }}"
+                       placeholder="https://localhost:11434 (cho Ollama)">
+                <div class="form-text">
+                    URL tùy chỉnh cho endpoint tự host hoặc tương thích OpenAI.
+                </div>
+            </div>
+
+            <!-- Default Model -->
+            <div class="mb-3">
+                <label for="id_default_model" class="form-label">
+                    Model mặc định <span class="text-danger">*</span>
+                </label>
+                <input type="text" class="form-control" id="id_default_model" name="default_model"
+                       value="{{ default_model }}" required list="model-suggestions"
+                       placeholder="VD: gpt-4o, claude-sonnet-4-20250514, llama3...">
+                <datalist id="model-suggestions">
+                    {% for provider_key, models in provider_models_map.items %}
+                        {% for model in models %}
+                        <option value="{{ model }}">
+                        {% endfor %}
+                    {% endfor %}
+                </datalist>
+                <div class="form-text">Tên model mặc định cho hoàn thành văn bản (chat completion).</div>
+            </div>
+
+            <!-- Default Embedding Model -->
+            <div class="mb-3">
+                <label for="id_default_embedding_model" class="form-label">
+                    Model embedding <small class="text-muted">(tùy chọn)</small>
+                </label>
+                <input type="text" class="form-control" id="id_default_embedding_model"
+                       name="default_embedding_model"
+                       value="{{ default_embedding_model }}"
+                       placeholder="VD: text-embedding-3-small, nomic-embed-text...">
+                <div class="form-text">Model dùng để tạo vector embedding cho RAG.</div>
+            </div>
+
+            <!-- Active toggle -->
+            <div class="form-check mb-3">
+                <input type="checkbox" class="form-check-input" id="id_is_active" name="is_active"
+                       {% if is_active %}checked{% endif %}>
+                <label class="form-check-label" for="id_is_active">
+                    <i class="bi bi-toggle-on"></i> Đặt làm cấu hình hoạt động
+                </label>
+                <div class="form-text">
+                    Chỉ một cấu hình nên được đặt ở trạng thái hoạt động.
+                </div>
+            </div>
+
+            <!-- Validate button -->
+            <div class="mb-0">
+                <button type="button" class="btn btn-outline-info btn-sm" id="btn-validate"
+                        onclick="validateApiKey()">
+                    <i class="bi bi-shield-check"></i> Kiểm tra API key
+                </button>
+                <span id="validate-result" class="ms-2"></span>
+                <div class="form-text">
+                    Kiểm tra API key trước khi lưu (gửi một yêu cầu thử đến nhà cung cấp).
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg"></i> {% if is_new %}Thêm cấu hình{% else %}Lưu thay đổi{% endif %}
+        </button>
+        <a href="{% url 'ui_modern:pkm_llm_config_list' %}" class="btn btn-outline-secondary">
+            Hủy
+        </a>
+    </div>
+</form>
+
+<script>
+// Provider info for dynamic form behavior
+const PROVIDERS_WITH_BASE_URL = [{% for p in providers_with_base_url %}"{{ p }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+
+// Toggle API key requirement and base URL visibility based on provider
+function updateProviderUI() {
+    const provider = document.getElementById('id_provider');
+    if (!provider) return;
+    const providerVal = provider.value;
+
+    // API key help text
+    const helpEl = document.getElementById('api-key-help');
+    const keyLabel = document.querySelector('#api-key-field label');
+
+    if (providerVal === 'ollama') {
+        if (helpEl) helpEl.textContent = 'Ollama không yêu cầu API key. Để trống trường này.';
+        if (keyLabel) {
+            const star = keyLabel.querySelector('.text-danger');
+            if (star) star.remove();
+        }
+    } else {
+        if (helpEl) {
+            helpEl.textContent = 'API key sẽ được mã hóa (Fernet) trước khi lưu.';
+        }
+    }
+}
+
+// Validate API key via AJAX
+async function validateApiKey() {
+    const providerEl = document.getElementById('id_provider');
+    const keyEl = document.getElementById('id_api_key');
+    const baseEl = document.getElementById('id_api_base');
+    const resultEl = document.getElementById('validate-result');
+    const btn = document.getElementById('btn-validate');
+
+    const provider = providerEl ? providerEl.value : '{{ provider }}';
+    const apiKey = keyEl ? keyEl.value.trim() : '';
+    const apiBase = baseEl ? baseEl.value.trim() : '';
+
+    if (!provider) {
+        if (resultEl) {
+            resultEl.innerHTML = '<small class="text-danger">Vui lòng chọn nhà cung cấp.</small>';
+        }
+        return;
+    }
+
+    // Ollama doesn't need a key
+    if (provider !== 'ollama' && !apiKey) {
+        if (resultEl) {
+            resultEl.innerHTML = '<small class="text-danger">Vui lòng nhập API key.</small>';
+        }
+        return;
+    }
+
+    btn.disabled = true;
+    if (resultEl) resultEl.innerHTML = '<small class="text-muted">Đang kiểm tra...</small>';
+
+    try {
+        const response = await fetch('/api/v1/pkm/llm-configs/validate/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+            body: JSON.stringify({
+                provider: provider,
+                api_key: apiKey,
+                api_base: apiBase,
+            }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.valid) {
+            if (resultEl) {
+                resultEl.innerHTML = '<small class="text-success"><i class="bi bi-check-circle-fill"></i> ' + (data.message || 'API key hợp lệ.') + '</small>';
+            }
+        } else if (response.status === 422) {
+            if (resultEl) {
+                resultEl.innerHTML = '<small class="text-danger">' + (data.detail || 'Dữ liệu không hợp lệ.') + '</small>';
+            }
+        } else {
+            if (resultEl) {
+                const msg = data.message || 'API key không hợp lệ.';
+                resultEl.innerHTML = '<small class="text-danger"><i class="bi bi-x-circle-fill"></i> ' + msg + '</small>';
+            }
+        }
+    } catch (err) {
+        if (resultEl) {
+            resultEl.innerHTML = '<small class="text-danger">Lỗi kết nối: ' + err.message + '</small>';
+        }
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const providerSelect = document.getElementById('id_provider');
+    if (providerSelect) {
+        providerSelect.addEventListener('change', updateProviderUI);
+        updateProviderUI();
+    }
+});
+</script>
+{% endblock %}

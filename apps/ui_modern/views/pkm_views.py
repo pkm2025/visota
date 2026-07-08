@@ -28,7 +28,8 @@ from django.views import View
 from django.views.generic import DeleteView, DetailView, ListView
 
 from apps.core.models import Company
-from apps.pkm.models import KnowledgeNote, Tag
+from apps.pkm.models import KnowledgeNote, Tag, UserLLMConfig
+from apps.pkm.services import encryption_service, llm_service
 
 
 def _get_company(request: HttpRequest) -> Company:
@@ -49,6 +50,17 @@ def _get_tags_qs(request: HttpRequest):
     """Return tags scoped to the current user + company."""
     company = _get_company(request)
     return Tag.objects.filter(user=request.user, company=company)
+
+
+def _get_llm_configs_qs(request: HttpRequest):
+    """Return LLM configs scoped to the current user + company."""
+    company = _get_company(request)
+    return UserLLMConfig.objects.filter(user=request.user, company=company)
+
+
+def _has_active_llm_config(request: HttpRequest) -> bool:
+    """Return True if the user has at least one active LLM config."""
+    return _get_llm_configs_qs(request).filter(is_active=True).exists()
 
 
 def render_markdown(text: str) -> str:
@@ -87,6 +99,8 @@ class PKMDashboardView(LoginRequiredMixin, View):
             "recent_notes": recent_notes,
             "pinned_notes": pinned_notes,
             "tags": _get_tags_qs(request),
+            "has_active_config": _has_active_llm_config(request),
+            "llm_config_count": _get_llm_configs_qs(request).count(),
         }
         return render(request, self.template_name, context)
 
@@ -355,3 +369,256 @@ class PKMSearchView(LoginRequiredMixin, View):
             "is_search_page": True,
         }
         return render(request, self.template_name, context)
+
+
+# ===========================================================================
+# LLM Config Views
+# ===========================================================================
+
+
+# Providers that support a custom API base URL (shown in the form).
+_PROVIDERS_WITH_BASE_URL = {"ollama", "openrouter"}
+
+# Provider choices for the dropdown (Vietnamese labels).
+_PROVIDER_CHOICES = UserLLMConfig.Provider.choices
+
+
+def _get_provider_models_map() -> dict[str, list[str]]:
+    """Return a mapping of provider -> suggested models from the llm_service."""
+    result: dict[str, list[str]] = {}
+    for value, _label in _PROVIDER_CHOICES:
+        result[value] = llm_service.get_provider_models(value)
+    return result
+
+
+class LLMConfigListView(LoginRequiredMixin, View):
+    """List all LLM configs for the current user + company."""
+
+    template_name = "modern/pkm/llm_config_list.html"
+    login_url = "/auth/login/"
+
+    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        configs = _get_llm_configs_qs(request)
+        context = {
+            "page_title": "Cấu hình nhà cung cấp AI",
+            "configs": configs,
+            "has_active_config": _has_active_llm_config(request),
+        }
+        return render(request, self.template_name, context)
+
+
+class LLMConfigCreateView(LoginRequiredMixin, View):
+    """Create a new LLM config (provider, API key, base URL, model).
+
+    The API key is encrypted via ``encryption_service`` before saving.
+    The plaintext key is never stored in the database.
+    """
+
+    template_name = "modern/pkm/llm_config_form.html"
+    login_url = "/auth/login/"
+
+    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        context = self._build_context(
+            request,
+            is_new=True,
+            provider="",
+            api_base="",
+            default_model="",
+            default_embedding_model="",
+            is_active=False,
+        )
+        return render(request, self.template_name, context)
+
+    def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        provider = request.POST.get("provider", "").strip()
+        api_key = request.POST.get("api_key", "").strip()
+        api_base = request.POST.get("api_base", "").strip()
+        default_model = request.POST.get("default_model", "").strip()
+        default_embedding_model = request.POST.get(
+            "default_embedding_model", ""
+        ).strip()
+        is_active = request.POST.get("is_active") == "on"
+
+        errors = self._validate(
+            provider=provider,
+            api_key=api_key,
+            default_model=default_model,
+        )
+        if errors:
+            for err in errors:
+                messages.error(request, err)
+            context = self._build_context(
+                request,
+                is_new=True,
+                provider=provider,
+                api_base=api_base,
+                default_model=default_model,
+                default_embedding_model=default_embedding_model,
+                is_active=is_active,
+            )
+            return render(request, self.template_name, context)
+
+        company = _get_company(request)
+
+        if _get_llm_configs_qs(request).filter(provider=provider).exists():
+            messages.error(
+                request,
+                "Đã có cấu hình cho nhà cung cấp này."
+                " Vui lòng chỉnh sửa cấu hình hiện có.",
+            )
+            context = self._build_context(
+                request,
+                is_new=True,
+                provider=provider,
+                api_base=api_base,
+                default_model=default_model,
+                default_embedding_model=default_embedding_model,
+                is_active=is_active,
+            )
+            return render(request, self.template_name, context)
+
+        encrypted_key = ""
+        if api_key:
+            encrypted_key = encryption_service.encrypt(api_key)
+
+        config = UserLLMConfig(
+            user=request.user,
+            company=company,
+            provider=provider,
+            api_key_encrypted=encrypted_key,
+            api_base=api_base,
+            default_model=default_model,
+            default_embedding_model=default_embedding_model,
+            is_active=is_active,
+        )
+        config.save()
+
+        messages.success(request, f"Đã thêm cấu hình {config.get_provider_display()}.")
+        return redirect("ui_modern:pkm_llm_config_list")
+
+    @staticmethod
+    def _validate(provider: str, api_key: str, default_model: str) -> list[str]:
+        """Validate form fields. Returns a list of error messages."""
+        errors: list[str] = []
+        if not provider:
+            errors.append("Vui lòng chọn nhà cung cấp.")
+        elif provider not in dict(_PROVIDER_CHOICES):
+            errors.append("Nhà cung cấp không hợp lệ.")
+
+        if provider != "ollama" and not api_key:
+            errors.append("API key là bắt buộc cho nhà cung cấp này.")
+
+        if not default_model:
+            errors.append("Model mặc định là bắt buộc.")
+        return errors
+
+    @staticmethod
+    def _build_context(
+        request: HttpRequest,
+        *,
+        is_new: bool,
+        provider: str,
+        api_base: str,
+        default_model: str,
+        default_embedding_model: str,
+        is_active: bool,
+    ) -> dict:
+        return {
+            "page_title": "Thêm cấu hình AI",
+            "is_new": is_new,
+            "provider_choices": _PROVIDER_CHOICES,
+            "provider_models_map": _get_provider_models_map(),
+            "providers_with_base_url": _PROVIDERS_WITH_BASE_URL,
+            "provider": provider,
+            "api_base": api_base,
+            "default_model": default_model,
+            "default_embedding_model": default_embedding_model,
+            "is_active": is_active,
+            "config": None,
+        }
+
+
+class LLMConfigUpdateView(LoginRequiredMixin, View):
+    """Edit an existing LLM config.
+
+    The API key field is shown empty (never pre-fills the decrypted key).
+    If left blank during edit, the existing key is preserved.
+    """
+
+    template_name = "modern/pkm/llm_config_form.html"
+    login_url = "/auth/login/"
+
+    def get_config(self, request: HttpRequest, pk: int) -> UserLLMConfig:
+        return get_object_or_404(_get_llm_configs_qs(request), pk=pk)
+
+    def get(self, request: HttpRequest, pk: int, *args, **kwargs) -> HttpResponse:
+        config = self.get_config(request, pk)
+        context = self._build_context(request, config=config)
+        return render(request, self.template_name, context)
+
+    def post(self, request: HttpRequest, pk: int, *args, **kwargs) -> HttpResponse:
+        config = self.get_config(request, pk)
+        api_key = request.POST.get("api_key", "").strip()
+        api_base = request.POST.get("api_base", "").strip()
+        default_model = request.POST.get("default_model", "").strip()
+        default_embedding_model = request.POST.get(
+            "default_embedding_model", ""
+        ).strip()
+        is_active = request.POST.get("is_active") == "on"
+
+        if not default_model:
+            messages.error(request, "Model mặc định là bắt buộc.")
+            context = self._build_context(request, config=config)
+            return render(request, self.template_name, context)
+
+        if api_key:
+            config.api_key_encrypted = encryption_service.encrypt(api_key)
+        config.api_base = api_base
+        config.default_model = default_model
+        config.default_embedding_model = default_embedding_model
+        config.is_active = is_active
+        config.save()
+
+        messages.success(request, f"Đã cập nhật cấu hình {config.get_provider_display()}.")
+        return redirect("ui_modern:pkm_llm_config_list")
+
+    @staticmethod
+    def _build_context(request: HttpRequest, *, config: UserLLMConfig) -> dict:
+        return {
+            "page_title": f"Sửa cấu hình: {config.get_provider_display()}",
+            "is_new": False,
+            "provider_choices": _PROVIDER_CHOICES,
+            "provider_models_map": _get_provider_models_map(),
+            "providers_with_base_url": _PROVIDERS_WITH_BASE_URL,
+            "provider": config.provider,
+            "api_base": config.api_base,
+            "default_model": config.default_model,
+            "default_embedding_model": config.default_embedding_model,
+            "is_active": config.is_active,
+            "config": config,
+        }
+
+
+class LLMConfigDeleteView(LoginRequiredMixin, DeleteView):
+    """Delete confirmation page for an LLM config."""
+
+    template_name = "modern/pkm/llm_config_confirm_delete.html"
+    context_object_name = "config"
+    success_url = reverse_lazy("ui_modern:pkm_llm_config_list")
+    pk_url_kwarg = "pk"
+    login_url = "/auth/login/"
+
+    def get_queryset(self):
+        return _get_llm_configs_qs(self.request)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = f"Xóa cấu hình: {self.object.get_provider_display()}"
+        return ctx
+
+    def form_valid(self, form):
+        messages.success(
+            self.request,
+            f"Đã xóa cấu hình {self.object.get_provider_display()}.",
+        )
+        return super().form_valid(form)

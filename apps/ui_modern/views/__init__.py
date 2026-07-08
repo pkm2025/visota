@@ -144,6 +144,10 @@ from .pkm_views import (
     KnowledgeNoteDetailView,
     KnowledgeNoteListView,
     KnowledgeNoteUpdateView,
+    LLMConfigCreateView,
+    LLMConfigDeleteView,
+    LLMConfigListView,
+    LLMConfigUpdateView,
     PKMDashboardView,
     PKMSearchView,
 )
@@ -376,6 +380,10 @@ __all__ = [
     "KnowledgeNoteUpdateView",
     "KnowledgeNoteDeleteView",
     "PKMSearchView",
+    "LLMConfigListView",
+    "LLMConfigCreateView",
+    "LLMConfigUpdateView",
+    "LLMConfigDeleteView",
 ]
 from .cash_flow_views import CashFlowDirectView, CashFlowIndirectView
 from .costing_views import CostReportView

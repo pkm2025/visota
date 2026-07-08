@@ -115,6 +115,10 @@ from .views import (
     LaborContractCreateView,
     LaborContractListView,
     LaborUsageReportView,
+    LLMConfigCreateView,
+    LLMConfigDeleteView,
+    LLMConfigListView,
+    LLMConfigUpdateView,
     LeadCreateView,
     LeadListView,
     LeaveRequestView,
@@ -1184,5 +1188,26 @@ urlpatterns = [
         "knowledge/search/",
         login_required(PKMSearchView.as_view()),
         name="pkm_search",
+    ),
+    # PKM - LLM Config settings
+    path(
+        "knowledge/settings/",
+        login_required(LLMConfigListView.as_view()),
+        name="pkm_llm_config_list",
+    ),
+    path(
+        "knowledge/settings/new/",
+        login_required(LLMConfigCreateView.as_view()),
+        name="pkm_llm_config_create",
+    ),
+    path(
+        "knowledge/settings/<int:pk>/edit/",
+        login_required(LLMConfigUpdateView.as_view()),
+        name="pkm_llm_config_update",
+    ),
+    path(
+        "knowledge/settings/<int:pk>/delete/",
+        login_required(LLMConfigDeleteView.as_view()),
+        name="pkm_llm_config_delete",
     ),
 ]

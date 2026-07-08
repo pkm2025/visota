@@ -1,0 +1,133 @@
+{% extends 'modern/pkm/base_pkm.html' %}
+
+{% block pkm_content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'ui_modern:pkm_dashboard' %}">Tri thức cá nhân</a></li>
+        <li class="breadcrumb-item active">Cấu hình AI</li>
+    </ol>
+</nav>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">{{ page_title }}</h1>
+    <a href="{% url 'ui_modern:pkm_llm_config_create' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg"></i> Thêm cấu hình
+    </a>
+</div>
+
+<!-- Configure provider first prompt (shown when no active config) -->
+{% if not has_active_config %}
+<div class="alert alert-warning border-0 shadow-sm d-flex align-items-center" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 1.5rem;"></i>
+    <div>
+        <strong>Chưa có cấu hình AI hoạt động.</strong>
+        Vui lòng cấu hình nhà cung cấp AI trước khi sử dụng tính năng Hỏi đáp (Q&A).
+        <a href="{% url 'ui_modern:pkm_llm_config_create' %}" class="alert-link">Cấu hình ngay</a>
+    </div>
+</div>
+{% endif %}
+
+{% if configs %}
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nhà cung cấp</th>
+                        <th>Model mặc định</th>
+                        <th>API Base</th>
+                        <th>API Key</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for config in configs %}
+                    <tr>
+                        <td>
+                            <span class="badge bg-secondary">{{ config.get_provider_display }}</span>
+                        </td>
+                        <td><code>{{ config.default_model }}</code></td>
+                        <td>
+                            {% if config.api_base %}
+                            <small class="text-muted">{{ config.api_base }}</small>
+                            {% else %}
+                            <span class="text-muted">&mdash;</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if config.api_key_encrypted %}
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <small class="text-muted">Đã lưu (mã hóa)</small>
+                            {% else %}
+                            <i class="bi bi-dash-circle text-muted"></i>
+                            <small class="text-muted">Không có</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if config.is_active %}
+                            <span class="badge bg-success">Hoạt động</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Không hoạt động</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'ui_modern:pkm_llm_config_update' config.pk %}"
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-pencil"></i> Sửa
+                            </a>
+                            <a href="{% url 'ui_modern:pkm_llm_config_delete' config.pk %}"
+                               class="btn btn-outline-danger btn-sm">
+                                <i class="bi bi-trash"></i> Xóa
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<!-- Empty state -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-robot text-primary" style="font-size: 4rem;"></i>
+        <h3 class="mt-3">Chưa có cấu hình AI</h3>
+        <p class="text-muted mb-4">
+            Thêm cấu hình cho nhà cung cấp AI (OpenAI, Anthropic, Gemini, Groq, OpenRouter, Ollama)
+            để sử dụng tính năng Hỏi đáp.
+        </p>
+        <a href="{% url 'ui_modern:pkm_llm_config_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Thêm cấu hình đầu tiên
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Provider info -->
+<div class="row g-3 mt-1">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm bg-light">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="bi bi-info-circle"></i> Nhà cung cấp được hỗ trợ
+                </h6>
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="badge bg-primary">OpenAI</span>
+                    <span class="badge bg-primary">Anthropic</span>
+                    <span class="badge bg-primary">Google Gemini</span>
+                    <span class="badge bg-primary">Groq</span>
+                    <span class="badge bg-primary">OpenRouter</span>
+                    <span class="badge bg-primary">Ollama (không cần API key)</span>
+                </div>
+                <p class="small text-muted mt-2 mb-0">
+                    API key được mã hóa (Fernet) trước khi lưu vào cơ sở dữ liệu.
+                    Khóa không bao giờ được lưu dạng plaintext.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
