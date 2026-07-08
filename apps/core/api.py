@@ -421,3 +421,12 @@ def publish_einvoice(request, einvoice_id: int):
     ei = EInvoice.objects.get(id=einvoice_id, company=company)
     EInvoiceService.publish(ei)
     return {"id": ei.id, "status": ei.status, "invoice_no": ei.invoice_no}
+
+
+# ---------------------------------------------------------------------------
+# PKM (Personal Knowledge Management) module
+# ---------------------------------------------------------------------------
+
+from apps.pkm.api import router as pkm_router  # noqa: E402
+
+api.add_router("/pkm/", pkm_router)
