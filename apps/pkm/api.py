@@ -50,6 +50,12 @@ from ninja.pagination import paginate
 from apps.core.api import get_current_company, get_current_user
 from apps.pkm.models import KnowledgeNote, PKMDocument, QAHistory, Tag, UserLLMConfig
 from apps.pkm.services import encryption_service, llm_service, qa_service, rag_pipeline
+from apps.pkm.services.llm_service import (
+    LLMAuthError,
+    LLMError,
+    LLMRateLimitError,
+    LLMTimeoutError,
+)
 
 router = Router(tags=["PKM"])
 
@@ -851,6 +857,19 @@ def ask_question(request: HttpRequest, payload: AskQuestionSchema) -> dict[str, 
         # The service raises ValueError for empty/whitespace questions.
         # Return a clean 400 instead of letting it bubble up as a 500.
         raise HttpError(400, str(exc)) from exc
+    except LLMAuthError as exc:
+        # Invalid API key -> 401-like response
+        raise HttpError(401, f"LLM authentication failed: {exc}") from exc
+    except LLMRateLimitError as exc:
+        # Provider rate-limited the request -> 429
+        raise HttpError(429, f"LLM rate limit exceeded: {exc}") from exc
+    except LLMTimeoutError as exc:
+        # Timeout or connection error -> 504 Gateway Timeout
+        raise HttpError(504, f"LLM request timed out: {exc}") from exc
+    except LLMError as exc:
+        # Catch-all for unexpected LLM failures (e.g. bad request, internal
+        # server error from the provider) -> 502 Bad Gateway
+        raise HttpError(502, f"LLM provider error: {exc}") from exc
     return result
 
 

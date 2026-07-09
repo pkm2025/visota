@@ -37,6 +37,9 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "LLMError",
+    "LLMAuthError",
+    "LLMRateLimitError",
+    "LLMTimeoutError",
     "get_completion",
     "get_embedding",
     "get_available_providers",
@@ -51,7 +54,26 @@ class LLMError(Exception):
     All litellm exceptions are translated to ``LLMError`` so callers only need
     to catch one type. The original message is preserved but never includes
     the decrypted API key.
+
+    Specific subclasses allow the API layer to map errors to appropriate HTTP
+    status codes:
+
+    - :class:`LLMAuthError` -> 401 (authentication failed)
+    - :class:`LLMRateLimitError` -> 429 (rate limited)
+    - :class:`LLMTimeoutError` -> 504 (timeout or connection error)
     """
+
+
+class LLMAuthError(LLMError):
+    """LLM authentication failed (invalid API key)."""
+
+
+class LLMRateLimitError(LLMError):
+    """LLM provider rate limit exceeded."""
+
+
+class LLMTimeoutError(LLMError):
+    """LLM request timed out or could not connect to the provider."""
 
 
 # ---------------------------------------------------------------------------
@@ -223,13 +245,13 @@ def get_completion(
     try:
         return completion(**kwargs)
     except AuthenticationError as exc:
-        raise LLMError("Invalid API key. Please check your configuration.") from exc
+        raise LLMAuthError("Invalid API key. Please check your configuration.") from exc
     except RateLimitError as exc:
-        raise LLMError("Rate limit reached. Please try again later.") from exc
+        raise LLMRateLimitError("Rate limit reached. Please try again later.") from exc
     except Timeout as exc:
-        raise LLMError("Request timed out. Please try again.") from exc
+        raise LLMTimeoutError("Request timed out. Please try again.") from exc
     except APIConnectionError as exc:
-        raise LLMError(f"Cannot connect to {user_config.provider} API.") from exc
+        raise LLMTimeoutError(f"Cannot connect to {user_config.provider} API.") from exc
 
 
 def get_embedding(
@@ -264,13 +286,13 @@ def get_embedding(
     try:
         return embedding(**kwargs)
     except AuthenticationError as exc:
-        raise LLMError("Invalid API key. Please check your configuration.") from exc
+        raise LLMAuthError("Invalid API key. Please check your configuration.") from exc
     except RateLimitError as exc:
-        raise LLMError("Rate limit reached. Please try again later.") from exc
+        raise LLMRateLimitError("Rate limit reached. Please try again later.") from exc
     except Timeout as exc:
-        raise LLMError("Request timed out. Please try again.") from exc
+        raise LLMTimeoutError("Request timed out. Please try again.") from exc
     except APIConnectionError as exc:
-        raise LLMError(f"Cannot connect to {user_config.provider} API.") from exc
+        raise LLMTimeoutError(f"Cannot connect to {user_config.provider} API.") from exc
 
 
 def get_available_providers() -> list[str]:

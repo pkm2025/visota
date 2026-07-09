@@ -8,6 +8,7 @@ Covers:
   - Per-user isolation: user B cannot see user A's Q&A history
   - Per-company isolation: history scoped by company
   - Unauthenticated requests return 401
+  - LLMError handling: auth -> 401, rate limit -> 429, timeout -> 504, other -> 502
 
 All LLM/embedding calls are **mocked** (no real API key required). MariaDB
 VECTOR operations use the real database.
@@ -561,9 +562,7 @@ def test_history_isolation_both_users(user, other_user, company):
 
 
 @pytest.mark.django_db
-def test_ask_question_per_user_isolation(
-    user, company, llm_config, other_user
-):
+def test_ask_question_per_user_isolation(user, company, llm_config, other_user):
     """VAL-QA-009: Ask as user A only retrieves user A's data as sources."""
     # User A's document
     _create_document_with_chunks(
@@ -654,3 +653,230 @@ def test_history_unauthenticated(db):
     c = Client()
     response = c.get("/api/v1/pkm/qa/history/")
     assert response.status_code == 401
+
+
+# ===========================================================================
+# LLMError handling — pkm-fix-qa-llm-error-handling
+#
+# The Q&A ask endpoint must catch LLMError exceptions and return structured
+# error responses with appropriate HTTP status codes instead of unhandled 500s.
+#
+# Mapping:
+#   AuthenticationError -> LLMAuthError   -> 401
+#   RateLimitError      -> LLMRateLimitError -> 429
+#   Timeout/APIConnectionError -> LLMTimeoutError -> 504
+#   Other LLMError      -> 502
+# ===========================================================================
+
+
+@pytest.mark.django_db
+def test_ask_question_llm_auth_error_returns_401(client, user, company, llm_config):
+    """LLMAuthError (invalid API key) returns 401, not a 500."""
+    from apps.pkm.services.llm_service import LLMAuthError
+
+    with (
+        patch(
+            "apps.pkm.services.qa_service.get_embedding",
+            return_value=_mock_embedding_response(["q"]),
+        ),
+        patch(
+            "apps.pkm.services.qa_service.get_completion",
+            side_effect=LLMAuthError("Invalid API key. Please check your configuration."),
+        ),
+    ):
+        response = client.post(
+            "/api/v1/pkm/qa/ask/",
+            data={"question": "What is TT133?"},
+            content_type="application/json",
+        )
+
+    assert response.status_code == 401
+    body = response.content.decode("utf-8").lower()
+    assert "authentication failed" in body or "auth" in body
+
+
+@pytest.mark.django_db
+def test_ask_question_llm_rate_limit_error_returns_429(client, user, company, llm_config):
+    """LLMRateLimitError returns 429, not a 500."""
+    from apps.pkm.services.llm_service import LLMRateLimitError
+
+    with (
+        patch(
+            "apps.pkm.services.qa_service.get_embedding",
+            return_value=_mock_embedding_response(["q"]),
+        ),
+        patch(
+            "apps.pkm.services.qa_service.get_completion",
+            side_effect=LLMRateLimitError("Rate limit reached. Please try again later."),
+        ),
+    ):
+        response = client.post(
+            "/api/v1/pkm/qa/ask/",
+            data={"question": "What is TT133?"},
+            content_type="application/json",
+        )
+
+    assert response.status_code == 429
+    body = response.content.decode("utf-8").lower()
+    assert "rate limit" in body
+
+
+@pytest.mark.django_db
+def test_ask_question_llm_timeout_error_returns_504(client, user, company, llm_config):
+    """LLMTimeoutError returns 504, not a 500."""
+    from apps.pkm.services.llm_service import LLMTimeoutError
+
+    with (
+        patch(
+            "apps.pkm.services.qa_service.get_embedding",
+            return_value=_mock_embedding_response(["q"]),
+        ),
+        patch(
+            "apps.pkm.services.qa_service.get_completion",
+            side_effect=LLMTimeoutError("Request timed out. Please try again."),
+        ),
+    ):
+        response = client.post(
+            "/api/v1/pkm/qa/ask/",
+            data={"question": "What is TT133?"},
+            content_type="application/json",
+        )
+
+    assert response.status_code == 504
+    body = response.content.decode("utf-8").lower()
+    assert "timed out" in body or "timeout" in body
+
+
+@pytest.mark.django_db
+def test_ask_question_llm_connection_error_returns_504(client, user, company, llm_config):
+    """LLMTimeoutError from connection failure returns 504, not a 500."""
+    from apps.pkm.services.llm_service import LLMTimeoutError
+
+    with (
+        patch(
+            "apps.pkm.services.qa_service.get_embedding",
+            return_value=_mock_embedding_response(["q"]),
+        ),
+        patch(
+            "apps.pkm.services.qa_service.get_completion",
+            side_effect=LLMTimeoutError("Cannot connect to openai API."),
+        ),
+    ):
+        response = client.post(
+            "/api/v1/pkm/qa/ask/",
+            data={"question": "What is TT133?"},
+            content_type="application/json",
+        )
+
+    assert response.status_code == 504
+
+
+@pytest.mark.django_db
+def test_ask_question_generic_llm_error_returns_502(client, user, company, llm_config):
+    """Generic LLMError (not auth/rate-limit/timeout) returns 502, not a 500."""
+    from apps.pkm.services.llm_service import LLMError
+
+    with (
+        patch(
+            "apps.pkm.services.qa_service.get_embedding",
+            return_value=_mock_embedding_response(["q"]),
+        ),
+        patch(
+            "apps.pkm.services.qa_service.get_completion",
+            side_effect=LLMError("Internal server error from provider."),
+        ),
+    ):
+        response = client.post(
+            "/api/v1/pkm/qa/ask/",
+            data={"question": "What is TT133?"},
+            content_type="application/json",
+        )
+
+    assert response.status_code == 502
+    body = response.content.decode("utf-8").lower()
+    assert "provider error" in body or "llm" in body
+
+
+@pytest.mark.django_db
+def test_ask_question_embedding_llm_error_returns_502(client, user, company, llm_config):
+    """LLMError from the embedding step (not completion) is also caught."""
+    from apps.pkm.services.llm_service import LLMError
+
+    with (
+        patch(
+            "apps.pkm.services.qa_service.get_embedding",
+            side_effect=LLMError("Embedding API failed."),
+        ),
+        patch("apps.pkm.services.qa_service.get_completion") as mock_gc,
+    ):
+        response = client.post(
+            "/api/v1/pkm/qa/ask/",
+            data={"question": "What is TT133?"},
+            content_type="application/json",
+        )
+
+    # Generic LLMError from embedding -> 502
+    assert response.status_code == 502
+    # Completion should never have been called since embedding failed first
+    assert not mock_gc.called
+
+
+@pytest.mark.django_db
+def test_ask_question_embedding_auth_error_returns_401(client, user, company, llm_config):
+    """LLMAuthError from the embedding step returns 401, not a 500."""
+    from apps.pkm.services.llm_service import LLMAuthError
+
+    with (
+        patch(
+            "apps.pkm.services.qa_service.get_embedding",
+            side_effect=LLMAuthError("Invalid API key. Please check your configuration."),
+        ),
+        patch("apps.pkm.services.qa_service.get_completion") as mock_gc,
+    ):
+        response = client.post(
+            "/api/v1/pkm/qa/ask/",
+            data={"question": "What is TT133?"},
+            content_type="application/json",
+        )
+
+    assert response.status_code == 401
+    assert not mock_gc.called
+
+
+@pytest.mark.django_db
+def test_ask_question_llm_error_no_500(client, user, company, llm_config):
+    """No unhandled 500 from LLM failures - all are caught and mapped."""
+    from apps.pkm.services.llm_service import (
+        LLMAuthError,
+        LLMError,
+        LLMRateLimitError,
+        LLMTimeoutError,
+    )
+
+    error_cases = [
+        (LLMAuthError("auth error"), 401),
+        (LLMRateLimitError("rate limit error"), 429),
+        (LLMTimeoutError("timeout error"), 504),
+        (LLMError("generic"), 502),
+    ]
+
+    for exc, expected_code in error_cases:
+        with (
+            patch(
+                "apps.pkm.services.qa_service.get_embedding",
+                return_value=_mock_embedding_response(["q"]),
+            ),
+            patch(
+                "apps.pkm.services.qa_service.get_completion",
+                side_effect=exc,
+            ),
+        ):
+            response = client.post(
+                "/api/v1/pkm/qa/ask/",
+                data={"question": "What is TT133?"},
+                content_type="application/json",
+            )
+        assert response.status_code != 500, f"Got unhandled 500 for {type(exc).__name__}"
+        assert response.status_code == expected_code, (
+            f"Expected {expected_code} for {type(exc).__name__}, got {response.status_code}"
+        )
