@@ -6,7 +6,7 @@
  *  - API/POST: network-only (never cache writes)
  */
 
-const CACHE_VERSION = "pmketoan-v3";
+const CACHE_VERSION = "pmketoan-v4";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 const OFFLINE_URL = "/offline/";
@@ -15,6 +15,8 @@ const STATIC_ASSETS = [
   "/static/icons/logo.svg",
   "/static/icons/icon-192.svg",
   "/static/icons/icon-512.svg",
+  "/static/vendor/js/dexie.min.js",
+  "/static/modern/js/pkm-cache.js",
   "/offline/",
 ];
 
