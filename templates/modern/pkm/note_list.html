@@ -15,6 +15,16 @@
     </a>
 </div>
 
+{# Draft recovery indicator — shown by JS when IndexedDB has saved drafts. #}
+<a id="pkm-drafts-indicator"
+   href="{% url 'ui_modern:pkm_note_create' %}"
+   class="alert alert-warning d-flex align-items-center gap-2 text-decoration-none d-none"
+   role="status" hidden>
+    <i class="bi bi-cloud-arrow-up"></i>
+    <span>Bạn có <strong id="pkm-drafts-count">0</strong> bản nháp chưa lưu.</span>
+    <strong class="ms-auto">Khôi phục →</strong>
+</a>
+
 <!-- Search + filter bar -->
 <form method="get" class="row g-2 mb-3">
     <div class="col-md-5">
@@ -115,4 +125,31 @@
     </div>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+/* Show the "recover drafts" indicator when IndexedDB has saved drafts. */
+(function () {
+    "use strict";
+    function ready(fn) {
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", fn);
+        } else { fn(); }
+    }
+    ready(function () {
+        if (!window.PKMCache) { return; }
+        window.PKMCache.getDrafts().then(function (drafts) {
+            if (!drafts || !drafts.length) { return; }
+            var indicator = document.getElementById("pkm-drafts-indicator");
+            var count = document.getElementById("pkm-drafts-count");
+            if (!indicator) { return; }
+            if (count) { count.textContent = String(drafts.length); }
+            indicator.classList.remove("d-none");
+            indicator.hidden = false;
+        }).catch(function () { /* ignore — indicator stays hidden */ });
+    });
+})();
+</script>
 {% endblock %}

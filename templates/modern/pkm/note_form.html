@@ -78,4 +78,230 @@
         {% endif %}
     </div>
 </form>
+
+{# Draft recovery banner (shown by JS when an existing draft is found). #}
+<div id="pkm-draft-banner" class="alert alert-info d-none mt-3" role="alert" hidden>
+    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+        <span>
+            <i class="bi bi-cloud-arrow-up"></i>
+            <strong>Bản nháp chưa lưu!</strong>
+            <span id="pkm-draft-updated"></span>
+        </span>
+        <span class="d-flex gap-2">
+            <button type="button" id="pkm-draft-recover" class="btn btn-sm btn-primary">
+                <i class="bi bi-arrow-clockwise"></i> Khôi phục nháp
+            </button>
+            <button type="button" id="pkm-draft-dismiss" class="btn btn-sm btn-outline-secondary">
+                Bỏ qua
+            </button>
+        </span>
+    </div>
+</div>
+
+{# Autosave status indicator (shown next to the form while debounced save runs). #}
+<div id="pkm-autosave-status" class="text-muted small mt-2" aria-live="polite"></div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+/* PKM note draft autosave.
+ *
+ * - On input/keyup in title/content fields, debounce 1s, then call
+ *   PKMCache.saveDraft().
+ * - On page load, check IndexedDB for an existing draft that differs
+ *   from the current form contents. If found, show a "recover draft?"
+ *   banner.
+ * - On successful server save (form submit -> server 302), delete the
+ *   draft from IndexedDB so it doesn't linger.
+ *
+ * Test hooks: exposes window.PKMDraftAutosave for E2E tests.
+ */
+(function () {
+    "use strict";
+
+    var DRAFT_KEY = "pkm_note_form";
+    var DEBOUNCE_MS = 1000;
+
+    function ready(fn) {
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", fn);
+        } else {
+            fn();
+        }
+    }
+
+    function $(id) { return document.getElementById(id); }
+
+    function getFields() {
+        return {
+            title: $("id_title"),
+            content: $("id_content"),
+        };
+    }
+
+    function currentSnapshot() {
+        var f = getFields();
+        return {
+            title: f.title ? f.title.value : "",
+            content: f.content ? f.content.value : "",
+        };
+    }
+
+    function fieldsPresent() {
+        var f = getFields();
+        return !!(f.title && f.content);
+    }
+
+    function setStatus(msg, kind) {
+        var el = $("pkm-autosave-status");
+        if (!el) { return; }
+        el.textContent = msg || "";
+        el.className = "small mt-2 " + (kind === "error" ? "text-danger"
+            : kind === "ok" ? "text-success" : "text-muted");
+    }
+
+    /* --- Debounced autosave ---------------------------------------------- */
+
+    var timer = null;
+
+    function saveNow() {
+        if (!fieldsPresent() || !window.PKMCache) { return Promise.resolve(null); }
+        var snap = currentSnapshot();
+        // Don't autosave empty drafts (both fields blank) — nothing to recover.
+        if (!snap.title.trim() && !snap.content.trim()) {
+            return Promise.resolve(null);
+        }
+        setStatus("Đang lưu nháp...", "muted");
+        return window.PKMCache.saveDraft(snap.title, snap.content).then(function (id) {
+            setStatus("Đã lưu nháp tự động " + new Date().toLocaleTimeString(), "ok");
+            return id;
+        }).catch(function (err) {
+            console.error("[PKM Draft] Autosave failed:", err);
+            setStatus("Không thể lưu nháp", "error");
+            return null;
+        });
+    }
+
+    function scheduleSave() {
+        if (timer !== null) { clearTimeout(timer); }
+        timer = setTimeout(function () {
+            timer = null;
+            saveNow();
+        }, DEBOUNCE_MS);
+    }
+
+    /* --- Draft recovery on page load ------------------------------------- */
+
+    function applyDraft(draft) {
+        var f = getFields();
+        if (f.title && typeof draft.title === "string") { f.title.value = draft.title; }
+        if (f.content && typeof draft.content === "string") { f.content.value = draft.content; }
+    }
+
+    function showRecoveryBanner(draft) {
+        var banner = $("pkm-draft-banner");
+        if (!banner) { return; }
+        var updated = $("pkm-draft-updated");
+        if (updated && draft.updated_at) {
+            try {
+                var d = new Date(draft.updated_at);
+                updated.textContent = "(cập nhật " + d.toLocaleString() + ")";
+            } catch (e) { updated.textContent = ""; }
+        }
+        banner.classList.remove("d-none");
+        banner.hidden = false;
+
+        var recoverBtn = $("pkm-draft-recover");
+        var dismissBtn = $("pkm-draft-dismiss");
+        if (recoverBtn) {
+            recoverBtn.onclick = function () {
+                applyDraft(draft);
+                banner.classList.add("d-none");
+                banner.hidden = true;
+                setStatus("Đã khôi phục nhap.", "ok");
+            };
+        }
+        if (dismissBtn) {
+            dismissBtn.onclick = function () {
+                banner.classList.add("d-none");
+                banner.hidden = true;
+            };
+        }
+    }
+
+    function checkForDraft() {
+        if (!fieldsPresent() || !window.PKMCache) { return; }
+        // Only auto-prompt on the create form (is_new). On edit we already
+        // have server-side content — drafts there are best-effort.
+        var snap = currentSnapshot();
+        window.PKMCache.getDrafts().then(function (drafts) {
+            if (!drafts || !drafts.length) { return; }
+            // Find a draft whose content differs from the current form
+            // (a saved server record would already match the form on edit).
+            var candidate = null;
+            for (var i = 0; i < drafts.length; i++) {
+                var d = drafts[i];
+                if (d.title !== snap.title || d.content !== snap.content) {
+                    candidate = d;
+                    break;
+                }
+            }
+            if (candidate) { showRecoveryBanner(candidate); }
+        }).catch(function (err) {
+            console.warn("[PKM Draft] Could not load drafts:", err);
+        });
+    }
+
+    /* --- Clear draft on successful save ---------------------------------- */
+
+    function clearDraftsOnSave() {
+        if (!window.PKMCache) { return; }
+        window.PKMCache.getDrafts().then(function (drafts) {
+            if (!drafts || !drafts.length) { return; }
+            return Promise.all(drafts.map(function (d) {
+                return window.PKMCache.deleteDraft(d.id);
+            }));
+        }).catch(function (err) {
+            console.warn("[PKM Draft] Could not clear drafts:", err);
+        });
+    }
+
+    function wireForm() {
+        if (!fieldsPresent()) { return; }
+        var f = getFields();
+        ["input", "keyup"].forEach(function (evt) {
+            f.title.addEventListener(evt, scheduleSave);
+            f.content.addEventListener(evt, scheduleSave);
+        });
+
+        var form = document.getElementById("note-form");
+        if (form) {
+            form.addEventListener("submit", function () {
+                // Best-effort clear; the server is authoritative on success.
+                clearDraftsOnSave();
+            });
+        }
+
+        // Expose a hook for Htmx/redirect-after-save events. Some forms
+        // post via fetch; in those cases the caller can fire this event.
+        document.addEventListener("pkm:note-saved", clearDraftsOnSave);
+
+        checkForDraft();
+    }
+
+    ready(wireForm);
+
+    // Public hook for E2E tests.
+    window.PKMDraftAutosave = {
+        DRAFT_KEY: DRAFT_KEY,
+        DEBOUNCE_MS: DEBOUNCE_MS,
+        saveNow: saveNow,
+        scheduleSave: scheduleSave,
+        clearDraftsOnSave: clearDraftsOnSave,
+        checkForDraft: checkForDraft,
+        currentSnapshot: currentSnapshot,
+    };
+})();
+</script>
 {% endblock %}
