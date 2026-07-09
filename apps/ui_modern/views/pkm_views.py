@@ -44,6 +44,7 @@ from apps.pkm.models import (
     UserLLMConfig,
 )
 from apps.pkm.services import encryption_service, llm_service, qa_service, rag_pipeline
+from apps.pkm.services.interaction_service import log_interaction
 
 
 def _get_company(request: HttpRequest) -> Company:
@@ -81,6 +82,24 @@ def _get_documents_qs(request: HttpRequest):
 def _has_active_llm_config(request: HttpRequest) -> bool:
     """Return True if the user has at least one active LLM config."""
     return _get_llm_configs_qs(request).filter(is_active=True).exists()
+
+
+def _log_search(request: HttpRequest, query: str) -> None:
+    """Log a search interaction (non-blocking).
+
+    Wrapped in try/except so that interaction capture never breaks the search
+    operation. The query term is stored in the interaction metadata.
+    """
+    company = _get_company(request)
+    with suppress(Exception):
+        log_interaction(
+            user=request.user,
+            company=company,
+            interaction_type="search",
+            module="pkm",
+            entity_type="note",
+            metadata={"query": query},
+        )
 
 
 def render_markdown(text: str) -> str:
@@ -377,6 +396,9 @@ class PKMSearchView(LoginRequiredMixin, View):
             notes_qs = notes_qs.filter(
                 Q(title__icontains=query) | Q(content__icontains=query)
             ).order_by("-is_pinned", "-updated_at")
+
+            # Log the search interaction (non-blocking)
+            _log_search(request, query)
         else:
             notes_qs = notes_qs.none()
 

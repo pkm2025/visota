@@ -72,6 +72,7 @@ MIDDLEWARE = [
     'apps.core.middleware.TenantMiddleware',
     'apps.core.middleware.BrandingMiddleware',
     'apps.identity.middleware.ModulePermissionMiddleware',
+    'apps.pkm.middleware.PKMInteractionMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'

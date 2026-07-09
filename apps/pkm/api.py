@@ -50,6 +50,7 @@ from ninja.pagination import paginate
 from apps.core.api import get_current_company, get_current_user
 from apps.pkm.models import KnowledgeNote, PKMDocument, QAHistory, Tag, UserLLMConfig
 from apps.pkm.services import encryption_service, llm_service, qa_service, rag_pipeline
+from apps.pkm.services.interaction_service import log_interaction
 from apps.pkm.services.llm_service import (
     LLMAuthError,
     LLMError,
@@ -160,6 +161,22 @@ def _validate_tag_ids(request: HttpRequest, tag_ids: list[int]) -> list[Tag]:
     return valid_tags
 
 
+def _log_search_interaction(request: HttpRequest, query: str) -> None:
+    """Log a search interaction with the query in metadata (non-blocking).
+
+    Wrapped in try/except so that interaction capture never breaks the search.
+    """
+    with suppress(Exception):
+        log_interaction(
+            user=request.user,
+            company=get_current_company(request),
+            interaction_type="search",
+            module="pkm",
+            entity_type="note",
+            metadata={"query": query},
+        )
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -199,9 +216,29 @@ def list_notes(
     qs = _get_scoped_queryset(request)
     if search:
         qs = qs.filter(Q(title__icontains=search) | Q(content__icontains=search))
+        _log_search_interaction(request, search)
     if tag:
         qs = qs.filter(tags__name=tag, tags__user=request.user)
     return qs.distinct()
+
+
+class NoteSearchSchema(Schema):
+    """Request body for the notes search endpoint."""
+
+    query: str = Field(..., min_length=1, description="Search keyword")
+
+
+@router.post("/notes/search/", response=list[NoteSchema], auth=get_current_user)
+def search_notes(request: HttpRequest, payload: NoteSearchSchema) -> list[dict[str, Any]]:
+    """Search notes by keyword in title or content (case-insensitive).
+
+    Logs a ``search`` interaction with the query term in metadata.
+    """
+    qs = _get_scoped_queryset(request).filter(
+        Q(title__icontains=payload.query) | Q(content__icontains=payload.query)
+    )
+    _log_search_interaction(request, payload.query)
+    return [_serialize_note(n) for n in qs]
 
 
 @router.get("/notes/{note_id}/", response=NoteSchema, auth=get_current_user)
