@@ -834,6 +834,8 @@ class AskResponseSchema(Schema):
     answer: str
     sources: list[SourceSchema] = []
     context_used: list[ContextUsedSchema] = []
+    interaction_context: str = ""
+    context_used_indicator: bool = False
 
 
 class QAHistorySchema(Schema):
@@ -844,6 +846,7 @@ class QAHistorySchema(Schema):
     answer: str
     sources: list[dict[str, Any]] = []
     context_used: list[dict[str, Any]] = []
+    interaction_context: str = ""
     created_at: datetime
 
 
@@ -907,6 +910,12 @@ def ask_question(request: HttpRequest, payload: AskQuestionSchema) -> dict[str, 
         # Catch-all for unexpected LLM failures (e.g. bad request, internal
         # server error from the provider) -> 502 Bad Gateway
         raise HttpError(502, f"LLM provider error: {exc}") from exc
+
+    # Add 'context used' indicator: True when any context (chunks, notes,
+    # or interaction summary) was included in the prompt.
+    result["context_used_indicator"] = bool(
+        result.get("context_used") or result.get("interaction_context")
+    )
     return result
 
 

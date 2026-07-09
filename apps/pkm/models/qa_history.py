@@ -34,6 +34,11 @@ class QAHistory(CompanyOwnedModel):
         blank=True,
         help_text="List of context chunks/notes used to build the prompt",
     )
+    interaction_context = models.TextField(
+        blank=True,
+        default="",
+        help_text="Summary of the user's recent activity (from interaction_service)",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 

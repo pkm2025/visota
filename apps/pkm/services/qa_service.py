@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any
 from django.db.models import Q
 
 from apps.pkm.models import DocumentChunk, KnowledgeNote, QAHistory, UserLLMConfig
+from apps.pkm.services.interaction_service import get_context_summary
 from apps.pkm.services.llm_service import get_completion, get_embedding
 from apps.pkm.services.vector_store import search_similar
 
@@ -126,13 +127,23 @@ def _search_notes(
 def _build_context_string(
     chunks: list[dict[str, Any]],
     notes: list[dict[str, Any]],
+    interaction_context: str | None = None,
 ) -> str:
     """Assemble a human-readable context string from retrieved chunks + notes.
 
     The context is labelled and structured so the LLM can distinguish between
     document chunks and personal notes.
+
+    If ``interaction_context`` is provided (a summary of the user's recent
+    activity from ``interaction_service.get_context_summary``), it is prepended
+    as a 'Recent user activity' section so the LLM can personalise its answer.
     """
     parts: list[str] = []
+
+    # Interaction context summary is prepended to the RAG context
+    if interaction_context:
+        parts.append("=== HOAT DONG NGUOI DUNG GAU DAY (Recent user activity) ===")
+        parts.append(interaction_context)
 
     if chunks:
         parts.append("=== TAI LIEU / DOANH VAN BAN ===")
@@ -236,6 +247,7 @@ def build_prompt(
     context_chunks: list[dict[str, Any]],
     notes: list[dict[str, Any]],
     question: str,
+    interaction_context: str | None = None,
 ) -> list[dict[str, str]]:
     """Construct the chat message list for the LLM completion call.
 
@@ -251,11 +263,14 @@ def build_prompt(
             enriched with ``document_title``).
         notes: List of retrieved note dicts (from ``_search_notes``).
         question: The user's original question.
+        interaction_context: Optional summary of the user's recent activity
+            (from ``interaction_service.get_context_summary``). Prepended to
+            the RAG context as a 'Recent user activity' section.
 
     Returns:
         A list of message dicts ready for ``llm_service.get_completion``.
     """
-    context_str = _build_context_string(context_chunks, notes)
+    context_str = _build_context_string(context_chunks, notes, interaction_context)
     user_content = (
         f"NGU CANH (Context):\n{context_str}\n\n"
         f"CAU HOI:\n{question}\n\n"
@@ -331,8 +346,11 @@ def answer_question(
     # Step 4: Search the user's notes (keyword)
     notes = _search_notes(user, company, question, limit=note_limit)
 
-    # Step 6: Build prompt
-    messages = build_prompt(context_chunks, notes, question)
+    # Step 5: Build interaction context summary (smart context enrichment)
+    interaction_context = get_context_summary(user, company)
+
+    # Step 6: Build prompt (includes interaction context as 'Recent user activity')
+    messages = build_prompt(context_chunks, notes, question, interaction_context)
 
     # Step 7: Call LLM for completion
     response = get_completion(llm_config, messages, stream=False)
@@ -359,8 +377,16 @@ def answer_question(
         for n in notes
     ]
 
-    # Step 9: Save Q&A history
-    save_qa_history(user, company, question, answer, sources, context_used)
+    # Step 9: Save Q&A history (includes interaction context summary)
+    save_qa_history(
+        user,
+        company,
+        question,
+        answer,
+        sources,
+        context_used,
+        interaction_context=interaction_context,
+    )
 
     logger.info(
         "answer_question: answered question for user %s (%d chunks, %d notes retrieved)",
@@ -373,6 +399,7 @@ def answer_question(
         "answer": answer,
         "sources": sources,
         "context_used": context_used,
+        "interaction_context": interaction_context,
     }
 
 
@@ -383,6 +410,7 @@ def save_qa_history(
     answer: str,
     sources: list[dict[str, Any]],
     context_used: list[dict[str, Any]] | None = None,
+    interaction_context: str | None = None,
 ) -> QAHistory:
     """Persist a Q&A interaction to the database.
 
@@ -393,6 +421,8 @@ def save_qa_history(
         answer: The generated answer.
         sources: List of source reference dicts.
         context_used: Optional list of context summaries used in the prompt.
+        interaction_context: Optional summary of the user's recent activity
+            (from ``interaction_service.get_context_summary``).
 
     Returns:
         The created ``QAHistory`` instance.
@@ -404,6 +434,7 @@ def save_qa_history(
         answer=answer,
         sources=sources,
         context_used=context_used or [],
+        interaction_context=interaction_context or "",
     )
 
 
