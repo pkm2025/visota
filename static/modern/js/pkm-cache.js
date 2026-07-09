@@ -179,6 +179,148 @@
         ]);
     }
 
+    // --- Background Sync: offline draft queueing ---------------------------
+
+    var SYNC_TAG = "pkm-draft-sync";
+    var QUEUE_DB = "pkm_sync_queue";
+    var QUEUE_STORE = "outbox";
+
+    /**
+     * Open (or create) the IndexedDB outbox used by the client-side sync
+     * helper. This mirrors the SW's outbox so the page can queue requests
+     * even when the Background Sync API is unavailable (non-supporting
+     * browsers). The SW also reads from this same database on 'sync'.
+     * @returns {Promise<IDBDatabase>}
+     */
+    function openOutbox() {
+        return new Promise(function (resolve, reject) {
+            var req = indexedDB.open(QUEUE_DB, 1);
+            req.onupgradeneeded = function () {
+                var database = req.result;
+                if (!database.objectStoreNames.contains(QUEUE_STORE)) {
+                    database.createObjectStore(QUEUE_STORE, {
+                        keyPath: "id",
+                        autoIncrement: true,
+                    });
+                }
+            };
+            req.onsuccess = function () { resolve(req.result); };
+            req.onerror = function () { reject(req.error); };
+        });
+    }
+
+    /**
+     * Queue a draft note POST for background sync.
+     * Stores the serialized request in the outbox and registers a sync
+     * event if the Background Sync API is available.
+     * @param {string} url     - Target API URL (e.g. /api/v1/pkm/notes/).
+     * @param {string} method  - HTTP method (POST or PUT).
+     * @param {object} body    - JSON-serializable request body.
+     * @param {object} [headers] - Extra headers (e.g. X-CSRFToken).
+     * @returns {Promise<number>} Resolves with the outbox entry id.
+     */
+    function queueForSync(url, method, body, headers) {
+        var entry = {
+            url: url,
+            method: method,
+            headers: headers || {},
+            body: JSON.stringify(body),
+            timestamp: Date.now(),
+        };
+        return openOutbox().then(function (database) {
+            return new Promise(function (resolve, reject) {
+                var tx = database.transaction(QUEUE_STORE, "readwrite");
+                var addReq = tx.objectStore(QUEUE_STORE).add(entry);
+                addReq.onsuccess = function () {
+                    resolve(addReq.result);
+                };
+                tx.onerror = function () { reject(tx.error); };
+            }).then(function (id) {
+                database.close();
+                // Register for background sync if supported
+                if ("serviceWorker" in navigator && "SyncManager" in window) {
+                    navigator.serviceWorker.ready.then(function (reg) {
+                        return reg.sync.register(SYNC_TAG);
+                    }).catch(function () {
+                        /* SW not ready yet; queue will sync on next 'sync' or manual trigger */
+                    });
+                }
+                return id;
+            });
+        });
+    }
+
+    /**
+     * Get the count of queued (unsynced) requests in the outbox.
+     * @returns {Promise<number>}
+     */
+    function getQueuedCount() {
+        return openOutbox().then(function (database) {
+            return new Promise(function (resolve, reject) {
+                var tx = database.transaction(QUEUE_STORE, "readonly");
+                var countReq = tx.objectStore(QUEUE_STORE).count();
+                countReq.onsuccess = function () { resolve(countReq.result); };
+                countReq.onerror = function () { reject(countReq.error); };
+            }).then(function (count) {
+                database.close();
+                return count;
+            });
+        }).catch(function () { return 0; });
+    }
+
+    /**
+     * Get all queued requests from the outbox (for debugging / UI display).
+     * @returns {Promise<Array>}
+     */
+    function getQueuedRequests() {
+        return openOutbox().then(function (database) {
+            return new Promise(function (resolve, reject) {
+                var tx = database.transaction(QUEUE_STORE, "readonly");
+                var allReq = tx.objectStore(QUEUE_STORE).getAll();
+                allReq.onsuccess = function () { resolve(allReq.result); };
+                allReq.onerror = function () { reject(allReq.error); };
+            }).then(function (items) {
+                database.close();
+                return items;
+            });
+        }).catch(function () { return []; });
+    }
+
+    /**
+     * Trigger a manual sync replay. Useful when the Background Sync API
+     * is not available or as a fallback when coming back online.
+     * Posts a message to the SW to replay the queue.
+     * @returns {Promise<void>}
+     */
+    function triggerSync() {
+        if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage("PKM_SYNC_NOW");
+        }
+        return Promise.resolve();
+    }
+
+    /**
+     * Register a listener for sync status messages from the service worker.
+     * The callback receives { type, url, status?, error? }.
+     * @param {function} callback - Called when a sync event message arrives.
+     * @returns {function} Unregister function.
+     */
+    function onSyncMessage(callback) {
+        if (!("serviceWorker" in navigator)) {
+            return function () {};
+        }
+        var handler = function (event) {
+            if (event.data && typeof event.data.type === "string" &&
+                event.data.type.indexOf("pkm:sync") === 0) {
+                callback(event.data);
+            }
+        };
+        navigator.serviceWorker.addEventListener("message", handler);
+        return function () {
+            navigator.serviceWorker.removeEventListener("message", handler);
+        };
+    }
+
     // --- Expose global -----------------------------------------------------------
 
     var PKMCache = {
@@ -192,6 +334,11 @@
         cacheResults: cacheResults,
         getCachedResults: getCachedResults,
         clearAll: clearAll,
+        queueForSync: queueForSync,
+        getQueuedCount: getQueuedCount,
+        getQueuedRequests: getQueuedRequests,
+        triggerSync: triggerSync,
+        onSyncMessage: onSyncMessage,
     };
 
     // Expose on window for non-module usage (browser globals).
