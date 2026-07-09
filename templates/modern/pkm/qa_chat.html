@@ -49,7 +49,7 @@
                 {% if question %}
                 <!-- User question -->
                 <div class="d-flex justify-content-end mb-3">
-                    <div class="bg-primary text-white rounded p-3" style="max-width: 75%;" id="user-question">
+                    <div class="bg-primary text-white rounded p-3" style="max-width: 75%;" id="user-question" data-question="{{ question }}">
                         {{ question }}
                     </div>
                 </div>
@@ -63,7 +63,7 @@
                             <i class="bi bi-robot text-primary me-2"></i>
                             <strong>Trợ lý AI</strong>
                         </div>
-                        <div id="answer-text">{{ answer }}</div>
+                        <div id="answer-text" data-answer="{{ answer }}">{{ answer }}</div>
                     </div>
                 </div>
                 {% endif %}
@@ -132,6 +132,10 @@
                 <i class="bi bi-clock-history"></i> <strong>Lịch sử hỏi đáp</strong>
             </div>
             <div class="card-body p-0">
+                <!-- Local cache container: populated from IndexedDB on page load for fast display.
+                     The server-rendered list below is the source of truth; local cache fills in
+                     immediately while the page loads, then is reconciled. -->
+                <ul class="list-group list-group-flush d-none" id="qa-history-local"></ul>
                 {% if history %}
                 <ul class="list-group list-group-flush" id="qa-history-list">
                     {% for item in history %}
@@ -143,7 +147,7 @@
                     {% endfor %}
                 </ul>
                 {% else %}
-                <div class="text-center text-muted py-4">
+                <div class="text-center text-muted py-4" id="qa-history-empty">
                     <i class="bi bi-inbox" style="font-size: 2rem;"></i>
                     <p class="small mt-2 mb-0">Chưa có lịch sử hỏi đáp.</p>
                 </div>
@@ -153,4 +157,140 @@
     </div>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+/* PKM Q&A History Cache
+ *
+ * Responsibilities:
+ *   1. On page load: display recent Q&A from IndexedDB (Dexie) in the history
+ *      panel for instant feedback before/while the server-rendered list is shown.
+ *   2. After a Q&A response is rendered: save the question+answer pair to
+ *      IndexedDB via PKMCache.saveQAHistory() so it is available offline and
+ *      loads quickly on the next visit.
+ */
+(function () {
+    "use strict";
+
+    function formatDate(isoStr) {
+        try {
+            var d = new Date(isoStr);
+            var dd = String(d.getDate()).padStart(2, "0");
+            var mm = String(d.getMonth() + 1).padStart(2, "0");
+            var HH = String(d.getHours()).padStart(2, "0");
+            var MM = String(d.getMinutes()).padStart(2, "0");
+            return dd + "/" + mm + " " + HH + ":" + MM;
+        } catch (e) {
+            return "";
+        }
+    }
+
+    function buildHistoryItem(item) {
+        var li = document.createElement("li");
+        li.className = "list-group-item";
+
+        var qDiv = document.createElement("div");
+        qDiv.className = "fw-bold text-truncate";
+        qDiv.textContent = item.question || "";
+
+        var aDiv = document.createElement("div");
+        aDiv.className = "text-muted small text-truncate";
+        aDiv.textContent = item.answer || "(chưa có câu trả lời)";
+
+        var tSmall = document.createElement("small");
+        tSmall.className = "text-muted";
+        tSmall.textContent = formatDate(item.created_at);
+
+        li.appendChild(qDiv);
+        li.appendChild(aDiv);
+        li.appendChild(tSmall);
+        return li;
+    }
+
+    /**
+     * Render local cached Q&A entries into the local history list.
+     * The local list is shown above the server list for instant display.
+     * If the server list is empty, local entries fill the panel instead.
+     */
+    function renderLocalHistory(entries) {
+        var localList = document.getElementById("qa-history-local");
+        var serverList = document.getElementById("qa-history-list");
+        var emptyMsg = document.getElementById("qa-history-empty");
+        if (!localList || !entries || entries.length === 0) return;
+
+        // Clear any previous local items
+        localList.innerHTML = "";
+        entries.forEach(function (entry) {
+            localList.appendChild(buildHistoryItem(entry));
+        });
+
+        if (serverList) {
+            // Server has history; hide local list to avoid duplication.
+            // (Server-rendered list is the source of truth.)
+            localList.classList.add("d-none");
+        } else {
+            // No server history; show local cache entries as the panel content.
+            localList.classList.remove("d-none");
+            if (emptyMsg) {
+                emptyMsg.classList.add("d-none");
+            }
+        }
+    }
+
+    /**
+     * Load recent Q&A from IndexedDB and render in the panel.
+     * Runs on page load for fast display, then the server-rendered list
+     * (if present) takes precedence.
+     */
+    function loadLocalHistory() {
+        if (typeof window.PKMCache === "undefined" || !window.PKMCache.getQAHistory) {
+            return;
+        }
+        window.PKMCache.getQAHistory(20).then(function (entries) {
+            renderLocalHistory(entries);
+        }).catch(function (err) {
+            console.error("[PKM QA Cache] Failed to load local history:", err);
+        });
+    }
+
+    /**
+     * If the page was rendered after a Q&A submission (question + answer
+     * present in the DOM), save the interaction to IndexedDB.
+     */
+    function saveCurrentResponseIfPresent() {
+        if (typeof window.PKMCache === "undefined" || !window.PKMCache.saveQAHistory) {
+            return;
+        }
+        var qEl = document.getElementById("user-question");
+        var aEl = document.getElementById("answer-text");
+        if (!qEl || !aEl) return;
+
+        var question = qEl.getAttribute("data-question") || qEl.textContent.trim();
+        var answer = aEl.getAttribute("data-answer") || aEl.textContent.trim();
+        if (!question || !answer) return;
+
+        window.PKMCache.saveQAHistory(question, answer).then(function () {
+            // Refresh the local history panel to include the new entry.
+            loadLocalHistory();
+        }).catch(function (err) {
+            console.error("[PKM QA Cache] Failed to save Q&A to IndexedDB:", err);
+        });
+    }
+
+    // Run on DOM ready
+    document.addEventListener("DOMContentLoaded", function () {
+        loadLocalHistory();
+        saveCurrentResponseIfPresent();
+    });
+
+    // Expose for E2E testing / debugging
+    window.PKMQAHistoryCache = {
+        loadLocalHistory: loadLocalHistory,
+        saveCurrentResponseIfPresent: saveCurrentResponseIfPresent,
+        renderLocalHistory: renderLocalHistory,
+    };
+})();
+</script>
 {% endblock %}
