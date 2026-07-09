@@ -35,12 +35,14 @@ from django.views import View
 from django.views.generic import DeleteView, DetailView, ListView
 
 from apps.core.models import Company
+from apps.identity.models import UserCompanyRole
 from apps.pkm.models import (
     DocumentChunk,
     KnowledgeNote,
     PKMDocument,
     QAHistory,
     Tag,
+    UserInteractionLog,
     UserLLMConfig,
 )
 from apps.pkm.services import encryption_service, llm_service, qa_service, rag_pipeline
@@ -116,8 +118,46 @@ def render_markdown(text: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _get_qa_history_qs(request: HttpRequest):
+    """Return Q&A history scoped to the current user + company."""
+    company = _get_company(request)
+    return QAHistory.objects.filter(user=request.user, company=company)
+
+
+def _get_interaction_logs_qs(request: HttpRequest):
+    """Return interaction logs scoped to the current user + company."""
+    company = _get_company(request)
+    return UserInteractionLog.objects.filter(user=request.user, company=company)
+
+
+def _get_user_role_codes(request: HttpRequest) -> list[str]:
+    """Return the role codes the current user has in the current company.
+
+    Used to filter notes by ``role_context`` so that users see role-relevant
+    knowledge suggestions on the dashboard.
+    """
+    company = _get_company(request)
+    codes = (
+        UserCompanyRole.objects.filter(
+            user=request.user,
+            company=company,
+        )
+        .values_list("role__code", flat=True)
+    )
+    return [c for c in codes if c]
+
+
 class PKMDashboardView(LoginRequiredMixin, View):
-    """PKM dashboard showing stats and recent notes."""
+    """PKM dashboard showing stats, recent activity, and role-based suggestions.
+
+    Displays:
+      - Stats cards: total notes, total documents (by status), total Q&A
+        interactions, and total tags.
+      - Recent activity feed from ``UserInteractionLog``.
+      - Pinned notes quick access.
+      - Role-based knowledge suggestions (notes whose ``role_context``
+        matches one of the user's role codes in the current company).
+    """
 
     template_name = "modern/pkm/dashboard.html"
     login_url = "/auth/login/"
@@ -125,21 +165,43 @@ class PKMDashboardView(LoginRequiredMixin, View):
     def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         notes_qs = _get_notes_qs(request)
         docs_qs = _get_documents_qs(request)
+        qa_qs = _get_qa_history_qs(request)
+        interactions_qs = _get_interaction_logs_qs(request)
 
-        doc_count = docs_qs.count()
+        # Document counts by status
+        doc_status_counts = {
+            "pending": docs_qs.filter(status=PKMDocument.Status.PENDING).count(),
+            "processing": docs_qs.filter(status=PKMDocument.Status.PROCESSING).count(),
+            "processed": docs_qs.filter(status=PKMDocument.Status.PROCESSED).count(),
+            "failed": docs_qs.filter(status=PKMDocument.Status.FAILED).count(),
+        }
 
-        recent_notes = notes_qs[:5]
-        pinned_notes = notes_qs.filter(is_pinned=True)[:5]
+        # Recent activity feed (latest 10 interactions)
+        recent_activity = interactions_qs.select_related("user", "company")[:10]
+
+        # Role-based knowledge suggestions: notes whose role_context matches
+        # one of the user's role codes in the current company.
+        user_role_codes = _get_user_role_codes(request)
+        role_suggestions = (
+            notes_qs.filter(role_context__in=user_role_codes).order_by("-updated_at")[:5]
+            if user_role_codes
+            else notes_qs.none()
+        )
 
         context = {
             "page_title": "Tri thức cá nhân",
             "note_count": notes_qs.count(),
-            "doc_count": doc_count,
-            "recent_notes": recent_notes,
-            "pinned_notes": pinned_notes,
+            "doc_count": docs_qs.count(),
+            "doc_status_counts": doc_status_counts,
+            "qa_count": qa_qs.count(),
+            "recent_notes": notes_qs[:5],
+            "pinned_notes": notes_qs.filter(is_pinned=True)[:5],
             "tags": _get_tags_qs(request),
             "has_active_config": _has_active_llm_config(request),
             "llm_config_count": _get_llm_configs_qs(request).count(),
+            "recent_activity": recent_activity,
+            "role_suggestions": role_suggestions,
+            "user_role_codes": user_role_codes,
         }
         return render(request, self.template_name, context)
 

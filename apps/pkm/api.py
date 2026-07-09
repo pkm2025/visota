@@ -28,6 +28,8 @@ Endpoints:
     POST   /api/v1/pkm/qa/ask/               # RAG Q&A (returns answer + sources)
     GET    /api/v1/pkm/qa/history/           # Q&A history (paginated)
 
+    GET    /api/v1/pkm/stats/                # Aggregate PKM statistics
+
 All endpoints require ``auth=get_current_user`` (session or API key).
 """
 
@@ -48,7 +50,13 @@ from ninja.files import UploadedFile
 from ninja.pagination import paginate
 
 from apps.core.api import get_current_company, get_current_user
-from apps.pkm.models import KnowledgeNote, PKMDocument, QAHistory, Tag, UserLLMConfig
+from apps.pkm.models import (
+    KnowledgeNote,
+    PKMDocument,
+    QAHistory,
+    Tag,
+    UserLLMConfig,
+)
 from apps.pkm.services import encryption_service, llm_service, qa_service, rag_pipeline
 from apps.pkm.services.interaction_service import log_interaction
 from apps.pkm.services.llm_service import (
@@ -928,3 +936,86 @@ def list_qa_history(request: HttpRequest) -> Any:
     """
     company = get_current_company(request)
     return QAHistory.objects.filter(user=request.user, company=company)
+
+
+# ---------------------------------------------------------------------------
+# Stats
+# ---------------------------------------------------------------------------
+
+
+class StatsResponseSchema(Schema):
+    """Aggregate PKM statistics for the authenticated user."""
+
+    note_count: int
+    doc_count: int
+    doc_status_counts: dict[str, int]
+    qa_count: int
+    tag_count: int
+    llm_config_count: int
+    has_active_config: bool
+    pinned_note_count: int
+    role_suggestions_count: int
+    user_role_codes: list[str]
+
+
+@router.get("/stats/", response=StatsResponseSchema, auth=get_current_user)
+def get_pkm_stats(request: HttpRequest) -> dict[str, Any]:
+    """Return aggregate PKM statistics for the authenticated user.
+
+    All counts are scoped by ``request.user`` and ``request.current_company``
+    for per-user and multi-tenant isolation. Includes:
+
+      - ``note_count``: total notes
+      - ``doc_count``: total documents
+      - ``doc_status_counts``: documents broken down by status
+        (pending/processing/processed/failed)
+      - ``qa_count``: total Q&A interactions
+      - ``tag_count``: total tags
+      - ``llm_config_count``: total LLM configs
+      - ``has_active_config``: True if user has at least one active config
+      - ``pinned_note_count``: number of pinned notes
+      - ``role_suggestions_count``: number of notes whose ``role_context``
+        matches one of the user's role codes
+      - ``user_role_codes``: the user's role codes in the current company
+    """
+    company = get_current_company(request)
+
+    notes_qs = KnowledgeNote.objects.filter(user=request.user, company=company)
+    docs_qs = PKMDocument.objects.filter(user=request.user, company=company)
+    qa_qs = QAHistory.objects.filter(user=request.user, company=company)
+    tags_qs = Tag.objects.filter(user=request.user, company=company)
+    configs_qs = UserLLMConfig.objects.filter(user=request.user, company=company)
+
+    # User's role codes in the current company (for role-based filtering)
+    from apps.identity.models import UserCompanyRole
+
+    user_role_codes = list(
+        UserCompanyRole.objects.filter(
+            user=request.user,
+            company=company,
+        ).values_list("role__code", flat=True)
+    )
+
+    role_suggestions_qs = (
+        notes_qs.filter(role_context__in=user_role_codes)
+        if user_role_codes
+        else notes_qs.none()
+    )
+
+    return {
+        "note_count": notes_qs.count(),
+        "doc_count": docs_qs.count(),
+        "doc_status_counts": {
+            "pending": docs_qs.filter(status=PKMDocument.Status.PENDING).count(),
+            "processing": docs_qs.filter(status=PKMDocument.Status.PROCESSING).count(),
+            "processed": docs_qs.filter(status=PKMDocument.Status.PROCESSED).count(),
+            "failed": docs_qs.filter(status=PKMDocument.Status.FAILED).count(),
+        },
+        "qa_count": qa_qs.count(),
+        "tag_count": tags_qs.count(),
+        "llm_config_count": configs_qs.count(),
+        "has_active_config": configs_qs.filter(is_active=True).exists(),
+        "pinned_note_count": notes_qs.filter(is_pinned=True).count(),
+        "role_suggestions_count": role_suggestions_qs.count(),
+        "user_role_codes": user_role_codes,
+    }

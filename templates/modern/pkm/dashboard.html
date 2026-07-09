@@ -16,7 +16,7 @@
 
 <!-- Stats cards -->
 <div class="row g-3 mb-4">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body d-flex align-items-center">
                 <div class="me-3">
@@ -29,7 +29,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body d-flex align-items-center">
                 <div class="me-3">
@@ -38,11 +38,32 @@
                 <div>
                     <div class="text-muted small">Tổng tài liệu</div>
                     <div class="h3 mb-0" id="stat-docs">{{ doc_count }}</div>
+                    {% if doc_status_counts %}
+                    <div class="small text-muted" id="stat-doc-status">
+                        {{ doc_status_counts.processed }} đã xử lý,
+                        {{ doc_status_counts.pending }} chờ,
+                        {{ doc_status_counts.processing }} đang xử lý,
+                        {{ doc_status_counts.failed }} lỗi
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body d-flex align-items-center">
+                <div class="me-3">
+                    <i class="bi bi-chat-dots text-info" style="font-size: 2rem;"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Lượt Hỏi đáp</div>
+                    <div class="h3 mb-0" id="stat-qa">{{ qa_count }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body d-flex align-items-center">
                 <div class="me-3">
@@ -71,7 +92,7 @@
 </div>
 {% endif %}
 
-{% if note_count == 0 and doc_count == 0 %}
+{% if note_count == 0 and doc_count == 0 and qa_count == 0 %}
 <!-- Empty state / getting started -->
 <div class="card border-0 shadow-sm">
     <div class="card-body text-center py-5">
@@ -95,7 +116,7 @@
                 <strong><i class="bi bi-pin-angle-fill text-warning"></i> Ghi chú ghim</strong>
             </div>
             <div class="card-body">
-                <ul class="list-group list-group-flush">
+                <ul class="list-group list-group-flush" id="pinned-notes-list">
                     {% for note in pinned_notes %}
                     <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
                         <a href="{% url 'ui_modern:pkm_note_detail' note.pk %}" class="text-decoration-none">
@@ -118,7 +139,7 @@
             </div>
             <div class="card-body">
                 {% if recent_notes %}
-                <ul class="list-group list-group-flush">
+                <ul class="list-group list-group-flush" id="recent-notes-list">
                     {% for note in recent_notes %}
                     <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
                         <a href="{% url 'ui_modern:pkm_note_detail' note.pk %}" class="text-decoration-none">
@@ -130,6 +151,61 @@
                 </ul>
                 {% else %}
                 <p class="text-muted mb-0">Chưa có ghi chú nào.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Role-based knowledge suggestions -->
+    {% if role_suggestions %}
+    <div class="col-md-6" id="role-suggestions-panel">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0">
+                <strong>
+                    <i class="bi bi-person-badge text-info"></i>
+                    Gợi ý theo vai trò
+                    {% if user_role_codes %}<small class="text-muted">({{ user_role_codes|join:", " }})</small>{% endif %}
+                </strong>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush" id="role-suggestions-list">
+                    {% for note in role_suggestions %}
+                    <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                        <a href="{% url 'ui_modern:pkm_note_detail' note.pk %}" class="text-decoration-none">
+                            <span class="badge bg-info text-dark me-1">{{ note.role_context }}</span>
+                            {{ note.title }}
+                        </a>
+                        <small class="text-muted">{{ note.updated_at|date:"d/m/Y" }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent activity feed -->
+    <div class="col-md-6" id="recent-activity-panel">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0">
+                <strong><i class="bi bi-activity"></i> Hoạt động gần đây</strong>
+            </div>
+            <div class="card-body">
+                {% if recent_activity %}
+                <ul class="list-group list-group-flush" id="recent-activity-list">
+                    {% for log in recent_activity %}
+                    <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="bi bi-{% if log.interaction_type == 'page_view' %}eye{% elif log.interaction_type == 'search' %}search{% elif log.interaction_type == 'note_create' %}journal-plus{% elif log.interaction_type == 'document_create' %}file-earmark-plus{% elif log.interaction_type == 'voucher_create' %}receipt{% else %}dot{% endif %} text-muted"></i>
+                            <span class="badge bg-secondary">{{ log.interaction_type }}</span>
+                            <small class="text-muted">{{ log.module }}</small>
+                        </span>
+                        <small class="text-muted">{{ log.created_at|date:"d/m/Y H:i" }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted mb-0">Chưa có hoạt động nào.</p>
                 {% endif %}
             </div>
         </div>
