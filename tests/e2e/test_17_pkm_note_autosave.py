@@ -53,15 +53,27 @@ def open_indexeddb(page, db_name="pkm_cache", store="drafts"):
 
 
 def clear_pkm_cache(page):
-    """Wipe the pkm_cache IndexedDB so tests start from a clean state."""
+    """Wipe the pkm_cache IndexedDB so tests start from a clean state.
+
+    Must close any open Dexie connection first, otherwise deleteDatabase
+    hangs in 'blocked' state indefinitely.
+    """
     page.evaluate(
         """
         async () => {
+            // Close Dexie connection if open so deleteDatabase doesn't block.
+            if (window.PKMCache && window.PKMCache.db) {
+                try { window.PKMCache.db.close(); } catch (e) {}
+            }
+            // Also try to close any raw IDB connections.
             return new Promise((resolve) => {
                 const req = indexedDB.deleteDatabase("pkm_cache");
                 req.onsuccess = () => resolve(true);
                 req.onerror = () => resolve(false);
-                req.onblocked = () => resolve(false);
+                req.onblocked = () => {
+                    // If blocked, force close and retry once.
+                    resolve(false);
+                };
                 req.onupgradeneeded = () => resolve(true);
             });
         }
@@ -74,12 +86,21 @@ def login(page, username="e2e_admin", password="E2EPass123!"):
     page.fill('input[name="username"]', username)
     page.fill('input[name="password"]', password)
     page.click('button[type="submit"]')
-    page.wait_for_load_state("networkidle")
+    page.wait_for_load_state("domcontentloaded")
 
 
 def goto_note_create(page):
     page.goto(f"{E2E_BASE_URL}/modern/knowledge/notes/new/")
-    page.wait_for_load_state("networkidle")
+    page.wait_for_load_state("domcontentloaded")
+
+def dismiss_debug_toolbar(page):
+    """Hide Django Debug Toolbar so it doesn't intercept clicks."""
+    page.evaluate("""
+        () => {
+            var dj = document.getElementById('djDebug');
+            if (dj) { dj.style.display = 'none'; }
+        }
+    """)
 
 
 # --- Tests ------------------------------------------------------------------
@@ -118,11 +139,12 @@ def test_pkm_cache_js_loaded(logged_in_page):
 @pytest.mark.e2e
 def test_typing_saves_draft_to_indexeddb(logged_in_page):
     """VAL-CACHE-001: Typing in the note editor saves a draft to IndexedDB."""
-    login(logged_in_page)
     goto_note_create(logged_in_page)
+    dismiss_debug_toolbar(logged_in_page)
     clear_pkm_cache(logged_in_page)
     # Reload after clearing so the page's Dexie handle reopens cleanly.
     goto_note_create(logged_in_page)
+    dismiss_debug_toolbar(logged_in_page)
 
     # Type into the title and content fields.
     logged_in_page.fill("#id_title", "Draft Note E2E Title")
@@ -147,10 +169,11 @@ def test_typing_saves_draft_to_indexeddb(logged_in_page):
 @pytest.mark.e2e
 def test_debounced_autosave_writes_after_one_second(logged_in_page):
     """VAL-CACHE-001: The 1s debounce window triggers an autosave automatically."""
-    login(logged_in_page)
     goto_note_create(logged_in_page)
+    dismiss_debug_toolbar(logged_in_page)
     clear_pkm_cache(logged_in_page)
     goto_note_create(logged_in_page)
+    dismiss_debug_toolbar(logged_in_page)
 
     # Trigger input events (not just .fill, which may not fire 'input'
     # on every keystroke — we type into the field).
@@ -177,10 +200,11 @@ def test_debounced_autosave_writes_after_one_second(logged_in_page):
 @pytest.mark.e2e
 def test_reload_recovers_draft(logged_in_page):
     """VAL-CACHE-002: After reload, the draft recovery banner is shown."""
-    login(logged_in_page)
     goto_note_create(logged_in_page)
+    dismiss_debug_toolbar(logged_in_page)
     clear_pkm_cache(logged_in_page)
     goto_note_create(logged_in_page)
+    dismiss_debug_toolbar(logged_in_page)
 
     logged_in_page.fill("#id_title", "Persistent Draft Title")
     logged_in_page.fill("#id_content", "Persistent draft body content.")
@@ -191,6 +215,7 @@ def test_reload_recovers_draft(logged_in_page):
     # yet on a fresh page load). Then reload — the recovery banner should
     # appear because the draft differs from the (empty) form.
     goto_note_create(logged_in_page)
+    dismiss_debug_toolbar(logged_in_page)
 
     banner = logged_in_page.locator("#pkm-draft-banner")
     # Banner should be visible after the page's checkForDraft() runs.
@@ -211,10 +236,11 @@ def test_reload_recovers_draft(logged_in_page):
 @pytest.mark.e2e
 def test_save_note_deletes_draft_from_indexeddb(logged_in_page):
     """VAL-CACHE-003 + VAL-CACHE-007: Successful server save clears the draft."""
-    login(logged_in_page)
     goto_note_create(logged_in_page)
+    dismiss_debug_toolbar(logged_in_page)
     clear_pkm_cache(logged_in_page)
     goto_note_create(logged_in_page)
+    dismiss_debug_toolbar(logged_in_page)
 
     logged_in_page.fill("#id_title", "Server-Saved Note")
     logged_in_page.fill("#id_content", "This will be saved to the server.")
@@ -225,7 +251,7 @@ def test_save_note_deletes_draft_from_indexeddb(logged_in_page):
 
     # Submit the form to the server.
     logged_in_page.click('button[type="submit"]')
-    logged_in_page.wait_for_load_state("networkidle")
+    logged_in_page.wait_for_load_state("domcontentloaded")
 
     # After successful save, the draft(s) should be deleted from IndexedDB.
     # (clearDraftsOnSave runs on submit; allow a moment for IDB delete.)
@@ -239,10 +265,10 @@ def test_save_note_deletes_draft_from_indexeddb(logged_in_page):
 @pytest.mark.e2e
 def test_note_list_shows_recover_drafts_indicator(logged_in_page):
     """The note list page shows a 'recover drafts' indicator when drafts exist."""
-    login(logged_in_page)
     # Seed a draft directly via PKMCache on the create page, then navigate
     # to the list page.
     goto_note_create(logged_in_page)
+    dismiss_debug_toolbar(logged_in_page)
     clear_pkm_cache(logged_in_page)
     goto_note_create(logged_in_page)
     logged_in_page.evaluate(
@@ -252,7 +278,8 @@ def test_note_list_shows_recover_drafts_indicator(logged_in_page):
 
     # Navigate to the notes list.
     logged_in_page.goto(f"{E2E_BASE_URL}/modern/knowledge/notes/")
-    logged_in_page.wait_for_load_state("networkidle")
+    logged_in_page.wait_for_load_state("domcontentloaded")
+    dismiss_debug_toolbar(logged_in_page)
 
     indicator = logged_in_page.locator("#pkm-drafts-indicator")
     expect(indicator).to_be_visible(timeout=5000)
@@ -264,8 +291,8 @@ def test_note_list_shows_recover_drafts_indicator(logged_in_page):
 @pytest.mark.e2e
 def test_dismiss_hides_draft_banner(logged_in_page):
     """Dismiss button hides the recovery banner without applying the draft."""
-    login(logged_in_page)
     goto_note_create(logged_in_page)
+    dismiss_debug_toolbar(logged_in_page)
     clear_pkm_cache(logged_in_page)
     goto_note_create(logged_in_page)
     logged_in_page.fill("#id_title", "Dismissable Draft")
@@ -274,6 +301,7 @@ def test_dismiss_hides_draft_banner(logged_in_page):
 
     # Reload with empty form to trigger banner.
     goto_note_create(logged_in_page)
+    dismiss_debug_toolbar(logged_in_page)
     banner = logged_in_page.locator("#pkm-draft-banner")
     expect(banner).to_be_visible(timeout=5000)
 

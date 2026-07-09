@@ -55,7 +55,7 @@ for username, full_name, is_super, role_code in ROLES:
 print(f'E2E users ready: {User.objects.filter(username__startswith="e2e_").count()}')
 """
     result = subprocess.run(
-        [".venv/bin/python", "manage.py", "shell", "-c", script],
+        [".venv/Scripts/python.exe", "manage.py", "shell", "-c", script],
         capture_output=True, text=True, cwd=os.getcwd(),
     )
     if result.returncode != 0:
