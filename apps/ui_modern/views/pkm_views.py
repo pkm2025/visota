@@ -725,8 +725,6 @@ class DocumentListView(LoginRequiredMixin, ListView):
             (PKMDocument.Status.PROCESSED, _status_label(PKMDocument.Status.PROCESSED)),
             (PKMDocument.Status.FAILED, _status_label(PKMDocument.Status.FAILED)),
         ]
-        ctx["status_badge_class"] = _status_badge_class
-        ctx["status_label"] = _status_label
         return ctx
 
 

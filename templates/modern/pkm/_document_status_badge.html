@@ -1,6 +1,18 @@
-{# HTMX partial: status badge for a single document, polled while pending/processing. #}
-<span class="badge {{ status_badge_class }} document-status-badge" id="doc-status-{{ document.pk }}">
-    {{ status_label }}
+{# HTMX partial: status badge for a single document, polled while pending/processing.
+   Self-contained: computes the badge CSS class and Vietnamese label from
+   document.status so it renders correctly in every context (list page,
+   detail page, HTMX polling) without requiring pre-computed context vars. #}
+<span class="badge
+    {% if document.status == 'pending' %}bg-secondary
+    {% elif document.status == 'processing' %}bg-info
+    {% elif document.status == 'processed' %}bg-success
+    {% elif document.status == 'failed' %}bg-danger
+    {% else %}bg-secondary{% endif %} document-status-badge" id="doc-status-{{ document.pk }}">
+    {% if document.status == 'pending' %}Chờ xử lý
+    {% elif document.status == 'processing' %}Đang xử lý
+    {% elif document.status == 'processed' %}Đã xử lý
+    {% elif document.status == 'failed' %}Lỗi
+    {% else %}{{ document.status }}{% endif %}
 </span>
 {% if not is_polling %}
 {# Terminal state: also expose actions so the host page can refresh them. #}

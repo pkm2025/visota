@@ -58,7 +58,7 @@
                               hx-trigger="every {{ poll_interval }}ms"
                               hx-swap="outerHTML"
                               {% endif %}>
-                            {% include 'modern/pkm/_document_status_badge.html' with document=document status_badge_class=status_badge_class status_label=status_label is_polling=document.status %}
+                            {% include 'modern/pkm/_document_status_badge.html' %}
                         </span>
                     </div>
                     <p class="text-muted small mb-1 mt-1">

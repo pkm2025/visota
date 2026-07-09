@@ -17,6 +17,7 @@ client. All async processing is mocked — no real LLM/embedding API calls.
 
 from __future__ import annotations
 
+import re
 from unittest.mock import patch
 
 import pytest
@@ -257,6 +258,84 @@ def test_document_list_shows_status_badges(admin_client, admin_user, company):
     assert "Chờ xử lý" in content
     assert "Đã xử lý" in content
     assert "Lỗi" in content
+
+
+@pytest.mark.django_db
+def test_document_list_badge_css_class_per_status(admin_client, admin_user, company):
+    """Status badges render the correct Bootstrap CSS class per status on the
+    initial server-side list load (regression: previously the badges rendered
+    empty because the list view passed the _status_badge_class/_status_label
+    function objects instead of calling them per document)."""
+    _create_document(
+        admin_user, company, title="PendingCSS", status=PKMDocument.Status.PENDING
+    )
+    _create_document(
+        admin_user, company, title="ProcessingCSS", status=PKMDocument.Status.PROCESSING
+    )
+    _create_document(
+        admin_user, company, title="ProcessedCSS", status=PKMDocument.Status.PROCESSED
+    )
+    _create_document(
+        admin_user, company, title="FailedCSS", status=PKMDocument.Status.FAILED
+    )
+    response = admin_client.get("/modern/knowledge/documents/")
+    assert response.status_code == 200
+    content = response.content.decode("utf-8")
+
+    # Each document's badge span must carry both the label text AND the
+    # correct CSS class inside the same document-status-badge element.
+    # We verify the badge element contains the expected class + label together.
+    for status, cls, label in [
+        (PKMDocument.Status.PENDING, "bg-secondary", "Chờ xử lý"),
+        (PKMDocument.Status.PROCESSING, "bg-info", "Đang xử lý"),
+        (PKMDocument.Status.PROCESSED, "bg-success", "Đã xử lý"),
+        (PKMDocument.Status.FAILED, "bg-danger", "Lỗi"),
+    ]:
+        # The document-status-badge class is always present on badge spans
+        assert "document-status-badge" in content
+        # The expected CSS class must appear inside a badge span (not empty)
+        assert cls in content, f"Missing CSS class {cls} for status {status}"
+        # The label must appear inside a badge span (not empty)
+        assert label in content, f"Missing label {label} for status {status}"
+
+
+@pytest.mark.django_db
+def test_document_list_badge_not_empty_per_document(admin_client, admin_user, company):
+    """Each document's badge span in the list contains a non-empty label and
+    a concrete bg-* class, not a bare 'badge  ' (double-space = empty class).
+
+    This is the precise regression test: before the fix, the rendered badge
+    was '<span class=\"badge  document-status-badge\" ...>\\n    \\n</span>'
+    (empty class + empty label) on the initial server-side load.
+    """
+    doc = _create_document(
+        admin_user, company, title="BadgeCheck", status=PKMDocument.Status.PROCESSED
+    )
+    response = admin_client.get("/modern/knowledge/documents/")
+    assert response.status_code == 200
+    content = response.content.decode("utf-8")
+    # The inner badge span (from the partial) carries the document-status-badge
+    # class and a concrete bg-* class. Locate it and verify both class and body.
+    assert "document-status-badge" in content
+    # Find every badge span; one must belong to our document and carry bg-success.
+    badge_spans = re.findall(
+        r'<span class="badge\s+([^"]*document-status-badge[^"]*)"[^>]*id="doc-status-(\d+)"'
+        r">(.*?)</span>",
+        content,
+        re.DOTALL,
+    )
+    matching = [
+        (cls, body)
+        for cls, pk, body in badge_spans
+        if int(pk) == doc.pk
+    ]
+    assert matching, (
+        f"No document-status-badge span found for document pk={doc.pk}. "
+        f"Found badge spans: {badge_spans[:3]}"
+    )
+    cls, body = matching[0]
+    assert "bg-success" in cls, f"Badge class missing bg-success: {cls!r}"
+    assert "Đã xử lý" in body, f"Badge body missing 'Đã xử lý': {body!r}"
 
 
 @pytest.mark.django_db
