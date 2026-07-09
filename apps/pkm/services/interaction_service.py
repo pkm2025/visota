@@ -78,15 +78,74 @@ MODULE_PAGE_LABELS: dict[str, str] = {
 
 
 def _django_q_available() -> bool:
-    """Return True if django-q2 is importable and configured.
+    """Return True if django-q2 can actually execute tasks in this process.
 
-    We import lazily so that environments without django-q2 still work.
+    A common production bug: django-q2 is importable and ``async_task``
+    successfully enqueues a row to the ORM broker, but no worker process is
+    running to dequeue and execute it. The enqueue call does not raise, so
+    the naive "library is importable" check silently swallows the interaction
+    log - it sits in ``django_q_ormq`` forever and is never turned into a
+    ``UserInteractionLog`` row.
+
+    This helper returns True only when the task will actually run. We consider
+    it available when EITHER:
+
+      1. ``Q_CLUSTER['sync']`` is True (django-q2 runs the task inline during
+         the ``async_task`` call - no separate worker needed). This is the
+         configuration used by the test and dev settings.
+      2. ``Q_CLUSTER['sync']`` is False AND there is evidence that a django-q
+         worker is actively processing tasks (at least one row in
+         ``django_q_task`` or ``django_q_success`` with a recent timestamp).
+         This detects a live worker in production.
+
+    Returns False (so the caller falls back to ``_create_sync``) when:
+      - django-q2 is not importable, OR
+      - the cluster is async but no worker activity is detected (the dev
+        server runs without a ``qcluster`` process, so enqueued tasks would
+        never be processed).
     """
     try:
         import django_q.tasks  # noqa: F401
     except ImportError:
         return False
-    return True
+
+    from django.conf import settings
+
+    cluster = getattr(settings, "Q_CLUSTER", {}) or {}
+    if cluster.get("sync"):
+        # Sync mode runs the task inline during async_task - always reliable.
+        return True
+
+    # Async mode: only advertise availability if a worker is actively running.
+    # We probe the django-q bookkeeping tables for evidence of recent worker
+    # activity. If neither table has any rows, no worker has ever processed a
+    # task in this database, so enqueueing would silently no-op.
+    return _worker_is_active()
+
+
+def _worker_is_active() -> bool:
+    """Detect whether a django-q worker is currently processing tasks.
+
+    Probes the django-q bookkeeping tables for evidence of worker activity.
+    Used by :func:`_django_q_available` to decide whether async enqueueing is
+    safe. Returns True only when there is concrete evidence that a worker has
+    processed at least one task in this database.
+
+    The check is intentionally cheap (single indexed COUNT/SELECT) so it can
+    run on every ``log_interaction`` call without measurable overhead.
+    """
+    try:
+        from django_q.models import OrmQueue, Success, Task  # noqa: F401
+    except Exception:
+        return False
+
+    try:
+        # A running worker populates Success (completed tasks) or Task
+        # (in-flight/failed tasks). If both are empty, no worker has ever run.
+        return bool(Success.objects.exists() or Task.objects.exists())
+    except Exception:
+        # Tables not migrated yet or DB error - treat as no worker.
+        return False
 
 
 def _enqueue_async(

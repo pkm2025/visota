@@ -33,3 +33,12 @@ except ImportError:
 # Product analytics (GA4 — set GA4_MEASUREMENT_ID to enable)
 GA4_MEASUREMENT_ID = os.environ.get('GA4_MEASUREMENT_ID', '')
 
+# Run django-q2 tasks synchronously in dev mode so that interaction logging
+# (and other async tasks) execute inline without requiring a separate
+# `python manage.py qcluster` worker process. The dev server is typically run
+# on its own; without sync mode, async_task enqueues rows to django_q_ormq
+# that are never processed, silently dropping interaction logs and other
+# background work. Q_CLUSTER is defined in base.py with sync=False; override
+# here so dev behaves like the test settings.
+Q_CLUSTER = {'name': 'PMKetoan', 'sync': True, 'orm': 'default'}
+
