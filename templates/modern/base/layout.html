@@ -58,17 +58,14 @@
             </a>
         </div>
         <div class="topbar-center">
-            <form action="{% url 'ui_modern:voucher_list' %}" method="get" class="global-search-form" style="width:100%; max-width:400px;">
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text bg-transparent border-end-0">
-                        <i class="bi bi-search text-muted"></i>
-                    </span>
-                    <input type="search" name="search" placeholder="Tìm chứng từ..."
-                           value="{{ request.GET.search }}"
-                           class="form-control border-start-0 global-search"
-                           aria-label="Tìm kiếm">
-                </div>
-            </form>
+            {% if user.is_authenticated %}
+            <button type="button" class="super-search-trigger" @click="$store.superSearch.open()"
+                    aria-label="Siêu tìm kiếm">
+                <i class="bi bi-search text-muted"></i>
+                <span class="super-search-trigger-text">Tìm kiếm...</span>
+                <kbd class="super-search-kbd">Ctrl K</kbd>
+            </button>
+            {% endif %}
         </div>
         <div class="topbar-right">
             <!-- Company switcher (only for authenticated users with company) -->
@@ -171,10 +168,31 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <nav>
+                <div class="sidebar-tools">
+                    <button type="button" class="sidebar-tool-btn" id="ss-expand-all" title="Mở tất cả" aria-label="Mở tất cả nhóm">
+                        <i class="bi bi-arrows-expand"></i>
+                    </button>
+                    <button type="button" class="sidebar-tool-btn" id="ss-collapse-all" title="Thu gọn tất cả" aria-label="Thu gọn tất cả nhóm">
+                        <i class="bi bi-arrows-collapse"></i>
+                    </button>
+                </div>
                 <a href="{% url 'ui_modern:dashboard' %}" class="nav-item">
                     <i class="bi bi-house"></i> <span>Trang chủ</span>
                 </a>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_CNDL') !== 'false' }"
+                {% has_module_access "projects" as can_projects_top %}
+                {% if can_projects_top %}
+                <a href="{% url 'ui_modern:project_list' %}" class="nav-item">
+                    <i class="bi bi-kanban"></i> <span>Dự án</span>
+                </a>
+                {% endif %}
+                <div class="nav-section nav-pins" id="ss-pins-section" x-data="{ open: true }" hidden x-cloak>
+                    <div class="nav-section-title nav-pins-title">
+                        <span><i class="bi bi-star-fill"></i> Ghim</span>
+                        <button type="button" class="nav-pins-clear" id="ss-pins-clear" title="Bỏ ghim tất cả" aria-label="Bỏ ghim tất cả">&times;</button>
+                    </div>
+                    <div x-show="open" id="ss-pins-list"></div>
+                </div>
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_CNDL') === 'true' }"
                      {% has_module_access "ledger" as can_ledger %}{% has_module_access "input_docs" as can_input_docs %}{% has_module_access "recurring" as can_recurring %}{% has_module_access "treasury" as can_treasury %}{% has_module_access "banking" as can_banking %}{% has_module_access "loans" as can_loans %}{% has_module_access "guarantees" as can_guarantees %}
                      {% if not can_ledger and not can_input_docs and not can_recurring and not can_treasury and not can_banking and not can_loans and not can_guarantees %}style="display:none"{% endif %}>
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_CNDL', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
@@ -198,9 +216,6 @@
                         {% if can_loans %}
                         <a href="{% url 'ui_modern:loan_list' %}" class="nav-item"><i class="bi bi-bank2"></i> <span>Vay vốn ngân hàng</span></a>
                         {% endif %}
-                        {% if can_ledger %}
-                        <a href="{% url 'ui_modern:period_closing' %}" class="nav-item"><i class="bi bi-arrow-repeat"></i> <span>Kết chuyển cuối kỳ</span></a>
-                        {% endif %}
                         {% if can_input_docs %}
                         <a href="{% url 'ui_modern:input_invoice_list' %}" class="nav-item"><i class="bi bi-file-earmark-richtext"></i> <span>Hóa đơn đầu vào</span></a>
                         {% endif %}
@@ -209,7 +224,7 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_NV') !== 'false' }"
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_NV') === 'true' }"
                      {% has_module_access "sales" as can_sales %}{% has_module_access "purchasing" as can_purchasing %}{% has_module_access "master_data" as can_master_data %}{% has_module_access "inventory" as can_inventory %}{% has_module_access "contracts" as can_contracts %}{% has_module_access "bidding" as can_bidding %}
                      {% if not can_sales and not can_purchasing and not can_master_data and not can_inventory and not can_contracts and not can_bidding %}style="display:none"{% endif %}>
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_NV', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
@@ -234,7 +249,7 @@
                         {% endif %}
                         {% if can_bidding %}
                         <a href="{% url 'ui_modern:bid_list' %}" class="nav-item">
-                            <i class="bi bi-briefcase"></i> <span>Cơ hội đấu thầu</span>
+                            <i class="bi bi-hammer"></i> <span>Cơ hội đấu thầu</span>
                         </a>
                         {% endif %}
                         {% if can_sales %}
@@ -271,22 +286,7 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_PRJ') !== 'false' }"
-                     {% has_module_access "projects" as can_projects %}
-                     {% if not can_projects %}style="display:none"{% endif %}>
-                    <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_PRJ', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-                        <span>Dự án</span>
-                        <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
-                    </div>
-                    <div x-show="open" x-collapse>
-                        {% if can_projects %}
-                        <a href="{% url 'ui_modern:project_list' %}" class="nav-item">
-                            <i class="bi bi-kanban"></i> <span>Quản lý dự án</span>
-                        </a>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_CRM') !== 'false' }"
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_CRM') === 'true' }"
                      {% has_module_access "crm" as can_crm %}
                      {% if not can_crm %}style="display:none"{% endif %}>
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_CRM', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
@@ -312,7 +312,7 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_TS') !== 'false' }"
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_TS') === 'true' }"
                      {% has_module_access "assets" as can_assets %}
                      {% if not can_assets %}style="display:none"{% endif %}>
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_TS', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
@@ -333,7 +333,7 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_NS') !== 'false' }"
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_NS') === 'true' }"
                      {% has_module_access "hr" as can_hr %}{% has_module_access "payroll" as can_payroll %}
                      {% if not can_hr and not can_payroll %}style="display:none"{% endif %}>
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_NS', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
@@ -346,16 +346,16 @@
                             <i class="bi bi-person-badge"></i> <span>Nhân viên</span>
                         </a>
                         <a href="{% url 'ui_modern:labor_contract_list' %}" class="nav-item">
-                            <i class="bi bi-file-earmark-text"></i> <span>Hợp đồng lao động</span>
+                            <i class="bi bi-file-earmark-person"></i> <span>Hợp đồng lao động</span>
                         </a>
                         <a href="{% url 'ui_modern:dependent_list' %}" class="nav-item">
-                            <i class="bi bi-people"></i> <span>Người phụ thuộc</span>
+                            <i class="bi bi-person-hearts"></i> <span>Người phụ thuộc</span>
                         </a>
                         <a href="{% url 'ui_modern:leave_request' %}" class="nav-item">
                             <i class="bi bi-calendar-minus"></i> <span>Nghỉ phép</span>
                         </a>
                         <a href="{% url 'ui_modern:insurance_dashboard' %}" class="nav-item">
-                            <i class="bi bi-shield-check"></i> <span>Bảo hiểm xã hội</span>
+                            <i class="bi bi-heart-pulse"></i> <span>Bảo hiểm xã hội</span>
                         </a>
                         {% endif %}
                         {% if can_payroll %}
@@ -365,14 +365,15 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_SS') !== 'false' }"
-                     {% has_module_access "ledger" as can_ledger_2 %}{% if not can_ledger_2 %}style="display:none"{% endif %}>
-                    <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_SS', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-                        <span>Sổ sách</span>
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_SSBC') === 'true' }"
+                     {% has_module_access "ledger" as can_ledger_2 %}{% has_module_access "reporting" as can_reporting %}{% has_module_access "einvoice" as can_einvoice %}{% has_module_access "budget" as can_budget %}{% has_module_access "fx" as can_fx %}{% if not can_ledger_2 and not can_reporting and not can_einvoice and not can_budget and not can_fx %}style="display:none"{% endif %}>
+                    <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_SSBC', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                        <span>Sổ sách &amp; Báo cáo</span>
                         <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
                     </div>
                     <div x-show="open" x-collapse>
                         {% if can_ledger_2 %}
+                        <div class="nav-subgroup-title">Sổ sách</div>
                         <a href="{% url 'ui_modern:general_journal' %}" class="nav-item"><i class="bi bi-journal-book"></i> <span>Nhật ký chung</span></a>
                         <a href="{% url 'ui_modern:report_cash_receipt_journal' %}" class="nav-item"><i class="bi bi-cash"></i> <span>NK thu tiền (S03a1)</span></a>
                         <a href="{% url 'ui_modern:report_cash_payment_journal' %}" class="nav-item"><i class="bi bi-cash-coin"></i> <span>NK chi tiền (S03a2)</span></a>
@@ -385,15 +386,9 @@
                         <a href="{% url 'ui_modern:report_sales_detail' %}" class="nav-item"><i class="bi bi-cart-check"></i> <span>Sổ chi tiết bán hàng (S35)</span></a>
                         <a href="{% url 'ui_modern:report_sub_ledger' %}" class="nav-item"><i class="bi bi-journal-text"></i> <span>Sổ chi tiết KH/NCC</span></a>
                         {% endif %}
-                    </div>
-                </div>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_BC') !== 'false' }"
-                     {% has_module_access "reporting" as can_reporting %}{% has_module_access "einvoice" as can_einvoice %}{% has_module_access "budget" as can_budget %}{% has_module_access "fx" as can_fx %}{% if not can_reporting and not can_einvoice and not can_budget and not can_fx %}style="display:none"{% endif %}>
-                    <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_BC', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-                        <span>Báo cáo &amp; Thuế</span>
-                        <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
-                    </div>
-                    <div x-show="open" x-collapse>
+                        {% if can_einvoice or can_reporting or can_budget or can_fx %}
+                        <div class="nav-subgroup-title">Báo cáo &amp; Thuế</div>
+                        {% endif %}
                         {% if can_einvoice %}
                         <a href="{% url 'ui_modern:einvoice_list' %}" class="nav-item"><i class="bi bi-receipt-cutoff"></i> <span>Hóa đơn điện tử</span></a>
                         {% endif %}
@@ -405,10 +400,9 @@
                         <a href="{% url 'ui_modern:vat_input_list' %}" class="nav-item"><i class="bi bi-file-earmark-arrow-down"></i> <span>Bảng kê HĐ đầu vào</span></a>
                         <a href="{% url 'ui_modern:vat_output_list' %}" class="nav-item"><i class="bi bi-file-earmark-arrow-up"></i> <span>Bảng kê HĐ đầu ra</span></a>
                         <a href="{% url 'ui_modern:report_d62' %}" class="nav-item"><i class="bi bi-file-earmark-spreadsheet"></i> <span>Báo cáo D62 (BHXH)</span></a>
-                        <a href="{% url 'ui_modern:report_labor_usage' %}" class="nav-item"><i class="bi bi-people"></i> <span>BC sử dụng lao động</span></a>
+                        <a href="{% url 'ui_modern:report_labor_usage' %}" class="nav-item"><i class="bi bi-person-check"></i> <span>BC sử dụng lao động</span></a>
                         <a href="{% url 'ui_modern:report_salary_fund' %}" class="nav-item"><i class="bi bi-cash-coin"></i> <span>BC quỹ lương</span></a>
                         <a href="{% url 'ui_modern:report_pit_monthly' %}" class="nav-item"><i class="bi bi-piggy-bank"></i> <span>BC thuế TNCN</span></a>
-                        <a href="{% url 'ui_modern:report_sub_ledger' %}" class="nav-item"><i class="bi bi-journal-text"></i> <span>Sổ chi tiết TK</span></a>
                         <a href="{% url 'ui_modern:report_cost' %}" class="nav-item"><i class="bi bi-calculator"></i> <span>Bảng tính giá thành</span></a>
                         <a href="{% url 'ui_modern:report_book_entry_register' %}" class="nav-item"><i class="bi bi-journal-bookmark"></i> <span>Sổ ĐK CTGS (S02a)</span></a>
                         <a href="{% url 'ui_modern:report_cash_flow_direct' %}" class="nav-item"><i class="bi bi-water"></i> <span>BC dòng tiền trực tiếp (B03)</span></a>
@@ -424,7 +418,7 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_DM') !== 'false' }"
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_DM') === 'true' }"
                      {% has_module_access "master_data" as can_md_2 %}{% if not can_md_2 %}style="display:none"{% endif %}>
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_DM', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                         <span>Danh mục</span>
@@ -437,7 +431,7 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_CTGS') !== 'false' }"
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_CTGS') === 'true' }"
                      {% has_module_access "ledger" as can_ledger_3 %}{% if not can_ledger_3 %}style="display:none"{% endif %}>
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_CTGS', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                         <span>Chứng từ ghi sổ</span>
@@ -460,6 +454,7 @@
                     </div>
                     <div x-show="open" x-collapse>
                         {% if can_ledger_4 %}
+                        <a href="{% url 'ui_modern:period_closing' %}" class="nav-item"><i class="bi bi-arrow-repeat"></i> <span>Kết chuyển cuối kỳ</span></a>
                         <a href="{% url 'ui_modern:period_allocation' %}" class="nav-item"><i class="bi bi-arrow-left-right"></i> <span>Phân bổ cuối kỳ</span></a>
                         <a href="{% url 'ui_modern:closing_entry_declaration' %}" class="nav-item"><i class="bi bi-arrow-return-left"></i> <span>KK kết chuyển cuối kỳ</span></a>
                         <a href="{% url 'ui_modern:voucher_renumber' %}" class="nav-item"><i class="bi bi-arrow-repeat"></i> <span>Đánh lại số CT</span></a>
@@ -469,7 +464,7 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_PKM') !== 'false' }"
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_PKM') === 'true' }"
                      {% has_module_access "pkm" as can_pkm %}
                      {% if not can_pkm %}style="display:none"{% endif %}>
                     <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_PKM', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
@@ -497,6 +492,9 @@
                         {% if can_approvals %}
                         <a href="{% url 'ui_modern:approval_queue' %}" class="nav-item">
                             <i class="bi bi-clipboard-check"></i> <span>Phê duyệt chờ xử lý</span>
+                            {% if pending_approvals_count %}
+                            <span class="nav-badge">{{ pending_approvals_count|truncatechars:3 }}</span>
+                            {% endif %}
                         </a>
                         {% endif %}
                         <a href="{% url 'ui_modern:company_profile' %}" class="nav-item">
@@ -585,6 +583,118 @@
             title="Hiện panel ngữ cảnh" aria-label="Show context panel">
         <i class="bi bi-chevron-left"></i>
     </button>
+
+    {% if user.is_authenticated %}
+    <!-- Super search: floating button + command palette overlay -->
+    <button class="super-search-fab" @click="$store.superSearch.open()"
+            title="Siêu tìm kiếm (Ctrl+K)" aria-label="Siêu tìm kiếm">
+        <i class="bi bi-search"></i>
+    </button>
+    <div class="super-search-overlay" x-data="{}" x-cloak
+         x-show="$store.superSearch.isOpen"
+         x-init="$watch('$store.superSearch.isOpen', v => { if (v) $nextTick(() => $refs.ssInput.focus()) })"
+         @keydown.escape.window="$store.superSearch.close()"
+         @click.self="$store.superSearch.close()">
+        <div class="super-search-panel">
+            <div class="super-search-input">
+                <i class="bi bi-search"></i>
+                <input type="search" name="q" x-ref="ssInput" id="ss-input" autocomplete="off"
+                       placeholder="Tìm khách hàng, hàng hóa, chứng từ..."
+                       hx-get="{% url 'ui_modern:global_search' %}"
+                       hx-trigger="keyup changed delay:200ms, search"
+                       hx-target="#super-search-results">
+                <button type="button" class="super-search-close" @click="$store.superSearch.close()"
+                        aria-label="Đóng">×</button>
+            </div>
+            <div id="super-search-results" class="super-search-results">
+                <div class="ss-hint">Nhập từ khóa để tìm khách hàng, hàng hóa, chứng từ...</div>
+            </div>
+        </div>
+        {% csrf_token %}
+    </div>
+    <script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.store('superSearch', {
+            isOpen: false,
+            open() { this.isOpen = true; },
+            close() { this.isOpen = false; if (window.superSearchNav) window.superSearchNav.reset(); },
+            toggle() { this.isOpen = !this.isOpen; },
+        });
+    });
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+            e.preventDefault();
+            if (window.Alpine) Alpine.store('superSearch').toggle();
+        }
+    });
+    window.superSearchNav = (function () {
+        var idx = -1;
+        function items() {
+            return document.querySelectorAll('#super-search-results .ss-item, #super-search-results .ss-more');
+        }
+        function activate(i) {
+            var list = items();
+            list.forEach(function (el) { el.classList.remove('ss-active'); });
+            if (i >= 0 && i < list.length) {
+                list[i].classList.add('ss-active');
+                list[i].scrollIntoView({ block: 'nearest' });
+                idx = i;
+            } else {
+                idx = -1;
+            }
+        }
+        function move(delta) {
+            var list = items();
+            if (!list.length) { idx = -1; return; }
+            var n = list.length;
+            var next = idx + delta;
+            if (next < 0) next = n - 1;
+            if (next >= n) next = 0;
+            activate(next);
+        }
+        function enter() {
+            var list = items();
+            if (idx >= 0 && idx < list.length) { list[idx].click(); }
+        }
+        function reset() { activate(-1); }
+        return { move: move, enter: enter, reset: reset, activate: activate };
+    })();
+    // Wire keyboard navigation (ArrowDown/ArrowUp/Enter) on the palette input.
+    // A plain listener is used instead of Alpine @keydown bindings because
+    // Alpine's expression sandbox does not reliably resolve the global helper.
+    (function () {
+        function wire() {
+            var inp = document.getElementById('ss-input');
+            if (!inp || inp.__ssNavWired) return;
+            inp.__ssNavWired = true;
+            inp.addEventListener('keydown', function (e) {
+                if (e.key === 'ArrowDown') { e.preventDefault(); window.superSearchNav.move(1); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); window.superSearchNav.move(-1); }
+                else if (e.key === 'Enter') { e.preventDefault(); window.superSearchNav.enter(); }
+            });
+        }
+        if (document.readyState !== 'loading') { wire(); }
+        else { document.addEventListener('DOMContentLoaded', wire); }
+    })();
+    document.addEventListener('htmx:afterSwap', function (e) {
+        if (e.detail && e.detail.target && e.detail.target.id === 'super-search-results') {
+            if (window.superSearchNav) window.superSearchNav.reset();
+        }
+    });
+    window.superSearchClick = function (type) {
+        try {
+            const overlay = document.querySelector('.super-search-overlay');
+            const token = overlay ? overlay.querySelector('[name=csrfmiddlewaretoken]') : null;
+            fetch("{% url 'ui_modern:search_click' %}", {
+                method: 'POST',
+                keepalive: true,
+                headers: { 'X-CSRFToken': token ? token.value : '' },
+                body: new URLSearchParams({ type: type }),
+            });
+        } catch (err) { /* non-blocking */ }
+    };
+    </script>
+    {% endif %}
 
     {% include 'shared/_layout_switcher.html' %}
 

@@ -197,6 +197,7 @@ from .sales_views import (
     SalesInvoiceCreateView,
     SalesInvoiceListView,
 )
+from .search_views import GlobalSearchView, SearchClickView
 from .stock_views import (
     StockAdjustmentCreateView,
     StockAdjustmentListView,
@@ -322,6 +323,8 @@ __all__ = [
     "ProductDeleteView",
     "SalesInvoiceListView",
     "SalesInvoiceCreateView",
+    "GlobalSearchView",
+    "SearchClickView",
     "PurchaseInvoiceListView",
     "PurchaseInvoiceCreateView",
     "StockVoucherListView",

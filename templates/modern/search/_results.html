@@ -1,0 +1,22 @@
+{% if query %}
+    {% if groups %}
+        {% for g in groups %}
+        <div class="ss-group">
+            <div class="ss-group-title"><i class="bi {{ g.icon }}"></i> {{ g.label }}</div>
+            {% for item in g.items %}
+            <a href="{{ item.url }}" class="ss-item" onclick="window.superSearchClick('{{ g.key }}')">
+                <span class="ss-item-code">{{ item.code|default:item.name }}</span>
+                {% if item.name and item.code %}<span class="ss-item-name">{{ item.name }}</span>{% endif %}
+            </a>
+            {% endfor %}
+            {% if g.has_more %}
+            <a href="{{ g.list_url }}" class="ss-more">Xem tất cả {{ g.label }} →</a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="ss-empty">Không tìm thấy kết quả cho "{{ query }}"</div>
+    {% endif %}
+{% else %}
+    <div class="ss-hint">Nhập từ khóa để tìm khách hàng, hàng hóa, chứng từ...</div>
+{% endif %}

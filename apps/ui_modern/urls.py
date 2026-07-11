@@ -105,6 +105,7 @@ from .views import (
     FxRevaluationRunView,
     GeneralJournalView,
     GeneralLedgerView,
+    GlobalSearchView,
     HelpDetailView,
     HelpIndexView,
     InputInvoiceListView,
@@ -166,6 +167,7 @@ from .views import (
     SalesInvoiceCreateView,
     SalesInvoiceListView,
     SalesJournalView,
+    SearchClickView,
     SourceDocScheduleView,
     StockAdjustmentCreateView,
     StockAdjustmentListView,
@@ -211,6 +213,17 @@ urlpatterns = [
         "quick-expense/",
         login_required(QuickExpenseView.as_view()),
         name="dashboard_quick_expense",
+    ),
+    # Global "super search"
+    path(
+        "search/",
+        login_required(GlobalSearchView.as_view()),
+        name="global_search",
+    ),
+    path(
+        "search/click/",
+        login_required(SearchClickView.as_view()),
+        name="search_click",
     ),
     # Universal attachments
     path(

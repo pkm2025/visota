@@ -92,3 +92,34 @@ python manage.py seed_permissions
 python manage.py collectstatic --noinput --clear
 sudo systemctl reload visota
 ```
+
+
+### PKM Module (Personal Knowledge Management)
+
+Module quản trị tri thức cá nhân cho mọi user theo vai trò công việc.
+
+- **Notes** -- ghi chú cá nhân với markdown, tags, ghim, tìm kiếm, role-based context
+
+- **Documents + RAG** -- upload PDF/DOCX/TXT/MD/XLSX, tự động chunk + embed + vector search, xử lý async qua django-q2
+
+- **Q&A AI** -- hỏi đáp dựa trên (RAG), trích nguồn, lưu lịch sử
+
+- **Multi-provider LLM** -- user tự nhập API key: OpenAI, Anthropic, Gemini, Groq, OpenRouter, Ollama (local)
+
+- **Auto-capture** -- ghi nhận tương tác (page view, search, tạo note/document) làm context cho AI
+
+- **Client cache** -- IndexedDB (Dexie.js) cache draft notes + Q&A history, offline drafts sync
+
+- **Vector storage** -- MariaDB 12.3 native VECTOR + HNSW index, zero new services
+
+- **Security** -- API keys mã hóa Fernet at rest, per-user + multi-tenant isolation
+
+- **Permission** -- module code `pkm`, gated by `% has_module_access 'pkm' %`
+
+
+**Tech stack additions:** litellm (LLM abstraction), pypdf (PDF parsing), tiktoken (token counting), langchain-text-splitters (chunking), cryptography (Fernet encryption), Dexie.js (IndexedDB).
+
+
+Truy cập:
+- Browser UI: `/modern/knowledge/` (cần quyền `pkm.access`)
+- API: `/api/v1/pkm/`

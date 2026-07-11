@@ -91,6 +91,7 @@ TEMPLATES = [
                 'apps.core.context_processors.branding',
                 'apps.identity.context_processors.user_permissions',
                 'apps.notifications.context_processors.notifications',
+                'apps.approvals.context_processors.approvals',
             ],
         },
     },

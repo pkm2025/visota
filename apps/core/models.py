@@ -349,3 +349,31 @@ class FeatureFlag(models.Model):
     def __str__(self):
         scope = self.company.code if self.company else "global"
         return f"{self.key} ({scope}): {'ON' if self.enabled else 'OFF'}"
+
+
+class UserSearchAffinity(models.Model):
+    """Per-user interest score per search object type, used to personalize
+    the ordering of result groups in global search. Score is time-decayed
+    and incremented on each result click."""
+
+    user = models.ForeignKey(
+        "identity.User",
+        on_delete=models.CASCADE,
+        related_name="search_affinities",
+    )
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name="search_affinities",
+    )
+    object_type = models.CharField(max_length=50)
+    score = models.FloatField(default=0.0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "user_search_affinity"
+        unique_together = [("user", "company", "object_type")]
+        indexes = [models.Index(fields=["user", "company"])]
+
+    def __str__(self):
+        return f"{self.user_id}@{self.company_id} {self.object_type}={self.score:.2f}"
