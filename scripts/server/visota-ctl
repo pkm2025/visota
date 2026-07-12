@@ -12,6 +12,10 @@ check_root(){ [ "$EUID" -ne 0 ]&&err "Cần sudo"&&exit 1;}
 
 # Podman + compose — AlmaLinux 10 có sẵn podman, chỉ cần thêm compose
 dk(){ podman compose "$@"; }
+# Prod compose file riêng (sinh bởi _wvc) — tránh bị `git pull` ghi đè bởi
+# docker-compose.yml DEV trong repo. Mọi dk call trong $APP_DIR phải dùng dkv.
+PROD_COMPOSE="docker-compose.prod.yml"
+dkv(){ podman compose -f "$APP_DIR/$PROD_COMPOSE" "$@"; }
 
 show_header(){ clear;echo -e "${CYAN}${BOLD}  Visota Control Panel v4${NC}";echo "";
 local ip=$(hostname -I 2>/dev/null|awk '{print $1}');local cpu=$(nproc 2>/dev/null);local ram=$(free -h 2>/dev/null|awk '/Mem:/{printf "%s/%s",$3,$2}');local disk=$(df -h / 2>/dev/null|awk 'NR==2{printf "%s(%s)",$3,$5}');local cont=$(podman ps -q 2>/dev/null|wc -l);
@@ -64,23 +68,23 @@ case "$c" in 1)read -p "Domain(visota.net):" d;_dv "${d:-visota.net}";pause;;2)r
 menu_logs(){ show_header;echo -e "${BOLD}LOGS${NC}\n"
 echo -e "  ${CYAN}1${NC})🌐 Web  ${CYAN}2${NC})⚙️ Worker  ${CYAN}3${NC})🗄️ DB  ${CYAN}4${NC})🔀 Traefik  ${CYAN}5${NC})🛡️ CrowdSec"
 echo "";echo -e "  ${YELLOW}0${NC})← Quay lại\n";read -rp "${BOLD}[0-5]:${NC} " c
-case "$c" in 1)cd "$APP_DIR" 2>/dev/null&&dk logs -f --tail=50 web;;2)cd "$APP_DIR" 2>/dev/null&&dk logs -f --tail=50 worker;;3)cd "$APP_DIR" 2>/dev/null&&dk logs -f --tail=50 db;;4)cd "$TRAEFIK_DIR" 2>/dev/null&&dk logs -f --tail=50 traefik;;5)podman logs -f --tail=50 crowdsec 2>/dev/null;;0)return;;esac;pause;}
+case "$c" in 1)cd "$APP_DIR" 2>/dev/null&&dkv logs -f --tail=50 web;;2)cd "$APP_DIR" 2>/dev/null&&dkv logs -f --tail=50 worker;;3)cd "$APP_DIR" 2>/dev/null&&dkv logs -f --tail=50 db;;4)cd "$TRAEFIK_DIR" 2>/dev/null&&dk logs -f --tail=50 traefik;;5)podman logs -f --tail=50 crowdsec 2>/dev/null;;0)return;;esac;pause;}
 
 menu_restart(){ show_header;echo -e "${BOLD}RESTART${NC}\n"
 echo -e "  ${CYAN}1${NC})🌐Web  ${CYAN}2${NC})⚙️Worker  ${CYAN}3${NC})🗄️DB  ${CYAN}4${NC})🔀Traefik  ${CYAN}5${NC})🛡️CrowdSec  ${CYAN}6${NC})💥Tất cả"
 echo "";echo -e "  ${YELLOW}0${NC})← Quay lại\n";read -rp "${BOLD}[0-6]:${NC} " c
-case "$c" in 1)cd "$APP_DIR" 2>/dev/null&&dk restart web&&ok "Web";;2)cd "$APP_DIR" 2>/dev/null&&dk restart worker&&ok "Worker";;3)cd "$APP_DIR" 2>/dev/null&&dk restart db&&ok "DB";;4)cd "$TRAEFIK_DIR" 2>/dev/null&&dk restart traefik&&ok "Traefik";;5)podman restart crowdsec 2>/dev/null&&ok "CrowdSec";;6)cd "$APP_DIR" 2>/dev/null&&dk restart&&ok "All";;0)return;;esac;pause;}
+case "$c" in 1)cd "$APP_DIR" 2>/dev/null&&dkv restart web&&ok "Web";;2)cd "$APP_DIR" 2>/dev/null&&dkv restart worker&&ok "Worker";;3)cd "$APP_DIR" 2>/dev/null&&dkv restart db&&ok "DB";;4)cd "$TRAEFIK_DIR" 2>/dev/null&&dk restart traefik&&ok "Traefik";;5)podman restart crowdsec 2>/dev/null&&ok "CrowdSec";;6)cd "$APP_DIR" 2>/dev/null&&dkv restart&&ok "All";;0)return;;esac;pause;}
 
 menu_restore(){ show_header;title "RESTORE";[ ! -d "$BACKUP_DIR" ]||[ -z "$(ls -A "$BACKUP_DIR" 2>/dev/null)" ]&&{ warn "Chưa có backup";pause;return;}
 local i=1;declare -a f;for x in "$BACKUP_DIR"/*.sql.gz;do [ -f "$x" ]||continue;f[$i]="$x";printf "  %s) %s (%s)\n" "$i" "$(basename "$x")" "$(du -h "$x"|awk '{print $1}')";((i++));done
 echo "";echo -e "  ${YELLOW}0${NC})←Quay lại\n";read -rp "${BOLD}[0-$((i-1))]:${NC} " c;[ "$c" = "0" ]&&return
 warn "OVERWRITE!";read -p "'RESTORE': " cf;[ "$cf" != "RESTORE" ]&&return
-source "$APP_DIR/.env" 2>/dev/null;cd "$APP_DIR";gunzip<"${f[$c]}"|dk exec -T db mariadb -u root -p"${DB_ROOT_PASSWORD}" "${DB_NAME:-visota}" 2>/dev/null;dk restart web worker;ok "Done";pause;}
+source "$APP_DIR/.env" 2>/dev/null;cd "$APP_DIR";gunzip<"${f[$c]}"|dkv exec -T db mariadb -u root -p"${DB_ROOT_PASSWORD}" "${DB_NAME:-visota}" 2>/dev/null;dkv restart web worker;ok "Done";pause;}
 
 menu_manage(){ while true;do show_header;echo -e "${BOLD}DJANGO${NC}\n"
 echo -e "  ${CYAN}1${NC})🐍Shell  ${CYAN}2${NC})👤Superuser  ${CYAN}3${NC})🔄Migrate  ${CYAN}4${NC})📁CollectStatic  ${CYAN}5${NC})🌱Seed  ${CYAN}6${NC})💣Flush"
 echo "";echo -e "  ${YELLOW}0${NC})← Quay lại\n";read -rp "${BOLD}[0-6]:${NC} " c
-case "$c" in 1)cd "$APP_DIR"&&dk exec web python manage.py shell;;2)cd "$APP_DIR"&&dk exec -it web python manage.py createsuperuser;;3)cd "$APP_DIR"&&dk exec web python manage.py migrate&&ok "Done";;4)cd "$APP_DIR"&&dk exec web python manage.py collectstatic --noinput&&ok "Static(WhiteNoise)";;5)cd "$APP_DIR"&&dk exec web python manage.py seed_permissions&&ok "Seeded";;6)warn "XÓA!";read -p "'DELETE': " x;[ "$x" = "DELETE" ]&&cd "$APP_DIR"&&dk exec web python manage.py flush --noinput&&ok "Flushed";;0)break;;esac;[ "$c" != "1" ]&&pause;done;}
+case "$c" in 1)cd "$APP_DIR"&&dkv exec web python manage.py shell;;2)cd "$APP_DIR"&&dkv exec -it web python manage.py createsuperuser;;3)cd "$APP_DIR"&&dkv exec web python manage.py migrate&&ok "Done";;4)cd "$APP_DIR"&&dkv exec web python manage.py collectstatic --noinput&&ok "Static(WhiteNoise)";;5)cd "$APP_DIR"&&dkv exec web python manage.py seed_permissions&&ok "Seeded";;6)warn "XÓA!";read -p "'DELETE': " x;[ "$x" = "DELETE" ]&&cd "$APP_DIR"&&dkv exec web python manage.py flush --noinput&&ok "Flushed";;0)break;;esac;[ "$c" != "1" ]&&pause;done;}
 
 menu_security(){ while true;do show_header;echo -e "${BOLD}SECURITY${NC}\n"
 echo -e "${BOLD}Status:${NC}";systemctl is-active --quiet firewalld 2>/dev/null&&ok "Firewalld"||warn "Firewalld OFF"
@@ -96,7 +100,7 @@ _ssh(){ title "SSH HARDEN";info "Current: $(grep -i PasswordAuthentication /etc/
 menu_shell(){ show_header;echo -e "${BOLD}SHELL${NC}\n"
 echo -e "  ${CYAN}1${NC})🌐Web  ${CYAN}2${NC})⚙️Worker  ${CYAN}3${NC})🗄️DB  ${CYAN}4${NC})🛡️CrowdSec"
 echo "";echo -e "  ${YELLOW}0${NC})← Quay lại\n";read -rp "${BOLD}[0-4]:${NC} " c
-case "$c" in 1)cd "$APP_DIR"&&dk exec web bash;;2)cd "$APP_DIR"&&dk exec worker bash;;3)source "$APP_DIR/.env" 2>/dev/null;podman exec -it visota-db mariadb -u root -p"${DB_ROOT_PASSWORD}";;4)podman exec -it crowdsec bash;;0)return;;esac;}
+case "$c" in 1)cd "$APP_DIR"&&dkv exec web bash;;2)cd "$APP_DIR"&&dkv exec worker bash;;3)source "$APP_DIR/.env" 2>/dev/null;podman exec -it visota-db mariadb -u root -p"${DB_ROOT_PASSWORD}";;4)podman exec -it crowdsec bash;;0)return;;esac;}
 
 menu_config(){ while true;do show_header;echo -e "${BOLD}CONFIG${NC}\n"
 echo -e "  ${CYAN}1${NC})✏️.env  ${CYAN}2${NC})✏️Traefik  ${CYAN}3${NC})📋Show .env(masked)"
@@ -105,9 +109,9 @@ case "$c" in 1)${EDITOR:-nano} "$APP_DIR/.env";;2)${EDITOR:-nano} "$TRAEFIK_DIR/
 
 cmd_status(){ title "STATUS";info "IP:$(hostname -I 2>/dev/null|awk '{print $1}') CPU:$(nproc) RAM:$(free -h|awk '/Mem:/{print $3"/"$2}') Disk:$(df -h /|awk 'NR==2{print $3"/"$2"("$5")"}')";command -v podman&>/dev/null&&{ echo "";podman ps --format "table {{.Names}}\t{{.Status}}" 2>/dev/null;echo "";podman stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" 2>/dev/null;};}
 cmd_containers(){ title "CONTAINERS";podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null||warn "Podman off";}
-cmd_backup(){ check_root;title "BACKUP";mkdir -p "$BACKUP_DIR";local ts=$(date "+%Y%m%d_%H%M%S");[ -f "$APP_DIR/.env" ]&&{ source "$APP_DIR/.env";cd "$APP_DIR";info "DB...";dk exec -T db mysqldump -u root -p"${DB_ROOT_PASSWORD}" "${DB_NAME:-visota}" 2>/dev/null|gzip>"$BACKUP_DIR/visota_db_${ts}.sql.gz";ok "DB:$(du -h "$BACKUP_DIR/visota_db_${ts}.sql.gz"|awk '{print $1}')";podman run --rm -v visota_media_files:/data:ro -v "$BACKUP_DIR:/backup" alpine tar czf "/backup/visota_media_${ts}.tar.gz" /data 2>/dev/null;ok "Media";find "$BACKUP_DIR" -name "*.gz" -mtime +30 -delete;}||warn "Visota chưa deploy";}
-cmd_update(){ check_root;title "UPDATE";cd "$APP_DIR";info "Pull...";git pull origin main;info "Build...";dk up -d --build --force-recreate;info "Migrate...";dk exec -T web python manage.py migrate --noinput;info "Static(WhiteNoise)...";dk exec -T web python manage.py collectstatic --noinput;info "Seed...";dk exec -T web python manage.py seed_permissions 2>/dev/null||true;ok "Updated";_ensure_autostart;}
-cmd_security(){ title "AUDIT";local n=0;systemctl is-active --quiet firewalld 2>/dev/null&&ok "Firewalld"||{ warn "⚠Firewalld";((n++));};podman ps --format '{{.Names}}' 2>/dev/null|grep -q crowdsec&&ok "CrowdSec"||{ warn "⚠CrowdSec";((n++));};systemctl is-active --quiet dnf-automatic.timer 2>/dev/null&&ok "Auto-patch"||{ warn "⚠Auto-patch";((n++));};local d=$(df /|awk 'NR==2{gsub(/%/,"");print $5}');[ "$d" -gt 85 ]&&{ err "🚨Disk $d%";((n++));}||ok "Disk:$d%";systemctl is-enabled --quiet podman-pods-start.service 2>/dev/null&&ok "Auto-start pods"||{ warn "⚠Pods không tự start sau reboot";((n++));};echo "";[ "$n" -eq 0 ]&&ok "✓OK"||warn "$n vấn đề";}
+cmd_backup(){ check_root;title "BACKUP";mkdir -p "$BACKUP_DIR";local ts=$(date "+%Y%m%d_%H%M%S");[ -f "$APP_DIR/.env" ]&&{ source "$APP_DIR/.env";cd "$APP_DIR";info "DB...";dkv exec -T db mysqldump -u root -p"${DB_ROOT_PASSWORD}" "${DB_NAME:-visota}" 2>/dev/null|gzip>"$BACKUP_DIR/visota_db_${ts}.sql.gz";ok "DB:$(du -h "$BACKUP_DIR/visota_db_${ts}.sql.gz"|awk '{print $1}')";podman run --rm -v visota_media_files:/data:ro -v "$BACKUP_DIR:/backup" alpine tar czf "/backup/visota_media_${ts}.tar.gz" /data 2>/dev/null;ok "Media";find "$BACKUP_DIR" -name "*.gz" -mtime +30 -delete;}||warn "Visota chưa deploy";}
+cmd_update(){ check_root;title "UPDATE";cd "$APP_DIR";info "Pull...";git pull origin main;[ ! -f "$APP_DIR/$PROD_COMPOSE" ]&&{ warn "Thiếu $PROD_COMPOSE — regenerate từ domain hiện có";local dom;dom=$(grep -oE 'Host\(`[^`]+`\)' "$APP_DIR/.env" 2>/dev/null|head -1|sed 's/Host(`//;s/`)//')||true;_wvc "${dom:-visota.net}";};info "Build...";dkv up -d --build --force-recreate;info "Migrate...";dkv exec -T web python manage.py migrate --noinput;info "Static(WhiteNoise)...";dkv exec -T web python manage.py collectstatic --noinput;info "Seed...";dkv exec -T web python manage.py seed_permissions 2>/dev/null||true;ok "Updated";_ensure_autostart;}
+cmd_security(){ title "AUDIT";local n=0;systemctl is-active --quiet firewalld 2>/dev/null&&ok "Firewalld"||{ warn "⚠Firewalld";((n++));};podman ps --format '{{.Names}}' 2>/dev/null|grep -q crowdsec&&ok "CrowdSec"||{ warn "⚠CrowdSec";((n++));};systemctl is-active --quiet dnf-automatic.timer 2>/dev/null&&ok "Auto-patch"||{ warn "⚠Auto-patch";((n++));};local d=$(df /|awk 'NR==2{gsub(/%/,"");print $5}');[ "$d" -gt 85 ]&&{ err "🚨Disk $d%";((n++));}||ok "Disk:$d%";systemctl is-enabled --quiet podman-pods-start.service 2>/dev/null&&ok "Auto-start pods"||{ warn "⚠Pods không tự start sau reboot";((n++));};[ -f "$APP_DIR/$PROD_COMPOSE" ]&&ok "Prod compose"||{ warn "⚠Thiếu $PROD_COMPOSE — chạy 'visota-ctl deploy visota <domain>'";((n++));};echo "";[ "$n" -eq 0 ]&&ok "✓OK"||warn "$n vấn đề";}
 cmd_cleanup(){ check_root;title "CLEANUP";podman image prune -f 2>/dev/null;podman volume prune -f 2>/dev/null;podman container prune -f 2>/dev/null;journalctl --vacuum-time=7d 2>/dev/null||true;ok "Done";}
 
 # Auto-start pods after reboot — rootless podman không có daemon persistent để
@@ -163,9 +167,9 @@ TEOF
 _dv(){ local d="$1";title "DEPLOY VISOTA($d)";mkdir -p "$APP_DIR";cd "$APP_DIR";[ -d .git ]&&{ info "Update...";git pull origin main;}||{ info "Clone...";git clone git@github.com:pkm2025/visota.git .||{ err "Clone fail — chạy 'visota-ctl install' trước để setup deploy key";return 1;};}
 [ ! -f ".env" ]&&{ info "Gen .env...";local s dp ap;s=$(openssl rand -hex 32);dp=$(openssl rand -hex 16);ap=$(openssl rand -base64 12)
 printf 'DJANGO_SETTINGS_MODULE=config.settings.prod\nSECRET_KEY=%s\nDB_ROOT_PASSWORD=%s\nDB_NAME=visota\nDB_USER=visota\nDB_PASSWORD=********************************************************************************alhost\nGUNICORN_WORKERS=4\n' "$s" "$dp" "$dp" "$d" "$ap" "$d" "$d">.env
-echo "";echo -e "${GREEN}${BOLD}═══ LOGIN ═══${NC}";echo -e "  URL:${CYAN}https://$d/${NC}  Admin:${CYAN}admin${NC}  Pass:${YELLOW}$ap${NC}";echo -e "${RED}Lưu lại!${NC}";echo "";};_wvc "$d";info "Build(3-5m)...";dk up -d --build --force-recreate;ok "https://$d/";_ensure_autostart;}
+echo "";echo -e "${GREEN}${BOLD}═══ LOGIN ═══${NC}";echo -e "  URL:${CYAN}https://$d/${NC}  Admin:${CYAN}admin${NC}  Pass:${YELLOW}$ap${NC}";echo -e "${RED}Lưu lại!${NC}";echo "";};_wvc "$d";info "Build(3-5m)...";dkv up -d --build --force-recreate;ok "https://$d/";_ensure_autostart;}
 
-_wvc(){ local d="$1";cat>"$APP_DIR/docker-compose.yml"<<VEOF
+_wvc(){ local d="$1";cat>"$APP_DIR/$PROD_COMPOSE"<<VEOF
 services:
   web:
     build: .
@@ -303,8 +307,8 @@ cmd_cli(){ case "${1:-help}" in
 install)check_root;_fi "${2:-admin@visota.net}";;
 deploy)check_root;shift;case "${1:-}" in visota)_dv "${2:-visota.net}";;metabase)_dm "${2:-analytics.visota.net}";;n8n)_dn "${2:-flow.visota.net}";;minio)_dminio "${2:-s3.visota.net}";;*)err "Apps: visota/metabase/n8n/minio";;esac;;
 update)check_root;cmd_update;;status)cmd_status;;apps|containers)cmd_containers;;
-logs)local s="${2:-web}";case "$s" in traefik)cd "$TRAEFIK_DIR" 2>/dev/null&&dk logs -f --tail=50 traefik;;crowdsec)podman logs -f --tail=50 crowdsec 2>/dev/null;;*)cd "$APP_DIR" 2>/dev/null&&dk logs -f --tail=50 "$s";;esac;;
-restart)check_root;cd "$APP_DIR" 2>/dev/null&&dk restart "${2:-}";;backup)check_root;cmd_backup;;shell)cd "$APP_DIR" 2>/dev/null&&dk exec "${2:-web}" bash;;security)cmd_security;;cleanup)check_root;cmd_cleanup;;
+logs)local s="${2:-web}";case "$s" in traefik)cd "$TRAEFIK_DIR" 2>/dev/null&&dk logs -f --tail=50 traefik;;crowdsec)podman logs -f --tail=50 crowdsec 2>/dev/null;;*)cd "$APP_DIR" 2>/dev/null&&dkv logs -f --tail=50 "$s";;esac;;
+restart)check_root;cd "$APP_DIR" 2>/dev/null&&dkv restart "${2:-}";;backup)check_root;cmd_backup;;shell)cd "$APP_DIR" 2>/dev/null&&dkv exec "${2:-web}" bash;;security)cmd_security;;cleanup)check_root;cmd_cleanup;;
 minio)shift;case "${1:-help}" in ls)_mc ls local 2>&1;;mb)_mc mb "local/${2:?bucket name required}" 2>&1&&ok "Created";;size)_mc du local 2>&1;;put)local f="${2:?file required}" b="${3:?bucket required}";[ -f "$f" ]||{ err "File không tồn tại: $f";exit 1;};podman cp "$f" "minio:/tmp/upload"&&_mc cp /tmp/upload "local/$b/$(basename "$f")" 2>&1&&podman exec minio rm /tmp/upload&&ok "Uploaded";;get)_mc cp "local/${2:?key required}" "/tmp/dl" 2>&1&&podman cp "minio:/tmp/dl" "${3:?local path required}" 2>&1&&podman exec minio rm /tmp/dl&&ok "Downloaded → ${3}";;creds)grep -E "MINIO_ROOT_(USER|PASSWORD)" /opt/minio/docker-compose.yml 2>/dev/null||warn "MinIO chưa deploy";;*)echo "Usage: visota-ctl minio <ls|mb NAME|size|put FILE BUCKET|get KEY LOCAL|creds>";;esac;;
 help|--help|-h)echo "visota-ctl v4 — Menu: sudo visota-ctl | CLI: sudo visota-ctl <cmd>";echo "Commands: install deploy update status containers logs restart backup shell security cleanup minio";;
 *)err "Unknown: $1";exit 1;;esac;}

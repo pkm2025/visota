@@ -68,6 +68,11 @@ static_collected/
 *.env
 .env*
 
+# Prod compose — sinh bởi visota-ctl (_wvc), KHÔNG track
+# (docker-compose.yml gốc là file DEV; prod dùng docker-compose.prod.yml)
+docker-compose.prod.yml
+docker-compose.override.yml
+
 # OS files
 .DS_Store
 Thumbs.db
