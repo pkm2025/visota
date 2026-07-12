@@ -162,7 +162,7 @@ TEOF
 
 _dv(){ local d="$1";title "DEPLOY VISOTA($d)";mkdir -p "$APP_DIR";cd "$APP_DIR";[ -d .git ]&&{ info "Update...";git pull origin main;}||{ info "Clone...";git clone git@github.com:pkm2025/visota.git .||{ err "Clone fail — chạy 'visota-ctl install' trước để setup deploy key";return 1;};}
 [ ! -f ".env" ]&&{ info "Gen .env...";local s dp ap;s=$(openssl rand -hex 32);dp=$(openssl rand -hex 16);ap=$(openssl rand -base64 12)
-printf 'DJANGO_SETTINGS_MODULE=config.settings.prod\nSECRET_KEY=%s\nDB_ROOT_PASSWORD=%s\nDB_NAME=visota\nDB_USER=visota\nDB_PASSWORD=********************************************************************************alhost\nGUNICORN_WORKERS=4\n' "$s" "$dp" "$dp" "$d" "$ap" "$d" "$d">.env
+printf 'DJANGO_SETTINGS_MODULE=config.settings.prod\nSECRET_KEY=%s\nDB_ROOT_PASSWORD=%s\nDB_NAME=visota\nDB_USER=visota\nDB_PASSWORD=%s\nSUPERUSER_EMAIL=admin@%s\nSUPERUSER_PASSWORD=%s\nALLOWED_HOSTS=%s,www.%s,localhost\nGUNICORN_WORKERS=4\n' "$s" "$dp" "$dp" "$d" "$ap" "$d" "$d">.env
 echo "";echo -e "${GREEN}${BOLD}═══ LOGIN ═══${NC}";echo -e "  URL:${CYAN}https://$d/${NC}  Admin:${CYAN}admin${NC}  Pass:${YELLOW}$ap${NC}";echo -e "${RED}Lưu lại!${NC}";echo "";};_wvc "$d";info "Build(3-5m)...";dk up -d --build --force-recreate;ok "https://$d/";_ensure_autostart;}
 
 _wvc(){ local d="$1";cat>"$APP_DIR/docker-compose.yml"<<VEOF
