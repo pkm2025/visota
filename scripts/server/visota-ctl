@@ -194,7 +194,7 @@ services:
     healthcheck: {test: ["NONE"]}
     networks: [visota-net]
   db:
-    image: docker.io/library/mariadb:11.4
+    image: docker.io/library/mariadb:11.8
     container_name: visota-db
     restart: unless-stopped
     environment: {MYSQL_ROOT_PASSWORD: "\${DB_ROOT_PASSWORD}", MYSQL_DATABASE: "\${DB_NAME:-visota}", MYSQL_USER: "\${DB_USER:-visota}", MYSQL_PASSWORD: "\${DB_PASSWORD}"}
