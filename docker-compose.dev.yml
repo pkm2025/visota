@@ -1,3 +1,5 @@
+# DEV ONLY — dùng cho local/dev. Production dùng compose do visota-ctl sinh
+# (visota-web/visota-db/worker + Traefik labels). KHÔNG deploy file này lên prod.
 services:
   mariadb:
     image: mariadb:11.4
