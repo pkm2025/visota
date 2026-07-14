@@ -21,6 +21,7 @@
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-reps" type="button"><i class="bi bi-people"></i> Đại diện</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-bank" type="button"><i class="bi bi-bank"></i> Ngân hàng</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-brand" type="button"><i class="bi bi-palette"></i> Thương hiệu</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-modules" type="button"><i class="bi bi-grid"></i> Module</button></li>
         </ul>
 
         <div class="tab-content">
@@ -315,6 +316,66 @@
                             </div>
                         </div>
                     </div>
+                </div></div>
+            </div>
+
+            <!-- Tab: Module Visibility -->
+            <div class="tab-pane fade" id="tab-modules">
+                <div class="card"><div class="card-body">
+                    <h5 class="text-primary mb-3">
+                        <i class="bi bi-grid"></i> Quản lý module hiển thị
+                    </h5>
+
+                    {% if is_dnsn %}
+                    <div class="alert alert-info small mb-3" role="alert">
+                        <i class="bi bi-info-circle"></i>
+                        Công ty của bạn đang ở chế độ <strong>TT58 (DNSN)</strong>.
+                        Các module cốt lõi luôn hiển thị. Các module nâng cao
+                        được ẩn mặc định — bật để hiển thị trên thanh bên.
+                    </div>
+                    {% else %}
+                    <div class="alert alert-secondary small mb-3" role="alert">
+                        <i class="bi bi-info-circle"></i>
+                        Module nâng cao tự động hiển thị cho công ty không phải DNSN.
+                        Chuyển sang chế độ <strong>TT58</strong> để sử dụng modular sidebar.
+                    </div>
+                    {% endif %}
+
+                    <!-- Core modules (always visible) -->
+                    <h6 class="text-muted mb-2">
+                        <i class="bi bi-star-fill text-warning"></i> Module cốt lõi
+                        <small class="text-muted">— luôn hiển thị</small>
+                    </h6>
+                    <div class="row mb-4">
+                        {% for mod in core_modules %}
+                        <div class="col-md-4 mb-2">
+                            <div class="border rounded p-2 h-100">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-success me-2"><i class="bi bi-check-lg"></i></span>
+                                    <strong>{{ mod.label }}</strong>
+                                </div>
+                                <small class="text-muted d-block mt-1">{{ mod.description }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Advanced modules (toggleable) -->
+                    <h6 class="text-muted mb-2">
+                        <i class="bi bi-sliders"></i> Module nâng cao
+                        <small class="text-muted">— bật/tắt theo nhu cầu</small>
+                    </h6>
+                    {% for mod in advanced_modules %}
+                    <div class="form-check form-switch mb-2 p-2 border rounded">
+                        <input type="checkbox" class="form-check-input" role="switch"
+                               name="module_{{ mod.key }}" id="id_module_{{ mod.key }}"
+                               {% if mod.enabled %}checked{% endif %}>
+                        <label class="form-check-label ms-2" for="id_module_{{ mod.key }}">
+                            <strong>{{ mod.label }}</strong>
+                            <small class="text-muted d-block">{{ mod.description }}</small>
+                        </label>
+                    </div>
+                    {% endfor %}
                 </div></div>
             </div>
         </div>

@@ -1,6 +1,8 @@
 """Company profile edit view — full CRUD with logo/stamp upload."""
 
+import contextlib
 import json
+from datetime import date
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -8,6 +10,13 @@ from django.shortcuts import redirect, render
 from django.views import View
 
 from apps.core.models import Company
+from apps.core.module_config import (
+    ADVANCED_MODULES,
+    CORE_MODULES,
+    MODULE_DESCRIPTIONS,
+    MODULE_LABELS,
+    ModuleVisibilityService,
+)
 
 
 class CompanyProfileView(LoginRequiredMixin, View):
@@ -21,6 +30,7 @@ class CompanyProfileView(LoginRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
         company = self.get_company(request)
+        vis_service = ModuleVisibilityService(company)
         ctx = {
             "page_title": f"Hồ sơ công ty: {company.name}",
             "company": company,
@@ -30,6 +40,24 @@ class CompanyProfileView(LoginRequiredMixin, View):
             "tndn_method_choices": Company.TndnMethod.choices,
             "entity_type_choices": Company.EntityType.choices,
             "bank_accounts_json": json.dumps(company.bank_accounts or [], ensure_ascii=False),
+            "core_modules": [
+                {
+                    "key": m,
+                    "label": MODULE_LABELS.get(m, m),
+                    "description": MODULE_DESCRIPTIONS.get(m, ""),
+                }
+                for m in CORE_MODULES
+            ],
+            "advanced_modules": [
+                {
+                    "key": m,
+                    "label": MODULE_LABELS.get(m, m),
+                    "description": MODULE_DESCRIPTIONS.get(m, ""),
+                    "enabled": vis_service.is_module_visible(m),
+                }
+                for m in ADVANCED_MODULES
+            ],
+            "is_dnsn": vis_service._is_dnsn,
         }
         return render(request, self.template_name, ctx)
 
@@ -78,12 +106,8 @@ class CompanyProfileView(LoginRequiredMixin, View):
         for date_field in ["business_license_date"]:
             val = request.POST.get(date_field, "").strip()
             if val:
-                from datetime import date
-
-                try:
+                with contextlib.suppress(ValueError):
                     setattr(company, date_field, date.fromisoformat(val))
-                except ValueError:
-                    pass
             else:
                 setattr(company, date_field, None)
 
@@ -109,11 +133,17 @@ class CompanyProfileView(LoginRequiredMixin, View):
             if f:
                 old = getattr(company, file_field)
                 if old:
-                    try:
+                    with contextlib.suppress(Exception):
                         old.delete(save=False)
-                    except Exception:
-                        pass
                 setattr(company, file_field, f)
+
+        # Module visibility settings: advanced modules enabled via checkboxes.
+        # The POST contains "module_nhan_su", "module_tai_san", etc. for
+        # each enabled advanced module.
+        vis_service = ModuleVisibilityService(company)
+        vis_service.set_enabled_modules(
+            [m for m in ADVANCED_MODULES if request.POST.get(f"module_{m}") == "on"]
+        )
 
         company.save()
         messages.success(request, f"Đã cập nhật hồ sơ công ty '{company.name}'.")

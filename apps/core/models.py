@@ -146,6 +146,12 @@ class Company(models.Model):
     # JSON dict like {"s4a": true, "s4b": false, ...}
     dnsn_optional_ledgers = models.JSONField(default=dict, blank=True)
 
+    # Module visibility: which advanced sidebar modules are enabled.
+    # JSON dict like {"nhan_su": true, "tai_san": false, ...}
+    # Core modules are always visible; advanced modules are gated by this
+    # field for DNSN (TT58) companies. See apps.core.module_config.
+    enabled_modules = models.JSONField(default=dict, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

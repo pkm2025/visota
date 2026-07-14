@@ -15,7 +15,6 @@ import pytest
 
 from apps.core.models import Company
 from apps.ledger.models import (
-    AccountingVoucher,
     DnsnLedgerBalance,
     DnsnLedgerEntry,
     DnsnVoucher,
@@ -23,7 +22,6 @@ from apps.ledger.models import (
 from apps.master_data.models import Customer, Product, Vendor
 from apps.purchasing.services import PurchaseInvoiceService
 from apps.sales.services import SalesInvoiceService
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -709,7 +707,7 @@ def test_tt133_sales_invoice_unchanged(tt133_company):
 
     # Verify standard VAT posting to TK 33311
     lines = voucher.lines.all()
-    account_codes = {l.account_code for l in lines}
+    account_codes = {line.account_code for line in lines}
     assert "33311" in account_codes  # VAT output
 
 
@@ -746,7 +744,7 @@ def test_tt133_purchase_invoice_unchanged(tt133_company):
 
     # Verify standard VAT posting to TK 1331
     lines = voucher.lines.all()
-    account_codes = {l.account_code for l in lines}
+    account_codes = {line.account_code for line in lines}
     assert "1331" in account_codes  # VAT input
 
 
