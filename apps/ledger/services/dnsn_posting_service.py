@@ -180,9 +180,20 @@ class DnsnPostingService:
         for entry in entries:
             balance.period_revenue += entry.revenue_amount
             balance.period_cost += entry.cost_amount
-            balance.period_vat += (
-                entry.vat_amount + entry.vat_input + entry.vat_output + entry.vat_payable
-            )
+            # S2c (inventory) tracks value via total_amount; accumulate it
+            # into period_revenue so B01-DNSN can read closing_revenue.
+            if ledger_type == "s2c":
+                balance.period_revenue += entry.total_amount
+            # VAT: distinguish input (credit) vs output (debit/payable).
+            # Net VAT payable = vat_output - vat_input + vat_amount + vat_payable.
+            if ledger_type == "s3b":
+                balance.period_vat += (
+                    entry.vat_output - entry.vat_input + entry.vat_amount + entry.vat_payable
+                )
+            else:
+                balance.period_vat += (
+                    entry.vat_amount + entry.vat_input + entry.vat_output + entry.vat_payable
+                )
             balance.period_cash += entry.cash_in - entry.cash_out + entry.bank_in - entry.bank_out
             if entry.entry_date and (last_date is None or entry.entry_date > last_date):
                 last_date = entry.entry_date

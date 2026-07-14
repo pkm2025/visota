@@ -84,7 +84,8 @@ class DnsnReportService:
 
         # --- Liabilities ---
         payables = self._get_balance_value(balances, "s4a", "closing_cost")
-        other_taxes = self._get_balance_value(balances, "s4c", "closing_cash")
+        # S4c (thuế khác) stores tax amounts in closing_vat, not closing_cash.
+        other_taxes = self._get_balance_value(balances, "s4c", "closing_vat")
 
         liability_rows = [
             {"stt": "1", "label": "Công nợ phải trả", "amount": payables},
@@ -204,13 +205,20 @@ class DnsnReportService:
     def has_bctc_for_period(self, fiscal_year: int, period: int) -> bool:
         """Check if a BCTC has been generated for the given period.
 
-        A BCTC is considered generated if there are DnsnLedgerBalance
-        records for the period, which indicates the ledger has been
-        posted and report data is available.
+        A BCTC is considered generated when there are DnsnLedgerBalance
+        records with non-zero closing amounts, indicating actual posted
+        ledger data exists for the period (not just empty zero-balance
+        rows created by a recalculation).
 
         For year-end close, period=12 (or the final period) is checked.
         """
-        return DnsnLedgerBalance.objects.filter(
+        from apps.ledger.models import DnsnLedgerEntry
+
+        # Require at least one posted ledger entry for this period.
+        # Merely having a DnsnLedgerBalance row (which may have all zeros
+        # from an empty recalculation) is not sufficient evidence that
+        # financial reports have actual data.
+        return DnsnLedgerEntry.objects.filter(
             company=self.company,
             fiscal_year=fiscal_year,
             period=period,
@@ -293,7 +301,7 @@ class DnsnReportService:
     ) -> tuple[list[str], list[list[str]]]:
         """Get B01-DNSN data as (headers, rows) for PDF/Excel export."""
         data = self.generate_b01_dnsn(fiscal_year, period)
-        headers = ["STT", "Chỉ tiêu", "Số tiền"]
+        headers = ["STT", "Chỉ tiêu", "Mã số", "Số tiền"]
         rows: list[list[str]] = []
 
         # Assets section

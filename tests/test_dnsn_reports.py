@@ -342,7 +342,14 @@ def test_bctc_mandatory_group2_blocks_close_without_bctc(g2_company):
 @pytest.mark.django_db
 def test_bctc_mandatory_group2_allows_close_with_bctc(g2_company):
     """Group 2 can close when BCTC data exists."""
-    _create_balance(g2_company, "s2a", closing_revenue=100_000)
+    # has_bctc_for_period now checks for posted ledger entries, not just
+    # balance rows, so we need to post a voucher to create entries.
+    _post_voucher(
+        g2_company,
+        "BCTC01",
+        "s2a",
+        [{"ledger_type": "s2a", "description": "Sale", "revenue_amount": 100_000}],
+    )
     svc = DnsnReportService(g2_company)
     result = svc.check_bctc_for_period_close(2026, 7)
     assert result["mandatory"] is True
@@ -659,7 +666,13 @@ def test_period_close_allowed_for_group3_without_bctc(g3_client):
 @pytest.mark.django_db
 def test_period_close_allowed_for_group2_with_bctc(g2_company, g2_client):
     """Group 2 period close allowed when BCTC data exists."""
-    _create_balance(g2_company, "s2a", closing_revenue=100_000)
+    # Post a voucher to create ledger entries (has_bctc checks for entries now)
+    _post_voucher(
+        g2_company,
+        "BCTC02",
+        "s2a",
+        [{"ledger_type": "s2a", "description": "Sale", "revenue_amount": 100_000}],
+    )
     response = g2_client.post(
         "/modern/closing/",
         {"fiscal_year": "2026", "period": "7"},
