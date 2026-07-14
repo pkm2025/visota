@@ -1,0 +1,63 @@
+{% extends 'modern/base/layout.html' %}
+{% load static %}
+{% load format_utils %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item active">Báo cáo DNSN</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+            <small class="text-muted">
+                Chế độ kế toán siêu nhỏ (TT58/2026/TT-BTC)
+                {% if tax_method_group_label %}
+                — {{ tax_method_group_label }}
+                {% endif %}
+            </small>
+        </div>
+    </div>
+
+    {% if not is_tt58 %}
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        Báo cáo DNSN chỉ áp dụng cho công ty áp dụng chế độ TT58/2026.
+    </div>
+    {% else %}
+
+    <div class="row">
+        {% for report in reports %}
+        <div class="col-md-6 col-xl-4 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6 class="mb-0">{{ report.short }}</h6>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-2">{{ report.description }}</p>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url report.url_name %}" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-file-earmark-text"></i> Xem báo cáo
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-file-earmark-text text-muted" style="font-size:48px;"></i>
+                    <p class="text-muted mt-2 mb-1">Chưa có báo cáo DNSN nào</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}

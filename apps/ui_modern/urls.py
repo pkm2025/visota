@@ -90,6 +90,10 @@ from .views import (
     DnsnLedgerDetailView,
     DnsnLedgerListView,
     DnsnLedgerSettingsView,
+    DnsnB01ReportView,
+    DnsnB02ReportView,
+    DnsnReportExportView,
+    DnsnReportListView,
     DocumentDeleteView,
     DocumentDetailView,
     DocumentDownloadView,
@@ -572,6 +576,27 @@ urlpatterns = [
         "dnsn-ledgers/<str:ledger_type>/",
         login_required(DnsnLedgerDetailView.as_view()),
         name="dnsn_ledger_detail",
+    ),
+    # TT58 DNSN financial reports
+    path(
+        "dnsn-reports/",
+        login_required(DnsnReportListView.as_view()),
+        name="dnsn_report_list",
+    ),
+    path(
+        "dnsn-reports/b01-dnsn/",
+        login_required(DnsnB01ReportView.as_view()),
+        name="dnsn_report_b01",
+    ),
+    path(
+        "dnsn-reports/b02-dnsn/",
+        login_required(DnsnB02ReportView.as_view()),
+        name="dnsn_report_b02",
+    ),
+    path(
+        "dnsn-reports/export/",
+        login_required(DnsnReportExportView.as_view()),
+        name="dnsn_report_export",
     ),
     path(
         "documents/<int:pk>/download/",

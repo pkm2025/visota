@@ -1,0 +1,129 @@
+{% extends 'modern/base/layout.html' %}
+{% load static %}
+{% load format_utils %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dnsn_report_list' %}">Báo cáo DNSN</a></li>
+                    <li class="breadcrumb-item active">B02-DNSN</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+            <small class="text-muted">
+                Chế độ kế toán siêu nhỏ (TT58/2026/TT-BTC)
+                — Tháng {{ period|stringformat:'02d' }}/{{ fiscal_year }}
+            </small>
+        </div>
+        <div>
+            {% if is_tt58 %}
+            <a href="{% url 'ui_modern:dnsn_report_export' %}?report=B02-DNSN&format=pdf&fiscal_year={{ fiscal_year }}&period={{ period }}"
+               class="btn btn-danger btn-sm">
+                <i class="bi bi-file-pdf"></i> PDF
+            </a>
+            <a href="{% url 'ui_modern:dnsn_report_export' %}?report=B02-DNSN&format=xlsx&fiscal_year={{ fiscal_year }}&period={{ period }}"
+               class="btn btn-success btn-sm">
+                <i class="bi bi-file-excel"></i> Excel
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if not_available %}
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        Báo cáo B02-DNSN chỉ dành cho công ty áp dụng chế độ TT58/2026.
+    </div>
+    {% else %}
+
+    <!-- Period filter -->
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label small text-muted mb-0">Năm</label>
+                    <select name="fiscal_year" class="form-select form-select-sm">
+                        {% for y in year_choices %}
+                        <option value="{{ y }}" {% if y == fiscal_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small text-muted mb-0">Kỳ</label>
+                    <select name="period" class="form-select form-select-sm">
+                        {% for p in period_choices %}
+                        <option value="{{ p }}" {% if p == period %}selected{% endif %}>Tháng {{ p|stringformat:'02d' }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-arrow-repeat"></i> Xem
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="text-center mb-3">
+                <h5 class="mb-0">{{ company_name|upper }}</h5>
+                <h4 class="mb-0">BÁO CÁO KẾT QUẢ HOẠT ĐỘNG KINH DOANH</h4>
+                <p class="text-muted mb-0">Mẫu B02-DNSN (TT58/2026/TT-BTC)</p>
+                <p class="small">Kỳ: Tháng {{ period|stringformat:'02d' }} năm {{ fiscal_year }}</p>
+            </div>
+
+            <table class="table table-bordered table-sm">
+                <thead>
+                    <tr class="table-light">
+                        <th style="width:60px;">STT</th>
+                        <th>Chỉ tiêu</th>
+                        <th class="text-end" style="width:200px;">Kỳ này (VND)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr class="{% if row.stt == '3' or row.stt == '5' %}fw-bold table-light{% endif %}">
+                        <td class="text-center">{{ row.stt }}</td>
+                        <td>{{ row.label }}</td>
+                        <td class="text-end font-mono">{{ row.amount|vnd }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <div class="card border-light">
+                        <div class="card-body">
+                            <h6 class="text-muted">Tóm tắt</h6>
+                            <div class="d-flex justify-content-between">
+                                <span>Doanh thu:</span>
+                                <span class="font-mono fw-bold text-success">{{ revenue|vnd }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Chi phí:</span>
+                                <span class="font-mono fw-bold text-danger">{{ cost|vnd }}</span>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-bold">Lợi nhuận sau thuế:</span>
+                                <span class="font-mono fw-bold {% if net_profit > 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ net_profit|vnd }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}

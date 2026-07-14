@@ -1,0 +1,162 @@
+{% extends 'modern/base/layout.html' %}
+{% load static %}
+{% load format_utils %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dnsn_report_list' %}">Báo cáo DNSN</a></li>
+                    <li class="breadcrumb-item active">B01-DNSN</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+            <small class="text-muted">
+                Chế độ kế toán siêu nhỏ (TT58/2026/TT-BTC)
+                — Tháng {{ period|stringformat:'02d' }}/{{ fiscal_year }}
+            </small>
+        </div>
+        <div>
+            {% if is_tt58 %}
+            <a href="{% url 'ui_modern:dnsn_report_export' %}?report=B01-DNSN&format=pdf&fiscal_year={{ fiscal_year }}&period={{ period }}"
+               class="btn btn-danger btn-sm">
+                <i class="bi bi-file-pdf"></i> PDF
+            </a>
+            <a href="{% url 'ui_modern:dnsn_report_export' %}?report=B01-DNSN&format=xlsx&fiscal_year={{ fiscal_year }}&period={{ period }}"
+               class="btn btn-success btn-sm">
+                <i class="bi bi-file-excel"></i> Excel
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if not_available %}
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        Báo cáo B01-DNSN chỉ dành cho công ty áp dụng chế độ TT58/2026.
+    </div>
+    {% else %}
+
+    <!-- Period filter -->
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label small text-muted mb-0">Năm</label>
+                    <select name="fiscal_year" class="form-select form-select-sm">
+                        {% for y in year_choices %}
+                        <option value="{{ y }}" {% if y == fiscal_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small text-muted mb-0">Kỳ</label>
+                    <select name="period" class="form-select form-select-sm">
+                        {% for p in period_choices %}
+                        <option value="{{ p }}" {% if p == period %}selected{% endif %}>Tháng {{ p|stringformat:'02d' }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-arrow-repeat"></i> Xem
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="text-center mb-3">
+                <h5 class="mb-0">{{ company_name|upper }}</h5>
+                <h4 class="mb-0">BÁO CÁO TÌNH HÌNH TÀI CHÍNH</h4>
+                <p class="text-muted mb-0">Mẫu B01-DNSN (TT58/2026/TT-BTC)</p>
+                <p class="small">Tại ngày cuối kỳ: Tháng {{ period|stringformat:'02d' }} năm {{ fiscal_year }}</p>
+            </div>
+
+            <table class="table table-bordered table-sm">
+                <thead>
+                    <tr class="table-light">
+                        <th style="width:60px;">STT</th>
+                        <th>Chỉ tiêu</th>
+                        <th class="text-end" style="width:200px;">Số tiền (VND)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Assets -->
+                    <tr class="table-secondary fw-bold">
+                        <td colspan="3">I. TÀI SẢN</td>
+                    </tr>
+                    {% for row in assets %}
+                    <tr>
+                        <td class="text-center">{{ row.stt }}</td>
+                        <td>{{ row.label }}</td>
+                        <td class="text-end font-mono">{{ row.amount|vnd }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="fw-bold table-light">
+                        <td colspan="2">TỔNG CỘNG TÀI SẢN</td>
+                        <td class="text-end font-mono">{{ total_assets|vnd }}</td>
+                    </tr>
+
+                    <!-- Liabilities -->
+                    <tr class="table-secondary fw-bold">
+                        <td colspan="3">II. NỢ PHẢI TRẢ</td>
+                    </tr>
+                    {% for row in liabilities %}
+                    <tr>
+                        <td class="text-center">{{ row.stt }}</td>
+                        <td>{{ row.label }}</td>
+                        <td class="text-end font-mono">{{ row.amount|vnd }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="fw-bold table-light">
+                        <td colspan="2">TỔNG NỢ PHẢI TRẢ</td>
+                        <td class="text-end font-mono">{{ total_liabilities|vnd }}</td>
+                    </tr>
+
+                    <!-- Equity -->
+                    <tr class="table-secondary fw-bold">
+                        <td colspan="3">III. VỐN CHỦ SỞ HỮU</td>
+                    </tr>
+                    {% for row in equity %}
+                    <tr>
+                        <td class="text-center">{{ row.stt }}</td>
+                        <td>{{ row.label }}</td>
+                        <td class="text-end font-mono">{{ row.amount|vnd }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="fw-bold table-light">
+                        <td colspan="2">TỔNG VỐN CHỦ SỞ HỮU</td>
+                        <td class="text-end font-mono">{{ total_equity|vnd }}</td>
+                    </tr>
+
+                    <tr class="fw-bold table-info">
+                        <td colspan="2">TỔNG NỢ PHẢI TRẢ + VỐN CSH</td>
+                        <td class="text-end font-mono">{{ total_liabilities_equity|vnd }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Balance check -->
+            <div class="mt-2">
+                {% if is_balanced %}
+                <span class="badge bg-success">
+                    <i class="bi bi-check-circle"></i> Cân đối: Tổng tài sản = Tổng nợ + vốn
+                </span>
+                {% else %}
+                <span class="badge bg-danger">
+                    <i class="bi bi-exclamation-triangle"></i> Không cân đối
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}
