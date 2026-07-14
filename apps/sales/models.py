@@ -59,6 +59,15 @@ class SalesInvoice(CompanyOwnedModel):
         related_name="sales_invoices",
     )
 
+    # TT58 DNSN voucher link (used when company.accounting_regime == 'tt58')
+    dnsn_voucher = models.ForeignKey(
+        "ledger.DnsnVoucher",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sales_invoices",
+    )
+
     status = models.PositiveSmallIntegerField(
         default=2, help_text="0=Draft, 1=Subsidiary, 2=Ledger, 3=Locked"
     )

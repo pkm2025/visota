@@ -1,11 +1,21 @@
-"""PurchaseInvoiceService — creates invoice + generates accounting voucher."""
+"""PurchaseInvoiceService — creates invoice + generates accounting voucher.
+
+Tax-method-aware for TT58/2026/TT-BTC:
+- If company.accounting_regime == 'tt58': create DnsnVoucher + DnsnLedgerEntry.
+- If company.vat_method == 'ty_le_phan_tram': cost includes VAT (no input VAT
+  deduction, no TK 1331).
+- If company.vat_method == 'khau_tru': existing deduction behavior (TK 1331
+  input VAT is recorded and creditable).
+- Non-TT58 companies: unchanged TT133/TT200 behavior.
+"""
 
 from decimal import Decimal
 
 from django.db import transaction
 
-from apps.ledger.models import AccountingVoucher, VoucherLine
-from apps.ledger.services import VoucherPostingService
+from apps.core.models import Company
+from apps.ledger.models import AccountingVoucher, DnsnVoucher, VoucherLine
+from apps.ledger.services import DnsnPostingService, VoucherPostingService
 from apps.master_data.models import Product, Vendor
 from apps.purchasing.models import PurchaseInvoice, PurchaseInvoiceLine
 
@@ -13,8 +23,18 @@ from apps.purchasing.models import PurchaseInvoice, PurchaseInvoiceLine
 class PurchaseInvoiceService:
     """Service for creating/posting purchase invoices."""
 
-    def __init__(self, company):
+    def __init__(self, company: Company):
         self.company = company
+
+    @property
+    def is_tt58(self) -> bool:
+        """Check if the company uses TT58 accounting regime."""
+        return self.company.accounting_regime == Company.AccountingRegime.TT58
+
+    @property
+    def is_vat_percentage(self) -> bool:
+        """Check if the company uses percentage-based VAT (ty_le_phan_tram)."""
+        return self.company.vat_method == Company.VatMethod.TY_LE_PHAN_TRAM
 
     @transaction.atomic
     def create(self, data: dict) -> PurchaseInvoice:
@@ -84,7 +104,20 @@ class PurchaseInvoiceService:
 
         return invoice
 
-    def _post(self, invoice: PurchaseInvoice) -> AccountingVoucher:
+    def _post(self, invoice: PurchaseInvoice) -> AccountingVoucher | DnsnVoucher:
+        """Generate voucher for the purchase invoice.
+
+        Delegates to TT58 (DNSN) or standard TT133/TT200 posting.
+        """
+        if self.is_tt58:
+            return self._post_tt58(invoice)
+        return self._post_standard(invoice)
+
+    # ------------------------------------------------------------------
+    # TT133/TT200 standard posting (unchanged from original)
+    # ------------------------------------------------------------------
+
+    def _post_standard(self, invoice: PurchaseInvoice) -> AccountingVoucher:
         """Generate accounting voucher for the purchase invoice.
 
         Bút toán:
@@ -161,9 +194,114 @@ class PurchaseInvoiceService:
 
         return voucher
 
+    # ------------------------------------------------------------------
+    # TT58 DNSN posting
+    # ------------------------------------------------------------------
+
+    def _post_tt58(self, invoice: PurchaseInvoice) -> DnsnVoucher:
+        """Generate DnsnVoucher + ledger entries for TT58 company.
+
+        VAT handling depends on vat_method:
+        - ty_le_phan_tram: cost recorded WITH VAT included. No input VAT
+          deduction recorded (no TK 1331). The full amount (subtotal + VAT)
+          is posted as cost/inventory.
+        - khau_tru: cost recorded WITHOUT VAT. Input VAT is recorded to S3b
+          ledger and is creditable.
+        """
+        group = self.company.tax_method_group
+
+        # Create DnsnVoucher header
+        voucher = DnsnVoucher.objects.create(
+            company=invoice.company,
+            fiscal_year=invoice.invoice_date.year,
+            period=invoice.invoice_date.month,
+            voucher_no=invoice.invoice_no,
+            voucher_type=DnsnVoucher.VoucherType.HOA_DON_MUA_HANG,
+            voucher_date=invoice.invoice_date,
+            posting_date=invoice.invoice_date,
+            description=f"Hóa đơn mua {invoice.invoice_no} - {invoice.vendor.name}",
+            partner_name=invoice.vendor.name,
+            invoice_no=invoice.invoice_no,
+            invoice_date=invoice.invoice_date,
+            status=DnsnVoucher.Status.DRAFT,
+        )
+
+        # Determine cost/inventory ledger type based on group
+        cost_ledger_type = self._get_cost_ledger_type(group)
+
+        # Build ledger entries
+        entries = []
+        if self.is_vat_percentage:
+            # ty_le_phan_tram: cost includes VAT, no input VAT deduction.
+            # The full total (subtotal + VAT) is recorded as cost.
+            entries.append(
+                {
+                    "ledger_type": cost_ledger_type,
+                    "description": f"Chi phí mua hàng (bao gồm VAT) - {invoice.vendor.name}",
+                    "partner_name": invoice.vendor.name,
+                    "cost_amount": invoice.total_amount,
+                }
+            )
+        else:
+            # khau_tru: cost recorded without VAT, input VAT to S3b (creditable)
+            entries.append(
+                {
+                    "ledger_type": cost_ledger_type,
+                    "description": f"Chi phí mua hàng - {invoice.vendor.name}",
+                    "partner_name": invoice.vendor.name,
+                    "cost_amount": invoice.subtotal,
+                }
+            )
+            # Input VAT to S3b ledger (Groups 3, 4)
+            entries.append(
+                {
+                    "ledger_type": "s3b",
+                    "description": f"Thuế GTGT đầu vào - {invoice.invoice_no}",
+                    "partner_name": invoice.vendor.name,
+                    "vat_input": invoice.vat_amount,
+                }
+            )
+
+        # Post via DnsnPostingService
+        DnsnPostingService().post(voucher, entries=entries)
+
+        # Link + mark invoice as posted
+        invoice.dnsn_voucher = voucher
+        invoice.status = 2  # LEDGER
+        invoice.save()
+
+        return voucher
+
+    def _get_cost_ledger_type(self, group: int) -> str:
+        """Get the cost ledger type for a tax method group.
+
+        - Group 1: S1-DNSN (revenue ledger, cost recorded as negative)
+        - Group 2: S2b-DNSN (revenue/cost detail)
+        - Group 3: S3a-DNSN (revenue ledger for Group 3)
+        - Group 4: S2b-DNSN (revenue/cost detail)
+        """
+        # Groups 2 and 4 have S2b for cost detail.
+        # Groups 1 and 3 are percentage-based TNDN; cost not separately tracked
+        # but we still record it in the revenue ledger for completeness.
+        if group in (2, 4):
+            return "s2b"
+        if group == 1:
+            return "s1"
+        if group == 3:
+            return "s3a"
+        return "s2b"
+
     @transaction.atomic
     def unpost(self, invoice: PurchaseInvoice) -> None:
         """Unpost invoice: unpost linked voucher + revert status."""
+        # Handle TT58 DNSN voucher
+        if invoice.dnsn_voucher_id:
+            DnsnPostingService().unpost(invoice.dnsn_voucher)
+            invoice.status = 0  # DRAFT
+            invoice.save()
+            return
+
+        # Standard TT133/TT200 voucher
         if not invoice.gl_voucher:
             return
         VoucherPostingService().unpost(invoice.gl_voucher)
