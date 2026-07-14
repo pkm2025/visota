@@ -12,7 +12,7 @@ def test_login_page_loads(page):
     login = LoginPage(page)
     login.goto("/auth/login/")
     title = page.title()
-    assert "PMKetoan" in title or "Đăng nhập" in title, f"Got title: {title}"
+    assert "Visota" in title or "Đăng nhập" in title, f"Got title: {title}"
     expect(page.locator('input[name="username"]')).to_be_visible()
     expect(page.locator('input[name="password"]')).to_be_visible()
     expect(page.locator('button[type="submit"]')).to_be_visible()

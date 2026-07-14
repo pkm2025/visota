@@ -1,4 +1,4 @@
-/* PMKetoan mobile interactions: pull-to-refresh + swipe gestures.
+/* Visota ERP mobile interactions: pull-to-refresh + swipe gestures.
 
 Auto-activates on touch devices. Safe to load on desktop (no-op).
  */

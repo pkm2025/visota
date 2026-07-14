@@ -40,5 +40,5 @@ GA4_MEASUREMENT_ID = os.environ.get('GA4_MEASUREMENT_ID', '')
 # that are never processed, silently dropping interaction logs and other
 # background work. Q_CLUSTER is defined in base.py with sync=False; override
 # here so dev behaves like the test settings.
-Q_CLUSTER = {'name': 'PMKetoan', 'sync': True, 'orm': 'default'}
+Q_CLUSTER = {'name': 'Visota', 'sync': True, 'orm': 'default'}
 

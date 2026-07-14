@@ -1,7 +1,7 @@
 {
-  "name": "PMKetoan ERP",
-  "short_name": "PMKetoan",
-  "description": "Hệ thống kế toán ERP cho doanh nghiệp VN — tuân thủ TT133/2016, TT200/2014, TT78/2021",
+  "name": "Visota ERP",
+  "short_name": "Visota",
+  "description": "ERP cho doanh nghiệp siêu nhỏ và nhỏ — tuân thủ TT133/2016, TT200/2014, TT78/2021, TT58/2026",
   "start_url": "/modern/",
   "scope": "/",
   "display": "standalone",

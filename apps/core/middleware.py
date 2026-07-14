@@ -1,13 +1,13 @@
 """Tenant and branding middleware."""
 
 DEFAULT_BRAND = {
-    "name": "PMKetoan",
+    "name": "Visota ERP",
     "logo": "/static/images/logo.svg",
     "logo_dark": "/static/images/logo-dark.svg",
     "primary_color": "#2563eb",
     "accent_color": "#16a34a",
     "favicon": "/static/images/favicon.ico",
-    "hide_pmketoan_branding": False,
+    "hide_visota_branding": False,
     "custom_css": "",
 }
 
@@ -67,7 +67,7 @@ class BrandingMiddleware:
                 "favicon": company.brand_favicon.url
                 if company.brand_favicon
                 else DEFAULT_BRAND["favicon"],
-                "hide_pmketoan_branding": company.hide_pmketoan_branding,
+                "hide_visota_branding": company.hide_visota_branding,
                 "custom_css": company.custom_css,
                 "stamp": company.company_stamp.url if company.company_stamp else "",
                 "company": company,  # full object for templates

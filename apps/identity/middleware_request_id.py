@@ -1,4 +1,4 @@
-"""Request ID middleware + request tracing for PMKetoan.
+"""Request ID middleware + request tracing for Visota ERP.
 
 Injects X-Request-ID into every request/response for distributed tracing.
 Integrates with structured logging via threadlocal request_id.

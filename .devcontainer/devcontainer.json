@@ -1,5 +1,5 @@
 {
-  "name": "PMKetoan",
+  "name": "Visota ERP",
   "dockerComposeFile": "../docker-compose.yml",
   "service": "app",
   "features": {
@@ -38,8 +38,8 @@
   "remoteEnv": {
     "DJANGO_SETTINGS_MODULE": "config.settings.dev",
     "DB_HOST": "mariadb",
-    "DB_NAME": "pmketoan",
-    "DB_USER": "pmketoan",
+    "DB_NAME": "visota",
+    "DB_USER": "visota",
     "DB_PASSWORD": "devpass"
   }
 }

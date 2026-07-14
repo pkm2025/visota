@@ -7,7 +7,7 @@ from .base import *  # noqa: F401,F403
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": os.environ.get("TEST_DB_NAME", "test_pmketoan"),  # noqa: F405
+        "NAME": os.environ.get("TEST_DB_NAME", "test_visota"),  # noqa: F405
         "USER": os.environ.get("TEST_DB_USER", "root"),  # noqa: F405
         "PASSWORD": os.environ.get("TEST_DB_PASSWORD", ""),  # noqa: F405
         "HOST": os.environ.get("TEST_DB_HOST", "127.0.0.1"),  # noqa: F405

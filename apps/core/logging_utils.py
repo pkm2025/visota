@@ -1,4 +1,4 @@
-"""Structured JSON logging with PII scrubbing for PMKetoan.
+"""Structured JSON logging with PII scrubbing for Visota ERP.
 
 Provides:
   - StructuredJSONFormatter: JSON output with request_id, timestamp, level

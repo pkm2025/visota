@@ -1,4 +1,4 @@
-"""django-ninja API — REST API for PMKetoan.
+"""django-ninja API — REST API for Visota ERP.
 
 Provides /api/v1/ endpoints for vouchers, sales, purchasing, customers,
 vendors, reports, and e-invoice operations.
@@ -25,7 +25,7 @@ from apps.sales.models import SalesInvoice
 # ---------------------------------------------------------------------------
 
 api = NinjaAPI(
-    title="PMKetoan API",
+    title="Visota ERP API",
     version="1.0.0",
     description="REST API for Vietnamese accounting — TT133/2016 compliant",
     urls_namespace="api_v1",

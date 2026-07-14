@@ -1,4 +1,4 @@
-"""Feature flag system for PMKetoan.
+"""Feature flag system for Visota ERP.
 
 Simple database-backed feature flags that can be toggled per-company
 or globally via environment variables.

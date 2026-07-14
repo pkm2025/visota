@@ -25,7 +25,7 @@ class EmailService:
             "username": getattr(settings, "EMAIL_HOST_USER", ""),
             "password": getattr(settings, "EMAIL_HOST_PASSWORD", ""),
             "use_tls": getattr(settings, "EMAIL_USE_TLS", True),
-            "from_email": getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pmketoan.local"),
+            "from_email": getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@visota.com"),
         }
 
     @classmethod

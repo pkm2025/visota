@@ -31,4 +31,4 @@ def test_company_branding_fields_default():
     c = Company(code='X', name='X')
     assert c.brand_primary_color == '#2563eb'
     assert c.default_layout == 'modern'
-    assert c.hide_pmketoan_branding is False
+    assert c.hide_visota_branding is False

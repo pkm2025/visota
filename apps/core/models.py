@@ -138,7 +138,7 @@ class Company(models.Model):
     default_layout = models.CharField(max_length=20, default="modern")
 
     # White-label
-    hide_pmketoan_branding = models.BooleanField(default=False)
+    hide_visota_branding = models.BooleanField(default=False)
     custom_css = models.TextField(blank=True)
     custom_domain = models.CharField(max_length=255, blank=True)
 

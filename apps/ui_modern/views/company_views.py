@@ -63,6 +63,8 @@ class CompanyProfileView(LoginRequiredMixin, View):
 
     _select_fields = ["accounting_regime", "sme_size", "vat_method", "tndn_method", "entity_type"]
 
+    _checkbox_fields = ["hide_visota_branding"]
+
     _file_fields = ["brand_logo", "brand_logo_dark", "brand_favicon", "company_stamp"]
 
     def post(self, request, *args, **kwargs):
@@ -89,6 +91,10 @@ class CompanyProfileView(LoginRequiredMixin, View):
         for sel_field in self._select_fields:
             if request.POST.get(sel_field):
                 setattr(company, sel_field, request.POST[sel_field])
+
+        # Checkbox fields (unchecked means False)
+        for cb_field in self._checkbox_fields:
+            setattr(company, cb_field, request.POST.get(cb_field) == "on")
 
         # Bank accounts JSON
         bank_json = request.POST.get("bank_accounts_json", "[]").strip()

@@ -6,8 +6,8 @@ from django.views.generic import RedirectView, TemplateView
 
 from apps.core.api import api
 from apps.ui_modern.views import (
-    PMKetoanLoginView,
-    PMKetoanLogoutView,
+    VisotaLoginView,
+    VisotaLogoutView,
     health_detailed,
     health_simple,
 )
@@ -15,8 +15,8 @@ from apps.ui_modern.views.company_switch import CompanySwitchView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("auth/login/", PMKetoanLoginView.as_view(), name="login"),
-    path("auth/logout/", PMKetoanLogoutView.as_view(), name="logout"),
+    path("auth/login/", VisotaLoginView.as_view(), name="login"),
+    path("auth/logout/", VisotaLogoutView.as_view(), name="logout"),
     path("health/", health_simple, name="health_simple"),
     path("health/detailed/", health_detailed, name="health_detailed"),
     path(

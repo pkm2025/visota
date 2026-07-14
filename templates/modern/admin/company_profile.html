@@ -301,6 +301,20 @@
                             <input type="text" name="zalo" class="form-control" value="{{ company.zalo }}">
                         </div>
                     </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input type="checkbox" class="form-check-input" role="switch"
+                                       name="hide_visota_branding" id="id_hide_visota_branding"
+                                       {% if company.hide_visota_branding %}checked{% endif %}>
+                                <label class="form-check-label" for="id_hide_visota_branding">
+                                    Ẩn thương hiệu Visota
+                                    <small class="text-muted d-block">Khi bật, logo và tên "Visota ERP" sẽ được ẩn khỏi giao diện (chế độ white-label).</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                 </div></div>
             </div>
         </div>

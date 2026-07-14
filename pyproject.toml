@@ -1,7 +1,7 @@
 [project]
-name = "pmketoan"
+name = "visota"
 version = "0.1.0"
-description = "Vietnamese accounting software — PMKetoan"
+description = "Visota ERP — Vietnamese accounting software for micro and small enterprises"
 requires-python = ">=3.12"
 dependencies = [
     "Django>=5.2,<5.3",

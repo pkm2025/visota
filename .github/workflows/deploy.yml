@@ -21,8 +21,8 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t pmketoan:latest .
-          docker tag pmketoan:latest ghcr.io/pkm2025/visota:latest
+          docker build -t visota:latest .
+          docker tag visota:latest ghcr.io/pkm2025/visota:latest
           echo "Docker image built. Push to registry when configured."
         continue-on-error: true
 

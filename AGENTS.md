@@ -1,4 +1,4 @@
-# AGENTS.md — PMKetoan (Visota)
+# AGENTS.md — Visota ERP
 
 > Vietnamese accounting ERP built with Django 5.2 + django-ninja + HTMX + MariaDB.
 > Compliant with TT133/2016, TT200/2014, TT78/2021.

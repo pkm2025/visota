@@ -25,8 +25,8 @@ jobs:
         image: mariadb:11.4
         env:
           MARIADB_ROOT_PASSWORD: rootpass
-          MARIADB_DATABASE: pmketoan_test
-          MARIADB_USER: pmketoan
+          MARIADB_DATABASE: visota_test
+          MARIADB_USER: visota
           MARIADB_PASSWORD: testpass
         ports:
           - 3306:3306
@@ -37,7 +37,7 @@ jobs:
           --health-retries=5
     env:
       DJANGO_SETTINGS_MODULE: config.settings.test
-      TEST_DB_NAME: pmketoan_test
+      TEST_DB_NAME: visota_test
       TEST_DB_USER: root
       TEST_DB_PASSWORD: rootpass
       TEST_DB_HOST: 127.0.0.1

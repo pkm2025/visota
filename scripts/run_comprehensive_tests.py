@@ -361,7 +361,7 @@ def generate_html_report():
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Báo cáo kiểm thử toàn diện — PMKetoan</title>
+<title>Báo cáo kiểm thử toàn diện — Visota ERP</title>
 <style>
 body {{ font-family: -apple-system, sans-serif; margin: 20px; background: #f8f9fa; }}
 h1 {{ color: #2563eb; border-bottom: 3px solid #2563eb; padding-bottom: 10px; }}
@@ -388,7 +388,7 @@ th {{ background: #e9ecef; font-weight: 600; }}
 </style>
 </head>
 <body>
-<h1>Báo cáo kiểm thử toàn diện — PMKetoan (Visota)</h1>
+<h1>Báo cáo kiểm thử toàn diện — Visota ERP</h1>
 <div class="meta">
   <p><strong>Ngày test:</strong> {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
   <p><strong>Server:</strong> {BASE}</p>

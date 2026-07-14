@@ -1,4 +1,4 @@
-"""Base Django settings for PMKetoan."""
+"""Base Django settings for Visota ERP."""
 from pathlib import Path
 import os
 
@@ -103,8 +103,8 @@ ASGI_APPLICATION = 'config.asgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get('DB_NAME', 'pmketoan'),
-        'USER': os.environ.get('DB_USER', 'pmketoan'),
+        'NAME': os.environ.get('DB_NAME', 'visota'),
+        'USER': os.environ.get('DB_USER', 'visota'),
         'PASSWORD': os.environ.get('DB_PASSWORD', 'devpass'),
         'HOST': os.environ.get('DB_HOST', '127.0.0.1'),
         'PORT': os.environ.get('DB_PORT', '3306'),
@@ -180,7 +180,7 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 
 # django-q2: broker = Django ORM
 Q_CLUSTER = {
-    'name': 'PMKetoan',
+    'name': 'Visota',
     'workers': 4,
     'recycle': 500,
     'timeout': 600,

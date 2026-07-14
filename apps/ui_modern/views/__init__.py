@@ -66,7 +66,7 @@ from .attachment_views import (
     AttachmentDownloadView,
     AttachmentUploadView,
 )
-from .auth_views import PMKetoanLoginView, PMKetoanLogoutView
+from .auth_views import VisotaLoginView, VisotaLogoutView
 from .chart_of_accounts_views import ChartOfAccountsChangeCodeView, ChartOfAccountsListView
 from .closing_views import PeriodClosingView
 from .company_views import CompanyProfileView
@@ -102,13 +102,6 @@ from .customer_views import (
     CustomerUpdateView,
 )
 from .dashboard_views import DashboardView, QuickExpenseView
-from .dnsn_voucher_views import (
-    DnsnVoucherCreateView,
-    DnsnVoucherDeleteView,
-    DnsnVoucherDetailView,
-    DnsnVoucherEditView,
-    DnsnVoucherListView,
-)
 from .dnsn_ledger_views import (
     DnsnLedgerDetailView,
     DnsnLedgerListView,
@@ -119,6 +112,13 @@ from .dnsn_report_views import (
     DnsnB02ReportView,
     DnsnReportExportView,
     DnsnReportListView,
+)
+from .dnsn_voucher_views import (
+    DnsnVoucherCreateView,
+    DnsnVoucherDeleteView,
+    DnsnVoucherDetailView,
+    DnsnVoucherEditView,
+    DnsnVoucherListView,
 )
 from .document_views import (
     ContractEmailView,
@@ -252,8 +252,8 @@ __all__ = [
     "DnsnReportExportView",
     "ChartOfAccountsListView",
     "ChartOfAccountsChangeCodeView",
-    "PMKetoanLoginView",
-    "PMKetoanLogoutView",
+    "VisotaLoginView",
+    "VisotaLogoutView",
     "CompanyProfileView",
     "ContactListAdminView",
     "MigrationUploadView",

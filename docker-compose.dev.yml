@@ -3,11 +3,11 @@
 services:
   mariadb:
     image: mariadb:11.4
-    container_name: pmketoan-mariadb
+    container_name: visota-mariadb
     environment:
       MARIADB_ROOT_PASSWORD: rootpass
-      MARIADB_DATABASE: pmketoan
-      MARIADB_USER: pmketoan
+      MARIADB_DATABASE: visota
+      MARIADB_USER: visota
       MARIADB_PASSWORD: devpass
     ports:
       - "3306:3306"
@@ -21,7 +21,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: pmketoan-redis
+    container_name: visota-redis
     ports:
       - "6379:6379"
     healthcheck:

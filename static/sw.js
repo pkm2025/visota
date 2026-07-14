@@ -1,4 +1,4 @@
-/* PMKetoan Service Worker — offline caching + background sync.
+/* Visota ERP Service Worker — offline caching + background sync.
  *
  * Strategies:
  *  - Static assets (CSS/JS/images): cache-first with network fallback
@@ -8,7 +8,7 @@
  *  - Background Sync: drafts queued offline are replayed when online
  */
 
-const CACHE_VERSION = "pmketoan-v5";
+const CACHE_VERSION = "visota-v5";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 const PKM_PAGE_CACHE = `${CACHE_VERSION}-pkm-pages`;
@@ -344,7 +344,7 @@ self.addEventListener("push", (event) => {
   if (!event.data) return;
   const data = event.data.json();
   event.waitUntil(
-    self.registration.showNotification(data.title || "PMKetoan", {
+    self.registration.showNotification(data.title || "Visota ERP", {
       body: data.body || "",
       icon: "/static/icons/icon-192.svg",
       badge: "/static/icons/icon-192.svg",

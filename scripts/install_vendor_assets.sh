@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-VENDOR_TMP=/tmp/pmketoan-vendor
+VENDOR_TMP=/tmp/visota-vendor
 mkdir -p static/vendor/css static/vendor/js static/vendor/fonts
 
 # Strip sourceMappingURL references — WhiteNoise CompressedManifestStaticFilesStorage

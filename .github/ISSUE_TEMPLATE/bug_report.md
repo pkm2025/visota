@@ -25,4 +25,4 @@ labels: ["bug", "triage"]
 ## Môi trường
 - OS:
 - Browser:
-- Phiên bản PMKetoan:
+- Phiên bản Visota ERP:

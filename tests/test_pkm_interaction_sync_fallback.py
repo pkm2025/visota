@@ -69,7 +69,7 @@ def test_django_q_available_true_when_cluster_sync(monkeypatch):
     """
     monkeypatch.setattr(
         "django.conf.settings.Q_CLUSTER",
-        {"name": "PMKetoan", "sync": True, "orm": "default"},
+        {"name": "Visota", "sync": True, "orm": "default"},
         raising=False,
     )
     assert interaction_service._django_q_available() is True
@@ -84,7 +84,7 @@ def test_django_q_available_false_when_async_and_no_worker(monkeypatch):
     """
     monkeypatch.setattr(
         "django.conf.settings.Q_CLUSTER",
-        {"name": "PMKetoan", "sync": False, "orm": "default"},
+        {"name": "Visota", "sync": False, "orm": "default"},
         raising=False,
     )
 
@@ -109,7 +109,7 @@ def test_django_q_available_true_when_async_and_worker_active(monkeypatch):
     """
     monkeypatch.setattr(
         "django.conf.settings.Q_CLUSTER",
-        {"name": "PMKetoan", "sync": False, "orm": "default"},
+        {"name": "Visota", "sync": False, "orm": "default"},
         raising=False,
     )
 
@@ -128,7 +128,7 @@ def test_django_q_available_false_when_library_missing(monkeypatch):
 
     monkeypatch.setattr(
         "django.conf.settings.Q_CLUSTER",
-        {"name": "PMKetoan", "sync": True, "orm": "default"},
+        {"name": "Visota", "sync": True, "orm": "default"},
         raising=False,
     )
     real_django_q = sys.modules.get("django_q")

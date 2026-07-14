@@ -3,7 +3,7 @@ from django.contrib.auth.forms import AuthenticationForm
 
 
 class LoginForm(AuthenticationForm):
-    """PMKetoan login form — username + password with Vietnamese UI.
+    """Visota ERP login form — username + password with Vietnamese UI.
 
     Subclasses Django's AuthenticationForm so it accepts the `request`
     kwarg passed by LoginView, while still letting us style the widgets.

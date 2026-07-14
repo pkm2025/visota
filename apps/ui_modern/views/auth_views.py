@@ -6,8 +6,8 @@ from django.urls import reverse_lazy
 from apps.ui_modern.forms import LoginForm
 
 
-class PMKetoanLoginView(LoginView):
-    """Login view with PMKetoan branding and Vietnamese UI."""
+class VisotaLoginView(LoginView):
+    """Login view with Visota ERP branding and Vietnamese UI."""
 
     template_name = "modern/auth/login.html"
     form_class = LoginForm
@@ -22,7 +22,7 @@ class PMKetoanLoginView(LoginView):
         return ctx
 
 
-class PMKetoanLogoutView(LogoutView):
+class VisotaLogoutView(LogoutView):
     """Logout view — POST-only (Django 4+ security)."""
 
     next_page = "/auth/login/"

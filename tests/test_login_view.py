@@ -81,4 +81,4 @@ def test_login_page_has_brand_name():
     client = Client()
     response = client.get('/auth/login/')
     content = response.content.decode('utf-8')
-    assert 'PMKetoan' in content
+    assert 'Visota ERP' in content

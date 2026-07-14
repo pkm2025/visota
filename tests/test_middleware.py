@@ -16,7 +16,7 @@ def test_branding_middleware_sets_default_brand_for_anonymous(rf):
     middleware = BrandingMiddleware(lambda r: type('Response', (), {'status_code': 200})())
     middleware(req)
 
-    assert req.brand['name'] == 'PMKetoan'
+    assert req.brand['name'] == 'Visota ERP'
     assert req.brand['primary_color'] == '#2563eb'
 
 
