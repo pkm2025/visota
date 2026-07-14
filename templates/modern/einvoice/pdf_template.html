@@ -50,11 +50,12 @@
     {% if company.phone %}<p>Điện thoại: {{ company.phone }}</p>{% endif %}
   </div>
   <div class="invoice-meta">
-    <h3>Hóa đơn điện tử</h3>
-    <p>({{ einvoice.pattern }})</p>
+    <h3>{% if einvoice.form_symbol == "02BANHANG" %}Hóa đơn bán hàng{% else %}Hóa đơn GTGT điện tử{% endif %}</h3>
+    <p>Mẫu số: <strong>{{ einvoice.form_symbol }}</strong> ({{ einvoice.pattern }})</p>
     <table>
       <tr><td>Ký hiệu mẫu</td><td>{{ einvoice.pattern }}</td></tr>
       <tr><td>Ký hiệu serial</td><td>{{ einvoice.serial }}</td></tr>
+      <tr><td>Mẫu số</td><td><strong>{{ einvoice.form_symbol }}</strong></td></tr>
       <tr><td>Số hóa đơn</td><td><strong>{{ einvoice.invoice_no }}</strong></td></tr>
       <tr><td>Ngày lập</td><td>{{ einvoice.issue_date|date:"d/m/Y H:i" }}</td></tr>
       <tr><td>Nơi lập</td><td>{{ company.address|truncatechars:50 }}</td></tr>
@@ -78,12 +79,14 @@
 <table class="items">
   <thead>
     <tr>
-      <th style="width: 8%">STT</th>
-      <th style="width: 38%">Tên hàng hóa, dịch vụ</th>
-      <th style="width: 10%">ĐVT</th>
-      <th style="width: 12%">Số lượng</th>
-      <th style="width: 16%">Đơn giá</th>
+      <th style="width: 6%">STT</th>
+      <th style="width: 30%">Tên hàng hóa, dịch vụ</th>
+      <th style="width: 8%">ĐVT</th>
+      <th style="width: 10%">Số lượng</th>
+      <th style="width: 14%">Đơn giá</th>
       <th style="width: 16%">Thành tiền</th>
+      <th style="width: 8%">Thuế GTGT</th>
+      <th style="width: 8%">Tiền GTGT</th>
     </tr>
   </thead>
   <tbody>
@@ -95,16 +98,18 @@
       <td class="num">{{ line.quantity|floatformat:0 }}</td>
       <td class="num">{{ line.unit_price|floatformat:0|intcomma }}</td>
       <td class="num">{{ line.amount|floatformat:0|intcomma }}</td>
+      <td class="center">{{ line.vat_rate|floatformat:0 }}%</td>
+      <td class="num">{{ line.vat_amount|floatformat:0|intcomma }}</td>
     </tr>
     {% empty %}
-    <tr><td colspan="6" class="center">Không có chi tiết</td></tr>
+    <tr><td colspan="8" class="center">Không có chi tiết</td></tr>
     {% endfor %}
   </tbody>
 </table>
 
 <table class="totals">
   <tr><td>Cộng tiền hàng:</td><td>{{ subtotal|floatformat:0|intcomma }}</td></tr>
-  <tr><td>Thuế GTGT ({% widthratio vat_rate 1 100 %}%):</td><td>{{ vat_amount|floatformat:0|intcomma }}</td></tr>
+  <tr><td>Thuế GTGT ({% if einvoice.form_symbol == "02BANHANG" %}tỷ lệ {% endif %}{% widthratio vat_rate 1 100 %}%):</td><td>{{ vat_amount|floatformat:0|intcomma }}</td></tr>
   <tr class="grand"><td>Tổng cộng thanh toán:</td><td>{{ total|floatformat:0|intcomma }}</td></tr>
 </table>
 

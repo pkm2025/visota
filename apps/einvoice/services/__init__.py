@@ -13,7 +13,13 @@ from django.core.files.base import ContentFile
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from apps.einvoice.models import EInvoice, EInvoiceConfig, EInvoiceProvider, EInvoiceReportBatch
+from apps.einvoice.models import (
+    EInvoice,
+    EInvoiceConfig,
+    EInvoiceFormSymbol,
+    EInvoiceProvider,
+    EInvoiceReportBatch,
+)
 from apps.notifications.services import NotificationService
 
 
@@ -78,6 +84,39 @@ class EInvoiceService:
             config = EInvoiceConfig.objects.create(company=company)
         return config
 
+    @staticmethod
+    def default_form_symbol_for_company(company) -> str:
+        """Determine the default e-invoice form symbol based on company VAT method.
+
+        - vat_method == 'ty_le_phan_tram' (GTGT theo tỷ lệ %): 02BANHANG
+        - vat_method == 'khau_tru' (GTGT theo phương pháp khấu trừ): 01GTKT
+        Non-TT58 companies default to 01GTKT (the existing behavior).
+        """
+        from apps.core.models import Company
+
+        if (
+            company.accounting_regime == Company.AccountingRegime.TT58
+            and company.vat_method == Company.VatMethod.TY_LE_PHAN_TRAM
+        ):
+            return EInvoiceFormSymbol.BANHANG_02
+        return EInvoiceFormSymbol.GTKT_01
+
+    @staticmethod
+    def available_form_symbols(company) -> list[str]:
+        """List the e-invoice form symbols available for a company.
+
+        - GTGT% companies (Groups 1, 2): only 02BANHANG
+        - Khấu trừ companies (Groups 3, 4 and non-TT58): only 01GTKT
+        """
+        from apps.core.models import Company
+
+        if (
+            company.accounting_regime == Company.AccountingRegime.TT58
+            and company.vat_method == Company.VatMethod.TY_LE_PHAN_TRAM
+        ):
+            return [EInvoiceFormSymbol.BANHANG_02]
+        return [EInvoiceFormSymbol.GTKT_01]
+
     @classmethod
     def issue_from_sales_invoice(cls, sales_invoice, issued_by=None):
         """Create a draft EInvoice from a SalesInvoice + populate parties/amounts."""
@@ -96,11 +135,15 @@ class EInvoiceService:
         total = sales_invoice.total_amount or Decimal("0")
         avg_vat_rate = (vat / subtotal * Decimal("100")) if subtotal else Decimal("0")
 
+        # Select form symbol based on company's VAT method (TT58 support).
+        form_symbol = cls.default_form_symbol_for_company(sales_invoice.company)
+
         ei = EInvoice.objects.create(
             company=sales_invoice.company,
             sales_invoice=sales_invoice,
             pattern=config.pattern,
             serial=config.serial,
+            form_symbol=form_symbol,
             buyer_name=buyer_name,
             buyer_tax_code=buyer_tax,
             buyer_address=buyer_addr,
@@ -207,6 +250,7 @@ class EInvoiceService:
             adjustment_type="adjust",
             pattern=original.pattern,
             serial=original.serial,
+            form_symbol=original.form_symbol,
             buyer_name=original.buyer_name,
             buyer_tax_code=original.buyer_tax_code,
             buyer_address=original.buyer_address,
@@ -255,6 +299,7 @@ class EInvoiceService:
         return f"""<?xml version="1.0" encoding="UTF-8"?>
 <Invoice>
     <TransactionID>{einvoice.transaction_id}</TransactionID>
+    <FormSymbol>{einvoice.form_symbol}</FormSymbol>
     <Pattern>{einvoice.pattern}</Pattern>
     <Serial>{einvoice.serial}</Serial>
     <InvoiceDate>{timezone.now().isoformat()}</InvoiceDate>
@@ -283,6 +328,7 @@ class EInvoiceService:
     def _build_json(einvoice, sales_invoice):
         return {
             "transactionId": str(einvoice.transaction_id),
+            "formSymbol": einvoice.form_symbol,
             "pattern": einvoice.pattern,
             "serial": einvoice.serial,
             "seller": {

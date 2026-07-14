@@ -26,6 +26,17 @@
                     <dl class="row mb-0">
                         <dt class="col-sm-3">Mẫu / Ký hiệu</dt>
                         <dd class="col-sm-9 font-mono">{{ einvoice.pattern }} / {{ einvoice.serial }}</dd>
+                        <dt class="col-sm-3">Mẫu số (Form)</dt>
+                        <dd class="col-sm-9 font-mono">
+                            <span class="badge {% if einvoice.form_symbol == '02BANHANG' %}bg-info{% else %}bg-primary{% endif %}">
+                                {{ einvoice.form_symbol|default:"01GTKT" }}
+                            </span>
+                            {% if einvoice.form_symbol == "02BANHANG" %}
+                            <small class="text-muted ms-1">Hóa đơn bán hàng (GTGT tỷ lệ %)</small>
+                            {% else %}
+                            <small class="text-muted ms-1">Hóa đơn GTGT (khấu trừ)</small>
+                            {% endif %}
+                        </dd>
                         <dt class="col-sm-3">Số HĐĐT</dt>
                         <dd class="col-sm-9 font-mono">{{ einvoice.invoice_no|default:"— chưa cấp —" }}</dd>
                         <dt class="col-sm-3">Transaction ID</dt>

@@ -38,6 +38,7 @@
                     <thead class="table-light">
                         <tr>
                             <th>Số HĐĐT</th>
+                            <th>Mẫu số</th>
                             <th>Pattern/Series</th>
                             <th>Ngày phát hành</th>
                             <th>Người mua</th>
@@ -51,6 +52,13 @@
                         {% for e in einvoices %}
                         <tr>
                             <td class="font-mono">{{ e.invoice_no|default:"—" }}</td>
+                            <td>
+                                {% if e.form_symbol == "02BANHANG" %}
+                                <span class="badge bg-info">{{ e.form_symbol }}</span>
+                                {% else %}
+                                <span class="badge bg-primary">{{ e.form_symbol|default:"01GTKT" }}</span>
+                                {% endif %}
+                            </td>
                             <td><small class="text-muted">{{ e.pattern }} / {{ e.serial }}</small></td>
                             <td>{{ e.issue_date|date:"d/m/Y H:i"|default:"—" }}</td>
                             <td>{{ e.buyer_name|truncatechars:30 }}</td>

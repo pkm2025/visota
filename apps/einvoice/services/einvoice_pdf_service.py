@@ -51,6 +51,7 @@ class EInvoicePDFService:
             "einvoice": einvoice,
             "sales_invoice": sales_invoice,
             "items": items,
+            "form_symbol": einvoice.form_symbol,
             "subtotal": einvoice.subtotal,
             "vat_rate": einvoice.vat_rate,
             "vat_amount": einvoice.vat_amount,

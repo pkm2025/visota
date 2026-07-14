@@ -21,6 +21,17 @@ class EInvoiceProvider(models.TextChoices):
     VIETTEL = "viettel", "Viettel-Invoice"
 
 
+class EInvoiceFormSymbol(models.TextChoices):
+    """Mẫu số hóa đơn điện tử theo TT78/2021/TT-BTC.
+
+    01GTKT: Hóa đơn GTGT — for DN nộp thuế GTGT theo phương pháp khấu trừ.
+    02BANHANG: Hóa đơn bán hàng — for DN nộp thuế GTGT theo tỷ lệ %.
+    """
+
+    GTKT_01 = "01GTKT", "01GTKT — Hóa đơn GTGT"
+    BANHANG_02 = "02BANHANG", "02BANHANG — Hóa đơn bán hàng"
+
+
 class EInvoiceConfig(CompanyOwnedModel):
     """Per-company e-invoice provider configuration."""
 
@@ -71,6 +82,13 @@ class EInvoice(CompanyOwnedModel):
     transaction_id = models.UUIDField(default=uuid.uuid4, editable=False)
     pattern = models.CharField(max_length=50, default="1C26T")
     serial = models.CharField(max_length=20, default="")
+    # Form symbol (mẫu số): 01GTKT (GTGT khấu trừ) or 02BANHANG (bán hàng, GTGT tỷ lệ %).
+    # When company.vat_method == 'ty_le_phan_tram', default to 02BANHANG; otherwise 01GTKT.
+    form_symbol = models.CharField(
+        max_length=10,
+        choices=EInvoiceFormSymbol.choices,
+        default=EInvoiceFormSymbol.GTKT_01,
+    )
 
     # Link to SalesInvoice (1-1 optional)
     sales_invoice = models.ForeignKey(

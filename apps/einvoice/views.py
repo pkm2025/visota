@@ -31,6 +31,8 @@ class EInvoiceListView(LoginRequiredMixin, ListView):
         ctx = super().get_context_data(**kwargs)
         ctx["page_title"] = "Hóa đơn điện tử"
         ctx["status_choices"] = EInvoice.Status.choices
+        company = getattr(self.request, "current_company", None) or Company.objects.first()
+        ctx["available_forms"] = EInvoiceService.available_form_symbols(company)
         return ctx
 
 
@@ -50,6 +52,7 @@ class EInvoiceDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["page_title"] = f"HĐĐT {self.object.invoice_no or self.object.transaction_id}"
+        ctx["available_forms"] = EInvoiceService.available_form_symbols(self.object.company)
         return ctx
 
 
