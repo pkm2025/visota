@@ -2,7 +2,14 @@
 
 from django.contrib import admin
 
-from apps.ledger.models import AccountingVoucher, AccountPeriodBalance, VoucherLine
+from apps.ledger.models import (
+    AccountingVoucher,
+    AccountPeriodBalance,
+    DnsnLedgerBalance,
+    DnsnLedgerEntry,
+    DnsnVoucher,
+    VoucherLine,
+)
 
 
 class VoucherLineInline(admin.TabularInline):
@@ -53,3 +60,68 @@ class VoucherLineAdmin(admin.ModelAdmin):
 
 
 admin.site.register(AccountPeriodBalance)
+
+
+# ── TT58 DNSN models ──────────────────────────────────────────────────────
+
+
+class DnsnLedgerEntryInline(admin.TabularInline):
+    model = DnsnLedgerEntry
+    extra = 0
+    fields = (
+        "line_no",
+        "ledger_type",
+        "entry_date",
+        "description",
+        "revenue_amount",
+        "cost_amount",
+        "vat_amount",
+        "cash_in",
+        "cash_out",
+        "running_balance",
+    )
+    readonly_fields = ("running_balance",)
+
+
+@admin.register(DnsnVoucher)
+class DnsnVoucherAdmin(admin.ModelAdmin):
+    list_display = (
+        "voucher_no",
+        "voucher_date",
+        "voucher_type",
+        "total_amount",
+        "status",
+    )
+    list_filter = ("status", "voucher_type", "fiscal_year", "period")
+    search_fields = ("voucher_no", "description", "partner_name")
+    inlines = [DnsnLedgerEntryInline]
+
+
+@admin.register(DnsnLedgerEntry)
+class DnsnLedgerEntryAdmin(admin.ModelAdmin):
+    list_display = (
+        "voucher",
+        "line_no",
+        "ledger_type",
+        "entry_date",
+        "revenue_amount",
+        "cost_amount",
+        "running_balance",
+    )
+    list_filter = ("ledger_type", "fiscal_year", "period")
+    search_fields = ("description", "partner_name", "item_name")
+
+
+@admin.register(DnsnLedgerBalance)
+class DnsnLedgerBalanceAdmin(admin.ModelAdmin):
+    list_display = (
+        "ledger_type",
+        "fiscal_year",
+        "period",
+        "opening_revenue",
+        "period_revenue",
+        "closing_revenue",
+        "closing_cash",
+    )
+    list_filter = ("ledger_type", "fiscal_year", "period")
+    search_fields = ()
