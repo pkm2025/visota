@@ -1,0 +1,98 @@
+{% extends 'modern/base/layout.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4" style="max-width: 900px;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dnsn_ledger_list' %}">Sổ DNSN</a></li>
+                    <li class="breadcrumb-item active">Tùy chọn sổ</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+            <small class="text-muted">Bật/tắt các sổ kế toán tùy chọn cho TT58</small>
+        </div>
+        <div>
+            <a href="{% url 'ui_modern:dnsn_ledger_list' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Quay lại
+            </a>
+        </div>
+    </div>
+
+    {% if not is_tt58 %}
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        Tùy chọn sổ DNSN chỉ áp dụng cho công ty áp dụng chế độ TT58/2026.
+    </div>
+    {% else %}
+
+    {% if required_ledgers %}
+    <div class="card mb-3">
+        <div class="card-header">
+            <i class="bi bi-list-check"></i> Sổ kế toán bắt buộc
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-2">
+                Các sổ sau đây bắt buộc theo nhóm thuế của công ty và luôn hiển thị:
+            </p>
+            <ul class="list-unstyled mb-0">
+                {% for lt in required_ledgers %}
+                <li class="mb-1">
+                    <i class="bi bi-check-circle-fill text-success"></i>
+                    <strong>{{ lt|upper }}-DNSN</strong>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header">
+            <i class="bi bi-toggles"></i> Sổ kế toán tùy chọn (S4a-S4d)
+        </div>
+        <div class="card-body">
+            <p class="text-muted small">
+                Các sổ tùy chọn mặc định <strong>tắt</strong>. Bật từng sổ để theo dõi
+                thêm công nợ, tài sản cố định, thuế khác, hoặc vốn chủ sở hữu.
+            </p>
+
+            <form method="post">
+                {% csrf_token %}
+                {% for ol in optional_ledgers %}
+                <div class="form-check form-switch mb-3 p-3 border rounded">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <input class="form-check-input" type="checkbox" role="switch"
+                                   id="enable_{{ ol.ledger_type }}"
+                                   name="enable_{{ ol.ledger_type }}"
+                                   {% if ol.enabled %}checked{% endif %}>
+                            <label class="form-check-label fw-bold ms-2" for="enable_{{ ol.ledger_type }}">
+                                {{ ol.short_label }}
+                            </label>
+                            <p class="text-muted small mb-0 mt-1">{{ ol.description }}</p>
+                        </div>
+                        <div>
+                            {% if ol.enabled %}
+                            <span class="badge bg-success">Đã bật</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Đã tắt</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-save"></i> Lưu tùy chọn
+                </button>
+            </form>
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}

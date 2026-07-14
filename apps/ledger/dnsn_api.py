@@ -89,6 +89,39 @@ class MessageSchema(Schema):
     id: int | None = None
 
 
+class DnsnLedgerInfoSchema(Schema):
+    ledger_type: str
+    label: str
+
+
+class DnsnLedgerEntrySchema(Schema):
+    id: int
+    entry_date: date
+    ledger_type: str
+    description: str
+    partner_name: str = ""
+    revenue_amount: Decimal = Decimal("0")
+    cost_amount: Decimal = Decimal("0")
+    vat_amount: Decimal = Decimal("0")
+    tndn_amount: Decimal = Decimal("0")
+    cash_in: Decimal = Decimal("0")
+    cash_out: Decimal = Decimal("0")
+    bank_in: Decimal = Decimal("0")
+    bank_out: Decimal = Decimal("0")
+    vat_input: Decimal = Decimal("0")
+    vat_output: Decimal = Decimal("0")
+    vat_payable: Decimal = Decimal("0")
+    item_code: str = ""
+    item_name: str = ""
+    quantity: Decimal = Decimal("0")
+    unit_price: Decimal = Decimal("0")
+    total_amount: Decimal = Decimal("0")
+    running_balance: Decimal = Decimal("0")
+    voucher_id: int | None = None
+    fiscal_year: int
+    period: int
+
+
 # ---------------------------------------------------------------------------
 # Router
 # ---------------------------------------------------------------------------
@@ -228,3 +261,73 @@ def register_dnsn_endpoints(api: NinjaAPI) -> None:
         voucher_no = voucher.voucher_no
         voucher.delete()
         return MessageSchema(message=f"Deleted voucher {voucher_no}", id=None)
+
+    register_dnsn_ledger_endpoints(api)
+
+
+def register_dnsn_ledger_endpoints(api: NinjaAPI) -> None:
+    """Register DNSN ledger listing/entry endpoints on the NinjaAPI."""
+
+    @api.get(
+        "/dnsn/ledgers/",
+        response=list[DnsnLedgerInfoSchema],
+        tags=["DNSN"],
+        auth=lambda request: request.user.is_authenticated,
+    )
+    def list_dnsn_ledgers(request):
+        """List all available DNSN ledger types for the current company."""
+        from apps.ledger.dnsn_ledger_types import LEDGER_LABELS, get_company_available_ledgers
+
+        company = _get_company(request)
+        available = get_company_available_ledgers(company)
+        return [{"ledger_type": lt, "label": LEDGER_LABELS.get(lt, lt.upper())} for lt in available]
+
+    @api.get(
+        "/dnsn/ledgers/{ledger_type}/entries/",
+        response=list[DnsnLedgerEntrySchema],
+        tags=["DNSN"],
+        auth=lambda request: request.user.is_authenticated,
+    )
+    @paginate(PageNumberPagination)
+    def list_dnsn_ledger_entries(
+        request,
+        ledger_type: str,
+        fiscal_year: int | None = None,
+        period: int | None = None,
+        date_from: date | None = None,
+        date_to: date | None = None,
+    ):
+        """List DNSN ledger entries for a specific ledger type with running balances.
+
+        The ledger_type must be available for the company's tax_method_group
+        or explicitly enabled as an optional ledger.
+        """
+        from apps.ledger.dnsn_ledger_types import get_company_available_ledgers
+        from apps.ledger.models import DnsnLedgerEntry
+
+        company = _get_company(request)
+        available = get_company_available_ledgers(company)
+
+        if ledger_type not in available:
+            from ninja.errors import HttpError
+
+            raise HttpError(
+                403,
+                f"Ledger {ledger_type} is not available for this company.",
+            )
+
+        qs = DnsnLedgerEntry.objects.filter(
+            company=company,
+            ledger_type=ledger_type,
+        ).order_by("entry_date", "id", "line_no")
+
+        if fiscal_year:
+            qs = qs.filter(fiscal_year=fiscal_year)
+        if period:
+            qs = qs.filter(period=period)
+        if date_from:
+            qs = qs.filter(entry_date__gte=date_from)
+        if date_to:
+            qs = qs.filter(entry_date__lte=date_to)
+
+        return list(qs)

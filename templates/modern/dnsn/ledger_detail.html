@@ -1,0 +1,212 @@
+{% extends 'modern/base/layout.html' %}
+{% load static %}
+{% load format_utils %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'modern/css/ledger.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dnsn_ledger_list' %}">Sổ DNSN</a></li>
+                    <li class="breadcrumb-item active">{{ ledger_type|upper }}-DNSN</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ ledger_label }}</h1>
+            <small class="text-muted">Chế độ kế toán siêu nhỏ (TT58/2026/TT-BTC)</small>
+        </div>
+        <div>
+            <a href="{% url 'ui_modern:dnsn_ledger_list' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Quay lại
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label small text-muted mb-0">Năm</label>
+                    <input type="number" class="form-control form-control-sm" name="fiscal_year"
+                           value="{{ request.GET.fiscal_year }}" placeholder="2026" style="width:100px">
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small text-muted mb-0">Kỳ</label>
+                    <input type="number" class="form-control form-control-sm" name="period"
+                           value="{{ request.GET.period }}" placeholder="1-12" min="1" max="12" style="width:80px">
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small text-muted mb-0">Từ ngày</label>
+                    <input type="date" class="form-control form-control-sm" name="date_from"
+                           value="{{ request.GET.date_from }}">
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small text-muted mb-0">Đến ngày</label>
+                    <input type="date" class="form-control form-control-sm" name="date_to"
+                           value="{{ request.GET.date_to }}">
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-funnel"></i> Lọc
+                    </button>
+                    <a href="{% url 'ui_modern:dnsn_ledger_detail' ledger_type %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-x"></i> Xóa lọc
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Ledger entries table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ngày</th>
+                            <th>Chứng từ</th>
+                            <th>Diễn giải</th>
+                            <th>Đối tác</th>
+
+                            {% if ledger_type == 's1' or ledger_type == 's2a' or ledger_type == 's3a' %}
+                            <th class="text-end">Doanh thu</th>
+                            {% endif %}
+
+                            {% if ledger_type == 's2b' %}
+                            <th class="text-end">Doanh thu</th>
+                            <th class="text-end">Chi phí</th>
+                            {% endif %}
+
+                            {% if ledger_type == 's2c' %}
+                            <th>Mã hàng</th>
+                            <th>Tên hàng</th>
+                            <th class="text-end">SL</th>
+                            <th class="text-end">Đơn giá</th>
+                            <th class="text-end">Thành tiền</th>
+                            {% endif %}
+
+                            {% if ledger_type == 's2d' %}
+                            <th class="text-end">Thu tiền</th>
+                            <th class="text-end">Chi tiền</th>
+                            {% endif %}
+
+                            {% if ledger_type == 's3b' %}
+                            <th class="text-end">Thuế đầu ra</th>
+                            <th class="text-end">Thuế đầu vào</th>
+                            {% endif %}
+
+                            <!-- Optional ledgers: show revenue as default -->
+                            {% if ledger_type == 's4a' or ledger_type == 's4b' or ledger_type == 's4c' or ledger_type == 's4d' %}
+                            <th class="text-end">Phát sinh</th>
+                            {% endif %}
+
+                            <th class="text-end">Số dư_running</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in entries %}
+                        <tr>
+                            <td>{{ entry.entry_date|date:"d/m/Y" }}</td>
+                            <td>
+                                {% if entry.voucher_id %}
+                                <a href="{% url 'ui_modern:dnsn_voucher_detail' entry.voucher_id %}" class="text-decoration-none">
+                                    {{ entry.voucher.voucher_no }}
+                                </a>
+                                {% endif %}
+                            </td>
+                            <td>{{ entry.description|truncatechars:50 }}</td>
+                            <td>{{ entry.partner_name|truncatechars:30 }}</td>
+
+                            {% if ledger_type == 's1' or ledger_type == 's2a' or ledger_type == 's3a' %}
+                            <td class="text-end font-mono">{{ entry.revenue_amount|vnd }}</td>
+                            {% endif %}
+
+                            {% if ledger_type == 's2b' %}
+                            <td class="text-end font-mono">{{ entry.revenue_amount|vnd }}</td>
+                            <td class="text-end font-mono text-danger">{{ entry.cost_amount|vnd }}</td>
+                            {% endif %}
+
+                            {% if ledger_type == 's2c' %}
+                            <td>{{ entry.item_code }}</td>
+                            <td>{{ entry.item_name|truncatechars:30 }}</td>
+                            <td class="text-end">{{ entry.quantity }}</td>
+                            <td class="text-end font-mono">{{ entry.unit_price|vnd }}</td>
+                            <td class="text-end font-mono">{{ entry.total_amount|vnd }}</td>
+                            {% endif %}
+
+                            {% if ledger_type == 's2d' %}
+                            <td class="text-end font-mono text-success">{{ entry.cash_in|vnd }}</td>
+                            <td class="text-end font-mono text-danger">{{ entry.cash_out|vnd }}</td>
+                            {% endif %}
+
+                            {% if ledger_type == 's3b' %}
+                            <td class="text-end font-mono">{{ entry.vat_output|vnd }}</td>
+                            <td class="text-end font-mono">{{ entry.vat_input|vnd }}</td>
+                            {% endif %}
+
+                            {% if ledger_type == 's4a' or ledger_type == 's4b' or ledger_type == 's4c' or ledger_type == 's4d' %}
+                            <td class="text-end font-mono">{{ entry.total_amount|vnd }}</td>
+                            {% endif %}
+
+                            <td class="text-end font-mono fw-bold">{{ entry.running_balance|vnd }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center py-5">
+                                <i class="bi bi-inbox text-muted" style="font-size:48px;"></i>
+                                <p class="text-muted mt-2 mb-0">Chưa có bút toán nào trong sổ này</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    {% if entries %}
+                    <tfoot class="table-light">
+                        <tr class="fw-bold">
+                            <td colspan="4">Tổng cộng</td>
+
+                            {% if ledger_type == 's1' or ledger_type == 's2a' or ledger_type == 's3a' %}
+                            <td class="text-end font-mono">{{ total_revenue|vnd }}</td>
+                            {% endif %}
+
+                            {% if ledger_type == 's2b' %}
+                            <td class="text-end font-mono">{{ total_revenue|vnd }}</td>
+                            <td class="text-end font-mono">{{ total_cost|vnd }}</td>
+                            {% endif %}
+
+                            {% if ledger_type == 's2c' %}
+                            <td colspan="3"></td>
+                            <td class="text-end font-mono"></td>
+                            <td class="text-end font-mono"></td>
+                            {% endif %}
+
+                            {% if ledger_type == 's2d' %}
+                            <td class="text-end font-mono">{{ total_cash_in|vnd }}</td>
+                            <td class="text-end font-mono">{{ total_cash_out|vnd }}</td>
+                            {% endif %}
+
+                            {% if ledger_type == 's3b' %}
+                            <td class="text-end font-mono">{{ total_vat_output|vnd }}</td>
+                            <td class="text-end font-mono">{{ total_vat_input|vnd }}</td>
+                            {% endif %}
+
+                            {% if ledger_type == 's4a' or ledger_type == 's4b' or ledger_type == 's4c' or ledger_type == 's4d' %}
+                            <td class="text-end font-mono"></td>
+                            {% endif %}
+
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

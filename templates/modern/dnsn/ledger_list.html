@@ -1,0 +1,131 @@
+{% extends 'modern/base/layout.html' %}
+{% load static %}
+{% load format_utils %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'modern/css/ledger.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item active">Sổ kế toán DNSN</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+            <small class="text-muted">Chế độ kế toán siêu nhỏ (TT58/2026/TT-BTC)
+                {% if tax_method_group %}
+                — {{ request.current_company.tax_method_group_label }}
+                {% endif %}
+            </small>
+        </div>
+        <div>
+            <a href="{% url 'ui_modern:dnsn_ledger_settings' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-gear"></i> Tùy chọn sổ
+            </a>
+        </div>
+    </div>
+
+    {% if not is_tt58 %}
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        Sổ kế toán DNSN chỉ áp dụng cho công ty áp dụng chế độ TT58/2026.
+    </div>
+    {% else %}
+
+    <div class="row">
+        {% for ledger in ledger_infos %}
+        <div class="col-md-6 col-xl-4 mb-3">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <a href="{% url 'ui_modern:dnsn_ledger_detail' ledger.ledger_type %}"
+                           class="text-decoration-none">
+                            {{ ledger.short_label }}
+                        </a>
+                    </h6>
+                    <span class="badge bg-light text-muted">{{ ledger.entry_count }} bút toán</span>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-2">{{ ledger.label|cut:ledger.short_label|cut:" — "|cut:"" }}</p>
+
+                    {% if ledger.ledger_type == 's1' or ledger.ledger_type == 's2a' or ledger.ledger_type == 's3a' or ledger.ledger_type == 's2b' %}
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Doanh thu kỳ:</span>
+                        <span class="font-mono">{{ ledger.period_revenue|vnd }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if ledger.ledger_type == 's2b' %}
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Chi phí kỳ:</span>
+                        <span class="font-mono">{{ ledger.period_cost|vnd }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if ledger.ledger_type == 's2d' %}
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Tiền phát sinh:</span>
+                        <span class="font-mono">{{ ledger.period_cash|vnd }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Số dư tiền:</span>
+                        <span class="font-mono fw-bold">{{ ledger.closing_cash|vnd }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if ledger.ledger_type == 's2c' %}
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Phát sinh:</span>
+                        <span class="font-mono">{{ ledger.period_revenue|vnd }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if ledger.ledger_type == 's3b' %}
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Thuế GTGT kỳ:</span>
+                        <span class="font-mono">{{ ledger.period_vat|vnd }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Số dư thuế:</span>
+                        <span class="font-mono fw-bold">{{ ledger.closing_vat|vnd }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% for lt_code in ledger.ledger_type|make_list %}
+                    {% endfor %}
+
+                    {% if ledger.last_transaction_date %}
+                    <small class="text-muted d-block mt-2">
+                        GD gần nhất: {{ ledger.last_transaction_date|date:"d/m/Y" }}
+                    </small>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'ui_modern:dnsn_ledger_detail' ledger.ledger_type %}"
+                       class="btn btn-outline-primary btn-sm w-100">
+                        <i class="bi bi-eye"></i> Xem chi tiết
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-journal-text text-muted" style="font-size:48px;"></i>
+                    <p class="text-muted mt-2 mb-1">Chưa có sổ DNSN nào khả dụng</p>
+                    <p class="text-muted small">Vui lòng kiểm tra cấu hình thuế của công ty.</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}

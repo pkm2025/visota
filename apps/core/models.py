@@ -142,6 +142,10 @@ class Company(models.Model):
     custom_css = models.TextField(blank=True)
     custom_domain = models.CharField(max_length=255, blank=True)
 
+    # TT58 optional ledger enablement (S4a-S4d, all disabled by default).
+    # JSON dict like {"s4a": true, "s4b": false, ...}
+    dnsn_optional_ledgers = models.JSONField(default=dict, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

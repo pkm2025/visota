@@ -87,6 +87,9 @@ from .views import (
     DnsnVoucherDetailView,
     DnsnVoucherEditView,
     DnsnVoucherListView,
+    DnsnLedgerDetailView,
+    DnsnLedgerListView,
+    DnsnLedgerSettingsView,
     DocumentDeleteView,
     DocumentDetailView,
     DocumentDownloadView,
@@ -553,6 +556,22 @@ urlpatterns = [
         "dnsn-vouchers/<int:pk>/delete/",
         login_required(DnsnVoucherDeleteView.as_view()),
         name="dnsn_voucher_delete",
+    ),
+    # TT58 DNSN ledgers
+    path(
+        "dnsn-ledgers/",
+        login_required(DnsnLedgerListView.as_view()),
+        name="dnsn_ledger_list",
+    ),
+    path(
+        "dnsn-ledgers/settings/",
+        login_required(DnsnLedgerSettingsView.as_view()),
+        name="dnsn_ledger_settings",
+    ),
+    path(
+        "dnsn-ledgers/<str:ledger_type>/",
+        login_required(DnsnLedgerDetailView.as_view()),
+        name="dnsn_ledger_detail",
     ),
     path(
         "documents/<int:pk>/download/",

@@ -205,6 +205,78 @@
                         <a href="{% url 'ui_modern:dnsn_voucher_create' %}" class="nav-item">
                             <i class="bi bi-plus-circle"></i> <span>Tạo chứng từ</span>
                         </a>
+                        <div class="nav-item-text small text-muted text-uppercase mt-2 mb-1 ps-2">Sổ kế toán</div>
+                        <a href="{% url 'ui_modern:dnsn_ledger_list' %}" class="nav-item">
+                            <i class="bi bi-journal-text"></i> <span>Tổng hợp sổ DNSN</span>
+                        </a>
+                        {% if request.current_company %}
+                            {% with tmg=request.current_company.tax_method_group ol=request.current_company.dnsn_optional_ledgers %}
+                            {% if tmg == 1 %}
+                            <a href="{% url 'ui_modern:dnsn_ledger_detail' 's1' %}" class="nav-item">
+                                <i class="bi bi-journal-bookmark"></i> <span>S1-DNSN (Doanh thu)</span>
+                            </a>
+                            {% endif %}
+                            {% if tmg == 2 %}
+                            <a href="{% url 'ui_modern:dnsn_ledger_detail' 's2a' %}" class="nav-item">
+                                <i class="bi bi-journal-bookmark"></i> <span>S2a-DNSN (Doanh thu)</span>
+                            </a>
+                            <a href="{% url 'ui_modern:dnsn_ledger_detail' 's2b' %}" class="nav-item">
+                                <i class="bi bi-journal-bookmark"></i> <span>S2b-DNSN (DT/CP)</span>
+                            </a>
+                            <a href="{% url 'ui_modern:dnsn_ledger_detail' 's2c' %}" class="nav-item">
+                                <i class="bi bi-journal-bookmark"></i> <span>S2c-DNSN (Hàng hóa)</span>
+                            </a>
+                            <a href="{% url 'ui_modern:dnsn_ledger_detail' 's2d' %}" class="nav-item">
+                                <i class="bi bi-journal-bookmark"></i> <span>S2d-DNSN (Tiền)</span>
+                            </a>
+                            {% endif %}
+                            {% if tmg == 3 %}
+                            <a href="{% url 'ui_modern:dnsn_ledger_detail' 's3a' %}" class="nav-item">
+                                <i class="bi bi-journal-bookmark"></i> <span>S3a-DNSN (Doanh thu)</span>
+                            </a>
+                            <a href="{% url 'ui_modern:dnsn_ledger_detail' 's3b' %}" class="nav-item">
+                                <i class="bi bi-journal-bookmark"></i> <span>S3b-DNSN (Thuế GTGT)</span>
+                            </a>
+                            {% endif %}
+                            {% if tmg == 4 %}
+                            <a href="{% url 'ui_modern:dnsn_ledger_detail' 's2b' %}" class="nav-item">
+                                <i class="bi bi-journal-bookmark"></i> <span>S2b-DNSN (DT/CP)</span>
+                            </a>
+                            <a href="{% url 'ui_modern:dnsn_ledger_detail' 's2c' %}" class="nav-item">
+                                <i class="bi bi-journal-bookmark"></i> <span>S2c-DNSN (Hàng hóa)</span>
+                            </a>
+                            <a href="{% url 'ui_modern:dnsn_ledger_detail' 's2d' %}" class="nav-item">
+                                <i class="bi bi-journal-bookmark"></i> <span>S2d-DNSN (Tiền)</span>
+                            </a>
+                            <a href="{% url 'ui_modern:dnsn_ledger_detail' 's3b' %}" class="nav-item">
+                                <i class="bi bi-journal-bookmark"></i> <span>S3b-DNSN (Thuế GTGT)</span>
+                            </a>
+                            {% endif %}
+                            {% if ol.s4a %}
+                            <a href="{% url 'ui_modern:dnsn_ledger_detail' 's4a' %}" class="nav-item">
+                                <i class="bi bi-journal-bookmark"></i> <span>S4a-DNSN (Công nợ)</span>
+                            </a>
+                            {% endif %}
+                            {% if ol.s4b %}
+                            <a href="{% url 'ui_modern:dnsn_ledger_detail' 's4b' %}" class="nav-item">
+                                <i class="bi bi-journal-bookmark"></i> <span>S4b-DNSN (TSCĐ)</span>
+                            </a>
+                            {% endif %}
+                            {% if ol.s4c %}
+                            <a href="{% url 'ui_modern:dnsn_ledger_detail' 's4c' %}" class="nav-item">
+                                <i class="bi bi-journal-bookmark"></i> <span>S4c-DNSN (Thuế khác)</span>
+                            </a>
+                            {% endif %}
+                            {% if ol.s4d %}
+                            <a href="{% url 'ui_modern:dnsn_ledger_detail' 's4d' %}" class="nav-item">
+                                <i class="bi bi-journal-bookmark"></i> <span>S4d-DNSN (Vốn CSH)</span>
+                            </a>
+                            {% endif %}
+                            {% endwith %}
+                        {% endif %}
+                        <a href="{% url 'ui_modern:dnsn_ledger_settings' %}" class="nav-item">
+                            <i class="bi bi-gear"></i> <span>Tùy chọn sổ (S4)</span>
+                        </a>
                     </div>
                 </div>
                 {% endif %}
