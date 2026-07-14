@@ -18,6 +18,28 @@ class Company(models.Model):
         TT133 = "tt133", "TT133/2016 (DN nhỏ và vừa)"
         TT200 = "tt200", "TT200/2014 (DN lớn)"
         Q48 = "q48", "QĐ48/2006 (cũ)"
+        TT58 = "tt58", "TT58/2026 (DN siêu nhỏ)"
+
+    class VatMethod(models.TextChoices):
+        KHAU_TRU = "khau_tru", "Khấu trừ"
+        TY_LE_PHAN_TRAM = "ty_le_phan_tram", "Tỷ lệ %"
+
+    class TndnMethod(models.TextChoices):
+        TINH_THUE = "tinh_thue", "Tính thuế"
+        TY_LE_PHAN_TRAM = "ty_le_phan_tram", "Tỷ lệ %"
+
+    class EntityType(models.TextChoices):
+        DOANH_NGHIEP_SIEU_NHO = "doanh_nghiep_sieu_nho", "Doanh nghiệp siêu nhỏ"
+        HO_KINH_DOANH = "ho_kinh_doanh", "Hộ kinh doanh"
+        CA_NHAN_KINH_DOANH = "ca_nhan_kinh_doanh", "Cá nhân kinh doanh"
+
+    # Tax method group labels keyed by group number (1-4).
+    TAX_METHOD_GROUP_LABELS = {
+        1: "Nhóm 1 — GTGT tỷ lệ % + TNDN tỷ lệ %",
+        2: "Nhóm 2 — GTGT tỷ lệ % + TNDN tính thuế",
+        3: "Nhóm 3 — GTGT khấu trừ + TNDN tỷ lệ %",
+        4: "Nhóm 4 — GTGT khấu trừ + TNDN tính thuế",
+    }
 
     # Legal info
     code = models.CharField(max_length=20, unique=True)
@@ -46,6 +68,23 @@ class Company(models.Model):
     )
     default_currency = models.CharField(max_length=3, default="VND")
     fiscal_year_start_month = models.PositiveSmallIntegerField(default=1)
+
+    # TT58 tax configuration (only used when accounting_regime='tt58')
+    vat_method = models.CharField(
+        max_length=20,
+        choices=VatMethod.choices,
+        default=VatMethod.KHAU_TRU,
+    )
+    tndn_method = models.CharField(
+        max_length=20,
+        choices=TndnMethod.choices,
+        default=TndnMethod.TINH_THUE,
+    )
+    entity_type = models.CharField(
+        max_length=30,
+        choices=EntityType.choices,
+        default=EntityType.DOANH_NGHIEP_SIEU_NHO,
+    )
 
     # SME classification per ND 80/2021
     sme_size = models.CharField(
@@ -119,6 +158,32 @@ class Company(models.Model):
     @property
     def display_name(self):
         return self.brand_name or self.name
+
+    @property
+    def tax_method_group(self) -> int:
+        """Compute tax method group (1-4) from vat_method + tndn_method.
+
+        Group 1: vat=ty_le_phan_tram + tndn=ty_le_phan_tram
+        Group 2: vat=ty_le_phan_tram + tndn=tinh_thue
+        Group 3: vat=khau_tru + tndn=ty_le_phan_tram
+        Group 4: vat=khau_tru + tndn=tinh_thue
+        """
+        vat_pct = self.vat_method == self.VatMethod.TY_LE_PHAN_TRAM
+        tndn_pct = self.tndn_method == self.TndnMethod.TY_LE_PHAN_TRAM
+        if vat_pct and tndn_pct:
+            return 1
+        if vat_pct and not tndn_pct:
+            return 2
+        if not vat_pct and tndn_pct:
+            return 3
+        return 4
+
+    @property
+    def tax_method_group_label(self) -> str:
+        """Human-readable label for the tax method group."""
+        return self.TAX_METHOD_GROUP_LABELS.get(
+            self.tax_method_group, f"Nhóm {self.tax_method_group}"
+        )
 
 
 class LegalReference(models.Model):

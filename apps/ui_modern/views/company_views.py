@@ -26,40 +26,48 @@ class CompanyProfileView(LoginRequiredMixin, View):
             "company": company,
             "regime_choices": Company.AccountingRegime.choices,
             "sme_choices": Company.SMESize.choices,
+            "vat_method_choices": Company.VatMethod.choices,
+            "tndn_method_choices": Company.TndnMethod.choices,
+            "entity_type_choices": Company.EntityType.choices,
             "bank_accounts_json": json.dumps(company.bank_accounts or [], ensure_ascii=False),
         }
         return render(request, self.template_name, ctx)
 
+    _simple_fields = [
+        "name",
+        "name_en",
+        "short_name",
+        "tax_code",
+        "address",
+        "phone",
+        "email",
+        "fax",
+        "website",
+        "legal_representative",
+        "representative_position",
+        "representative_phone",
+        "representative_email",
+        "representative_id_no",
+        "chief_accountant",
+        "chief_accountant_license",
+        "chief_accountant_phone",
+        "business_license_no",
+        "business_license_place",
+        "facebook",
+        "linkedin",
+        "zalo",
+        "brand_name",
+        "brand_primary_color",
+        "brand_accent_color",
+    ]
+
+    _select_fields = ["accounting_regime", "sme_size", "vat_method", "tndn_method", "entity_type"]
+
+    _file_fields = ["brand_logo", "brand_logo_dark", "brand_favicon", "company_stamp"]
+
     def post(self, request, *args, **kwargs):
         company = self.get_company(request)
-        SIMPLE_FIELDS = [
-            "name",
-            "name_en",
-            "short_name",
-            "tax_code",
-            "address",
-            "phone",
-            "email",
-            "fax",
-            "website",
-            "legal_representative",
-            "representative_position",
-            "representative_phone",
-            "representative_email",
-            "representative_id_no",
-            "chief_accountant",
-            "chief_accountant_license",
-            "chief_accountant_phone",
-            "business_license_no",
-            "business_license_place",
-            "facebook",
-            "linkedin",
-            "zalo",
-            "brand_name",
-            "brand_primary_color",
-            "brand_accent_color",
-        ]
-        for field in SIMPLE_FIELDS:
+        for field in self._simple_fields:
             value = request.POST.get(field, "").strip()
             if hasattr(company, field):
                 setattr(company, field, value)
@@ -77,11 +85,10 @@ class CompanyProfileView(LoginRequiredMixin, View):
             else:
                 setattr(company, date_field, None)
 
-        # Select fields
-        if request.POST.get("accounting_regime"):
-            company.accounting_regime = request.POST["accounting_regime"]
-        if request.POST.get("sme_size"):
-            company.sme_size = request.POST["sme_size"]
+        # Select fields (including TT58 tax configuration fields)
+        for sel_field in self._select_fields:
+            if request.POST.get(sel_field):
+                setattr(company, sel_field, request.POST[sel_field])
 
         # Bank accounts JSON
         bank_json = request.POST.get("bank_accounts_json", "[]").strip()
@@ -91,10 +98,9 @@ class CompanyProfileView(LoginRequiredMixin, View):
             company.bank_accounts = []
 
         # File uploads
-        for file_field in ["brand_logo", "brand_logo_dark", "brand_favicon", "company_stamp"]:
+        for file_field in self._file_fields:
             f = request.FILES.get(file_field)
             if f:
-                # Delete old file if exists
                 old = getattr(company, file_field)
                 if old:
                     try:

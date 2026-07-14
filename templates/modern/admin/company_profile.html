@@ -103,6 +103,53 @@
                             </select>
                         </div>
                     </div>
+
+                    <!-- TT58 tax configuration (only visible when regime=tt58) -->
+                    <div id="tt58-config-section" style="display: none;">
+                        <hr>
+                        <h5 class="text-primary mb-3">
+                            <i class="bi bi-gear"></i> Cấu hình thuế TT58/2026
+                        </h5>
+                        <div class="alert alert-warning small mb-3" role="alert">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Các trường dưới đây chỉ áp dụng cho chế độ kế toán TT58/2026 (DN siêu nhỏ).
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Loại hình doanh nghiệp</label>
+                                <select name="entity_type" class="form-select" id="id_entity_type">
+                                    {% for code, label in entity_type_choices %}
+                                    <option value="{{ code }}" {% if company.entity_type == code %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Phương pháp GTGT</label>
+                                <select name="vat_method" class="form-select" id="id_vat_method">
+                                    {% for code, label in vat_method_choices %}
+                                    <option value="{{ code }}" {% if company.vat_method == code %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Phương pháp TNDN</label>
+                                <select name="tndn_method" class="form-select" id="id_tndn_method">
+                                    {% for code, label in tndn_method_choices %}
+                                    <option value="{{ code }}" {% if company.tndn_method == code %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <div class="alert alert-info" id="tax-method-group-display">
+                                    <i class="bi bi-info-circle"></i>
+                                    <strong>Nhóm phương pháp thuế:</strong>
+                                    <span id="tax-method-group-label">{{ company.tax_method_group_label }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div></div>
             </div>
 
@@ -310,5 +357,58 @@ function syncJson() {
 document.querySelector('form').addEventListener('submit', syncJson);
 
 renderBankRows();
+
+// --- TT58 conditional fields ---
+// Show TT58 config section only when accounting_regime = 'tt58'
+function updateTT58Visibility() {
+    const regimeSelect = document.querySelector('select[name="accounting_regime"]');
+    const tt58Section = document.getElementById('tt58-config-section');
+    if (!regimeSelect || !tt58Section) return;
+
+    if (regimeSelect.value === 'tt58') {
+        tt58Section.style.display = '';
+    } else {
+        tt58Section.style.display = 'none';
+    }
+}
+
+function updateTaxMethodGroupLabel() {
+    const vatSelect = document.getElementById('id_vat_method');
+    const tndnSelect = document.getElementById('id_tndn_method');
+    const labelSpan = document.getElementById('tax-method-group-label');
+    if (!vatSelect || !tndnSelect || !labelSpan) return;
+
+    const vat = vatSelect.value;
+    const tndn = tndnSelect.value;
+
+    let groupNum = 4;
+    if (vat === 'ty_le_phan_tram' && tndn === 'ty_le_phan_tram') groupNum = 1;
+    else if (vat === 'ty_le_phan_tram' && tndn === 'tinh_thue') groupNum = 2;
+    else if (vat === 'khau_tru' && tndn === 'ty_le_phan_tram') groupNum = 3;
+
+    const vatText = vatSelect.options[vatSelect.selectedIndex].text;
+    const tndnText = tndnSelect.options[tndnSelect.selectedIndex].text;
+    labelSpan.textContent = 'Nhóm ' + groupNum + ' — GTGT ' + vatText + ' + TNDN ' + tndnText;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const regimeSelect = document.querySelector('select[name="accounting_regime"]');
+    if (regimeSelect) {
+        regimeSelect.addEventListener('change', updateTT58Visibility);
+    }
+
+    const vatSelect = document.getElementById('id_vat_method');
+    const tndnSelect = document.getElementById('id_tndn_method');
+    if (vatSelect) {
+        vatSelect.addEventListener('change', updateTaxMethodGroupLabel);
+    }
+    if (tndnSelect) {
+        tndnSelect.addEventListener('change', updateTaxMethodGroupLabel);
+    }
+
+    // Initialize visibility and label on page load
+    updateTT58Visibility();
+    updateTaxMethodGroupLabel();
+});
 </script>
 {% endblock %}
