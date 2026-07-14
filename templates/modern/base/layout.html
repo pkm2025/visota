@@ -192,6 +192,22 @@
                     </div>
                     <div x-show="open" id="ss-pins-list"></div>
                 </div>
+                {% if request.current_company and request.current_company.accounting_regime == 'tt58' %}
+                <div class="nav-section" x-data="{ open: localStorage.getItem('nav_DNSN') === 'true' }">
+                    <div class="nav-section-title" @click="open = !open; localStorage.setItem('nav_DNSN', open)" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                        <span><i class="bi bi-building-fill-exclamation"></i> DNSN (TT58)</span>
+                        <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'" style="font-size:10px"></i>
+                    </div>
+                    <div x-show="open" x-collapse>
+                        <a href="{% url 'ui_modern:dnsn_voucher_list' %}" class="nav-item">
+                            <i class="bi bi-receipt"></i> <span>Chứng từ DNSN</span>
+                        </a>
+                        <a href="{% url 'ui_modern:dnsn_voucher_create' %}" class="nav-item">
+                            <i class="bi bi-plus-circle"></i> <span>Tạo chứng từ</span>
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
                 <div class="nav-section" x-data="{ open: localStorage.getItem('nav_CNDL') === 'true' }"
                      {% has_module_access "ledger" as can_ledger %}{% has_module_access "input_docs" as can_input_docs %}{% has_module_access "recurring" as can_recurring %}{% has_module_access "treasury" as can_treasury %}{% has_module_access "banking" as can_banking %}{% has_module_access "loans" as can_loans %}{% has_module_access "guarantees" as can_guarantees %}
                      {% if not can_ledger and not can_input_docs and not can_recurring and not can_treasury and not can_banking and not can_loans and not can_guarantees %}style="display:none"{% endif %}>

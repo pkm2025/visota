@@ -1,0 +1,139 @@
+{% extends 'modern/base/layout.html' %}
+{% load static %}
+{% load format_utils %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'modern/css/ledger.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dnsn_voucher_list' %}">Chứng từ DNSN</a></li>
+            <li class="breadcrumb-item active">{{ is_new|yesno:"Tạo mới,Sửa" }}</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <small class="text-muted d-block mb-3">
+                <i class="bi bi-info-circle"></i>
+                Chứng từ DNSN theo TT58/2026/TT-BTC — không dùng hệ thống tài khoản Nợ/Có.
+            </small>
+
+            <form method="post">
+                {% csrf_token %}
+
+                {% if voucher and voucher.is_posted %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Chứng từ đã ghi sổ, không thể chỉnh sửa.
+                </div>
+                {% endif %}
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Số chứng từ <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="voucher_no"
+                               value="{{ voucher.voucher_no|default:'' }}"
+                               {% if is_new %}placeholder="Tự động nếu để trống"{% else %}required{% endif %}>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Loại chứng từ <span class="text-danger">*</span></label>
+                        <select class="form-select" name="voucher_type" required>
+                            {% for code, label in voucher_type_choices %}
+                            <option value="{{ code }}"
+                                {% if voucher.voucher_type == code %}selected{% endif %}
+                                {% if is_new and code == 'phieu_thu' and not voucher %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Ngày chứng từ <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" name="voucher_date" required
+                               value="{{ voucher.voucher_date|date:'Y-m-d'|default:'' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tổng tiền (VND)</label>
+                        <input type="number" class="form-control text-end" name="total_amount"
+                               step="any" min="0"
+                               value="{{ voucher.total_amount|default:'0' }}">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Diễn giải</label>
+                    <textarea class="form-control" name="description" rows="2">{{ voucher.description|default:'' }}</textarea>
+                </div>
+
+                <hr>
+                <h6 class="text-muted mb-3"><i class="bi bi-person"></i> Thông tin đối tác</h6>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Tên đối tác</label>
+                        <input type="text" class="form-control" name="partner_name"
+                               value="{{ voucher.partner_name|default:'' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Mã số thuế</label>
+                        <input type="text" class="form-control" name="partner_tax_code"
+                               value="{{ voucher.partner_tax_code|default:'' }}">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Địa chỉ</label>
+                        <input type="text" class="form-control" name="partner_address"
+                               value="{{ voucher.partner_address|default:'' }}">
+                    </div>
+                </div>
+
+                <hr>
+                <h6 class="text-muted mb-3"><i class="bi bi-receipt"></i> Thông tin hóa đơn (nếu có)</h6>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Số hóa đơn</label>
+                        <input type="text" class="form-control" name="invoice_no"
+                               value="{{ voucher.invoice_no|default:'' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Ngày hóa đơn</label>
+                        <input type="date" class="form-control" name="invoice_date"
+                               value="{{ voucher.invoice_date|date:'Y-m-d'|default:'' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Mẫu hóa đơn</label>
+                        <input type="text" class="form-control" name="invoice_form"
+                               value="{{ voucher.invoice_form|default:'' }}"
+                               placeholder="VD: 02BANHANG">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Ký hiệu</label>
+                        <input type="text" class="form-control" name="invoice_serial"
+                               value="{{ voucher.invoice_serial|default:'' }}">
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mt-4">
+                    {% if not voucher.is_posted %}
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> {{ is_new|yesno:"Tạo chứng từ,Lưu thay đổi" }}
+                    </button>
+                    {% endif %}
+                    <a href="{% url 'ui_modern:dnsn_voucher_list' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Quay lại
+                    </a>
+                    {% if voucher and not voucher.is_posted %}
+                    <a href="{% url 'ui_modern:dnsn_voucher_detail' voucher.pk %}" class="btn btn-outline-info">
+                        <i class="bi bi-eye"></i> Xem chi tiết
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

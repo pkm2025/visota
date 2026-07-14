@@ -1,0 +1,146 @@
+{% extends 'modern/base/layout.html' %}
+{% load static %}
+{% load format_utils %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'modern/css/ledger.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dnsn_voucher_list' %}">Chứng từ DNSN</a></li>
+            <li class="breadcrumb-item active">{{ voucher.voucher_no }}</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    <div class="d-flex gap-2 mb-3">
+        {% if not voucher.is_posted %}
+        <a href="{% url 'ui_modern:dnsn_voucher_edit' voucher.pk %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-pencil"></i> Sửa
+        </a>
+        <form method="post" action="{% url 'ui_modern:dnsn_voucher_delete' voucher.pk %}"
+              onsubmit="return confirm('Xóa chứng từ {{ voucher.voucher_no }}?')" style="display:inline">
+            {% csrf_token %}
+            <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> Xóa</button>
+        </form>
+        {% else %}
+        <span class="badge bg-success p-2">
+            <i class="bi bi-check-circle"></i>
+            {% if voucher.status == 'posted' %}Đã ghi sổ{% elif voucher.status == 'locked' %}Đã khóa{% endif %}
+        </span>
+        {% endif %}
+        <a href="{% url 'ui_modern:dnsn_voucher_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Quay lại
+        </a>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <strong><i class="bi bi-receipt"></i> Thông tin chứng từ</strong>
+            {% if voucher.status == 'draft' %}
+            <span class="badge bg-warning">Lưu tạm</span>
+            {% elif voucher.status == 'posted' %}
+            <span class="badge bg-success">Đã ghi sổ</span>
+            {% elif voucher.status == 'locked' %}
+            <span class="badge bg-secondary">Đã khóa</span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-2">Số chứng từ</dt>
+                <dd class="col-sm-4 font-mono">{{ voucher.voucher_no }}</dd>
+                <dt class="col-sm-2">Loại</dt>
+                <dd class="col-sm-4">{{ voucher.get_voucher_type_display }}</dd>
+                <dt class="col-sm-2">Ngày</dt>
+                <dd class="col-sm-4">{{ voucher.voucher_date|date:"d/m/Y" }}</dd>
+                <dt class="col-sm-2">Kỳ</dt>
+                <dd class="col-sm-4">Tháng {{ voucher.period }} / {{ voucher.fiscal_year }}</dd>
+                <dt class="col-sm-2">Diễn giải</dt>
+                <dd class="col-sm-10">{{ voucher.description }}</dd>
+                <dt class="col-sm-2">Tổng tiền</dt>
+                <dd class="col-sm-4 font-mono">{{ voucher.total_amount|vnd }} VND</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <strong><i class="bi bi-person"></i> Thông tin đối tác</strong>
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-2">Tên đối tác</dt>
+                <dd class="col-sm-4">{{ voucher.partner_name|default:"—" }}</dd>
+                <dt class="col-sm-2">Mã số thuế</dt>
+                <dd class="col-sm-4 font-mono">{{ voucher.partner_tax_code|default:"—" }}</dd>
+                <dt class="col-sm-2">Địa chỉ</dt>
+                <dd class="col-sm-10">{{ voucher.partner_address|default:"—" }}</dd>
+            </dl>
+        </div>
+    </div>
+
+    {% if voucher.invoice_no or voucher.invoice_form %}
+    <div class="card mb-3">
+        <div class="card-header">
+            <strong><i class="bi bi-receipt-cutoff"></i> Thông tin hóa đơn</strong>
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-2">Số hóa đơn</dt>
+                <dd class="col-sm-4 font-mono">{{ voucher.invoice_no|default:"—" }}</dd>
+                <dt class="col-sm-2">Ngày hóa đơn</dt>
+                <dd class="col-sm-4">{{ voucher.invoice_date|date:"d/m/Y"|default:"—" }}</dd>
+                <dt class="col-sm-2">Mẫu hóa đơn</dt>
+                <dd class="col-sm-4">{{ voucher.invoice_form|default:"—" }}</dd>
+                <dt class="col-sm-2">Ký hiệu</dt>
+                <dd class="col-sm-4">{{ voucher.invoice_serial|default:"—" }}</dd>
+            </dl>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if voucher.ledger_entries.all %}
+    <div class="card">
+        <div class="card-header">
+            <strong><i class="bi bi-journal-text"></i> Bút toán sổ DNSN</strong>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Line</th>
+                            <th>Sổ</th>
+                            <th>Diễn giải</th>
+                            <th class="text-end">Doanh thu</th>
+                            <th class="text-end">Chi phí</th>
+                            <th class="text-end">Tiền thu</th>
+                            <th class="text-end">Tiền chi</th>
+                            <th class="text-end">Số dư running</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in voucher.ledger_entries.all %}
+                        <tr>
+                            <td>{{ entry.line_no }}</td>
+                            <td><span class="badge bg-info">{{ entry.ledger_type }}</span></td>
+                            <td>{{ entry.description }}</td>
+                            <td class="text-end font-mono">{% if entry.revenue_amount %}{{ entry.revenue_amount|vnd }}{% else %}—{% endif %}</td>
+                            <td class="text-end font-mono">{% if entry.cost_amount %}{{ entry.cost_amount|vnd }}{% else %}—{% endif %}</td>
+                            <td class="text-end font-mono">{% if entry.cash_in %}{{ entry.cash_in|vnd }}{% else %}—{% endif %}</td>
+                            <td class="text-end font-mono">{% if entry.cash_out %}{{ entry.cash_out|vnd }}{% else %}—{% endif %}</td>
+                            <td class="text-end font-mono">{{ entry.running_balance|vnd }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

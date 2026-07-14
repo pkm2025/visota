@@ -1,0 +1,150 @@
+{% extends 'modern/base/layout.html' %}
+{% load static %}
+{% load format_utils %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'modern/css/ledger.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item active">Chứng từ DNSN</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+            <small class="text-muted">Chế độ kế toán siêu nhỏ (TT58/2026/TT-BTC)</small>
+        </div>
+        <div>
+            <a href="{% url 'ui_modern:dnsn_voucher_create' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus"></i> Thêm mới
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="get" class="row g-2 mb-3">
+                <div class="col-auto">
+                    <input type="text" class="form-control form-control-sm" name="search"
+                           placeholder="Tìm theo số CT, diễn giải, đối tác..."
+                           value="{{ request.GET.search }}">
+                </div>
+                <div class="col-auto">
+                    <select class="form-select form-select-sm" name="voucher_type">
+                        <option value="">Tất cả loại</option>
+                        {% for code, label in voucher_type_choices %}
+                        <option value="{{ code }}" {% if request.GET.voucher_type == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <select class="form-select form-select-sm" name="status">
+                        <option value="">Tất cả trạng thái</option>
+                        {% for code, label in status_choices %}
+                        <option value="{{ code }}" {% if request.GET.status == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <input type="date" class="form-control form-control-sm" name="date_from"
+                           value="{{ request.GET.date_from }}" title="Từ ngày">
+                </div>
+                <div class="col-auto">
+                    <input type="date" class="form-control form-control-sm" name="date_to"
+                           value="{{ request.GET.date_to }}" title="Đến ngày">
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-funnel"></i> Lọc
+                    </button>
+                    <a href="{% url 'ui_modern:dnsn_voucher_list' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-x"></i> Xóa lọc
+                    </a>
+                </div>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ngày</th>
+                            <th>Số CT</th>
+                            <th>Loại</th>
+                            <th>Đối tác</th>
+                            <th>Diễn giải</th>
+                            <th class="text-end">Tổng tiền</th>
+                            <th>Trạng thái</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for voucher in vouchers %}
+                        <tr>
+                            <td>{{ voucher.voucher_date|date:"d/m/Y" }}</td>
+                            <td>
+                                <a href="{% url 'ui_modern:dnsn_voucher_detail' voucher.id %}" class="text-decoration-none">
+                                    {{ voucher.voucher_no }}
+                                </a>
+                            </td>
+                            <td><small class="text-muted">{{ voucher.get_voucher_type_display }}</small></td>
+                            <td>{{ voucher.partner_name|truncatechars:30 }}</td>
+                            <td>{{ voucher.description|truncatechars:60 }}</td>
+                            <td class="text-end font-mono">{{ voucher.total_amount|vnd }}</td>
+                            <td>
+                                {% if voucher.status == 'draft' %}
+                                <span class="badge bg-warning">Lưu tạm</span>
+                                {% elif voucher.status == 'posted' %}
+                                <span class="badge bg-success">Đã ghi sổ</span>
+                                {% elif voucher.status == 'locked' %}
+                                <span class="badge bg-secondary">Đã khóa</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'ui_modern:dnsn_voucher_detail' voucher.id %}" class="btn btn-sm btn-outline-secondary py-0">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5">
+                                <i class="bi bi-inbox text-muted" style="font-size:48px;"></i>
+                                <p class="text-muted mt-2 mb-1">Chưa có chứng từ DNSN nào</p>
+                                <a href="{% url 'ui_modern:dnsn_voucher_create' %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-plus"></i> Tạo chứng từ mới
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if is_paginated %}
+            <nav>
+                <ul class="pagination pagination-sm justify-content-end">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ filter_params }}">←</a>
+                    </li>
+                    {% endif %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                    </li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ filter_params }}">→</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

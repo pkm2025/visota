@@ -424,6 +424,15 @@ def publish_einvoice(request, einvoice_id: int):
 
 
 # ---------------------------------------------------------------------------
+# DNSN (TT58) voucher endpoints
+# ---------------------------------------------------------------------------
+
+from apps.ledger.dnsn_api import register_dnsn_endpoints  # noqa: E402
+
+register_dnsn_endpoints(api)
+
+
+# ---------------------------------------------------------------------------
 # PKM (Personal Knowledge Management) module
 # ---------------------------------------------------------------------------
 
