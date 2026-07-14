@@ -12,6 +12,7 @@ from django.views.generic import TemplateView
 from apps.core.models import Company
 from apps.inventory.models import StockVoucher
 from apps.ledger.models import AccountPeriodBalance
+from apps.ledger.models.dnsn import DnsnLedgerBalance, DnsnLedgerEntry, DnsnVoucher
 from apps.ledger.models.voucher import AccountingVoucher, VoucherLine
 from apps.ledger.services.voucher_posting_service import VoucherPostingService
 from apps.sales.models import SalesInvoice
@@ -23,13 +24,24 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = "modern/dashboard/index.html"
     login_url = "/auth/login/"
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs):  # noqa: C901
         ctx = super().get_context_data(**kwargs)
         ctx["page_title"] = "Tổng quan"
 
         company = getattr(self.request, "current_company", None) or Company.objects.first()
         today = date.today()
         view_mode = self.request.GET.get("view", "ceo")
+
+        # ===== DNSN dashboard detection =====
+        is_dnsn = bool(company and company.accounting_regime == Company.AccountingRegime.TT58)
+        ctx["is_dnsn"] = is_dnsn
+
+        if is_dnsn:
+            dnsn_metrics = self._get_dnsn_metrics(company, today)
+            ctx.update(dnsn_metrics)
+            # Still provide minimal context for template fallbacks
+            ctx.setdefault("view_mode", view_mode)
+            return ctx
 
         # ===== Common stats =====
         vouchers_today = 0
@@ -248,6 +260,195 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         # Sort by days left
         deadlines.sort(key=lambda d: d["days_left"])
         return deadlines[:4]
+
+    def _get_dnsn_metrics(self, company, today):
+        """Compute DNSN-relevant dashboard metrics from DnsnLedgerBalance.
+
+        Returns a dict with six key widgets:
+        - doanh thu hôm nay (today's revenue from DnsnLedgerEntry)
+        - chi phí (current period cost)
+        - lợi nhuận (revenue - cost)
+        - thuế phải nộp (VAT payable + TNDN)
+        - công nợ (receivables from S4a optional ledger)
+        - tồn kho (inventory value from S2c ledger)
+
+        Advanced enterprise metrics (project profitability, multi-entity
+        consolidation, advanced costing) are intentionally excluded.
+        """
+        fiscal_year = today.year
+        period = today.month
+
+        # Revenue today — sum of revenue_amount from posted entries dated today
+        revenue_today = Decimal("0")
+        entries_today = DnsnLedgerEntry.objects.filter(
+            company=company,
+            entry_date=today,
+            ledger_type__in=["s1", "s2a", "s2b", "s3a"],
+        ).aggregate(s=Sum("revenue_amount"))["s"]
+        if entries_today:
+            revenue_today = entries_today
+
+        # Period revenue, cost, and profit from DnsnLedgerBalance
+        revenue_ledger_types = ["s1", "s2a", "s2b", "s3a"]
+        cost_ledger_types = ["s2b"]
+        balance_qs = DnsnLedgerBalance.objects.filter(
+            company=company, fiscal_year=fiscal_year, period=period
+        )
+
+        period_revenue = balance_qs.filter(ledger_type__in=revenue_ledger_types).aggregate(
+            s=Sum("period_revenue")
+        )["s"] or Decimal("0")
+        period_cost = balance_qs.filter(ledger_type__in=cost_ledger_types).aggregate(
+            s=Sum("period_cost")
+        )["s"] or Decimal("0")
+        period_profit = period_revenue - period_cost
+
+        # Tax payable — VAT closing balance from S3b + TNDN from entries
+        vat_payable = balance_qs.filter(ledger_type="s3b").aggregate(s=Sum("closing_vat"))[
+            "s"
+        ] or Decimal("0")
+        # TNDN amount from ledger entries (actual tax accrued)
+        tndn_from_entries = DnsnLedgerEntry.objects.filter(
+            company=company,
+            fiscal_year=fiscal_year,
+            period=period,
+            ledger_type__in=["s2b"],
+        ).aggregate(s=Sum("tndn_amount"))["s"] or Decimal("0")
+        tax_payable = vat_payable + tndn_from_entries
+
+        # Receivables (công nợ) — from S4a optional ledger if enabled
+        receivable_total = Decimal("0")
+        s4a_balance = balance_qs.filter(ledger_type="s4a").first()
+        if s4a_balance:
+            receivable_total = s4a_balance.closing_cash  # S4a uses cash column for net AR
+
+        # Also compute from DnsnVoucher partner info as fallback
+        if receivable_total == 0:
+            # Sum unpaid sales-type vouchers
+            received = DnsnVoucher.objects.filter(
+                company=company,
+                voucher_type=DnsnVoucher.VoucherType.PHIEU_THU,
+                status__in=[DnsnVoucher.Status.POSTED, DnsnVoucher.Status.LOCKED],
+                voucher_date__year=today.year,
+            ).aggregate(s=Sum("total_amount"))["s"] or Decimal("0")
+            invoiced = DnsnVoucher.objects.filter(
+                company=company,
+                voucher_type=DnsnVoucher.VoucherType.HOA_DON_BAN_HANG,
+                status__in=[DnsnVoucher.Status.POSTED, DnsnVoucher.Status.LOCKED],
+                voucher_date__year=today.year,
+            ).aggregate(s=Sum("total_amount"))["s"] or Decimal("0")
+            receivable_total = invoiced - received
+
+        # Payables (công nợ phải trả)
+        payable_total = Decimal("0")
+        s4a_payable = DnsnLedgerEntry.objects.filter(
+            company=company,
+            ledger_type="s4a",
+            entry_date__year=today.year,
+        ).aggregate(s=Sum("cash_out"))["s"] or Decimal("0")
+        if s4a_payable:
+            payable_total = s4a_payable
+
+        # Inventory value — from S2c ledger closing balance
+        inventory_value = Decimal("0")
+        s2c_balance = balance_qs.filter(ledger_type="s2c").first()
+        if s2c_balance:
+            # S2c uses total_amount for inventory value
+            inventory_value = s2c_balance.closing_cash  # cash column repurposed for inventory
+        else:
+            # Fallback: sum of inventory entries (in - out)
+            inv_in = DnsnLedgerEntry.objects.filter(
+                company=company,
+                ledger_type="s2c",
+                entry_date__year=today.year,
+            ).aggregate(s=Sum("cash_in"))["s"] or Decimal("0")
+            inv_out = DnsnLedgerEntry.objects.filter(
+                company=company,
+                ledger_type="s2c",
+                entry_date__year=today.year,
+            ).aggregate(s=Sum("cash_out"))["s"] or Decimal("0")
+            inventory_value = inv_in - inv_out
+
+        # Cash total — from S2d ledger
+        cash_total = Decimal("0")
+        s2d_balance = balance_qs.filter(ledger_type="s2d").first()
+        if s2d_balance:
+            cash_total = s2d_balance.closing_cash
+        else:
+            cash_in = DnsnLedgerEntry.objects.filter(
+                company=company,
+                ledger_type="s2d",
+                entry_date__year=today.year,
+            ).aggregate(s=Sum("cash_in") + Sum("bank_in"))["s"] or Decimal("0")
+            cash_out = DnsnLedgerEntry.objects.filter(
+                company=company,
+                ledger_type="s2d",
+                entry_date__year=today.year,
+            ).aggregate(s=Sum("cash_out") + Sum("bank_out"))["s"] or Decimal("0")
+            cash_total = cash_in - cash_out
+
+        # Recent DNSN vouchers
+        recent_dnsn_vouchers = DnsnVoucher.objects.filter(company=company).order_by(
+            "-voucher_date", "-id"
+        )[:10]
+
+        # DNSN vouchers today count
+        dnsn_vouchers_today = DnsnVoucher.objects.filter(
+            company=company, voucher_date=today
+        ).count()
+
+        # Tax deadlines (reuse existing method for simplicity)
+        tax_deadlines = self._get_tax_deadlines(today)
+
+        return {
+            "view_mode": "dnsn",
+            "dnsn_revenue_today": revenue_today,
+            "dnsn_period_revenue": period_revenue,
+            "dnsn_period_cost": period_cost,
+            "dnsn_period_profit": period_profit,
+            "dnsn_tax_payable": tax_payable,
+            "dnsn_vat_payable": vat_payable,
+            "dnsn_tndn_payable": tndn_from_entries,
+            "dnsn_receivable_total": receivable_total,
+            "dnsn_payable_total": payable_total,
+            "dnsn_inventory_value": inventory_value,
+            "dnsn_cash_total": cash_total,
+            "dnsn_recent_vouchers": recent_dnsn_vouchers,
+            "dnsn_vouchers_today": dnsn_vouchers_today,
+            "dnsn_tax_deadlines": tax_deadlines,
+            # Keep common context keys for template compatibility
+            "cash_total": cash_total,
+            "cash_breakdown": [],
+            "pnl": {
+                "revenue": period_revenue,
+                "expense": period_cost,
+                "profit": period_profit,
+            },
+            "ar_aging": {
+                "current": receivable_total,
+                "d1_30": Decimal("0"),
+                "d31_60": Decimal("0"),
+                "d60_plus": Decimal("0"),
+                "total": receivable_total,
+                "customer_count": 0,
+            },
+            "ap_total": payable_total,
+            "inventory_value": inventory_value,
+            "unpaid_invoices": 0,
+            "pending_approvals": 0,
+            "vouchers_today": dnsn_vouchers_today,
+            "total_vouchers": DnsnVoucher.objects.filter(company=company).count(),
+            "posted_count": DnsnVoucher.objects.filter(
+                company=company,
+                status__in=[DnsnVoucher.Status.POSTED, DnsnVoucher.Status.LOCKED],
+            ).count(),
+            "draft_count": DnsnVoucher.objects.filter(
+                company=company, status=DnsnVoucher.Status.DRAFT
+            ).count(),
+            "recent_vouchers": [],
+            "tax_deadlines": tax_deadlines,
+            "stock_vouchers_today": 0,
+        }
 
 
 class QuickExpenseView(LoginRequiredMixin, TemplateView):

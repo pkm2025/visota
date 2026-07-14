@@ -23,12 +23,20 @@ body.auth-page {
 
 .auth-logo {
     text-align: center;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
 }
 
 .auth-logo h2 {
     color: var(--color-primary);
     margin: 0;
+}
+
+.auth-tagline {
+    margin-bottom: 20px;
+}
+
+.auth-tagline p {
+    line-height: 1.4;
 }
 
 .btn-primary {

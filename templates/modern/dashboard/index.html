@@ -12,11 +12,127 @@
             <h1 class="h3 mb-0">{{ page_title }}</h1>
             <p class="text-muted mb-0">Chào {{ user.full_name|default:user.username }}</p>
         </div>
+        {% if not is_dnsn %}
         <div class="btn-group btn-group-sm">
             <a href="?view=ceo" class="btn {% if view_mode == 'ceo' %}btn-primary{% else %}btn-outline-secondary{% endif %}"><i class="bi bi-graph-up"></i> CEO</a>
             <a href="?view=accountant" class="btn {% if view_mode == 'accountant' %}btn-primary{% else %}btn-outline-secondary{% endif %}"><i class="bi bi-receipt"></i> Kế toán</a>
         </div>
+        {% endif %}
     </div>
+
+    {% if is_dnsn %}
+    <!-- ===== DNSN DASHBOARD — simplified for doanh nghiệp siêu nhỏ ===== -->
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <a href="{% url 'ui_modern:voucher_create' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-receipt"></i> Phiếu</a>
+        <a href="{% url 'ui_modern:dashboard_quick_expense' %}" class="btn btn-outline-warning btn-sm"><i class="bi bi-lightning"></i> Ghi chi nhanh</a>
+    </div>
+
+    <!-- Mobile DNSN compact metrics (hidden on desktop) -->
+    <div class="d-md-none mb-3">
+        <div class="row g-2 mb-2">
+            <div class="col-6"><div class="card text-center border-success"><div class="card-body p-2">
+                <small class="text-muted">Tiền</small>
+                <div class="fw-bold text-success" style="font-size:1.1rem">{{ dnsn_cash_total|vnd }}đ</div>
+            </div></div></div>
+            <div class="col-6"><div class="card text-center border-primary"><div class="card-body p-2">
+                <small class="text-muted">Doanh thu hôm nay</small>
+                <div class="fw-bold text-primary" style="font-size:1.1rem">{{ dnsn_revenue_today|vnd }}đ</div>
+            </div></div></div>
+        </div>
+        <div class="row g-2 mb-2">
+            <div class="col-6"><div class="card text-center border-info"><div class="card-body p-2">
+                <small class="text-muted">Lợi nhuận</small>
+                <div class="fw-bold {% if dnsn_period_profit >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size:1.1rem">{{ dnsn_period_profit|vnd }}đ</div>
+            </div></div></div>
+            <div class="col-6"><div class="card text-center {% if dnsn_receivable_total > 0 %}border-warning{% else %}border-light{% endif %}"><div class="card-body p-2">
+                <small class="text-muted">Công nợ</small>
+                <div class="fw-bold {% if dnsn_receivable_total > 0 %}text-warning{% else %}text-muted{% endif %}" style="font-size:1.1rem">{{ dnsn_receivable_total|vnd }}đ</div>
+            </div></div></div>
+        </div>
+        <div class="row g-2">
+            <div class="col-4"><a href="{% url 'ui_modern:voucher_create' %}" class="btn btn-outline-primary btn-sm w-100 py-2"><i class="bi bi-receipt d-block" style="font-size:18px"></i><small>Phiếu</small></a></div>
+            <div class="col-4"><a href="{% url 'ui_modern:trial_balance' %}" class="btn btn-outline-secondary btn-sm w-100 py-2"><i class="bi bi-bar-chart d-block" style="font-size:18px"></i><small>Báo cáo</small></a></div>
+            <div class="col-4"><a href="{% url 'notifications:inbox' %}" class="btn btn-outline-warning btn-sm w-100 py-2"><i class="bi bi-bell d-block" style="font-size:18px"></i><small>Thông báo</small></a></div>
+        </div>
+    </div>
+
+    <!-- DNSN Desktop widgets -->
+    <div class="row g-3 mb-3 d-none d-md-flex">
+        <div class="col-md-4"><div class="card border-primary"><div class="card-body">
+            <div class="d-flex justify-content-between"><span class="text-muted small">Doanh thu hôm nay</span><i class="bi bi-graph-up-arrow text-primary"></i></div>
+            <div class="h3 mt-2 text-primary">{{ dnsn_revenue_today|vnd }}đ</div>
+            <div class="small text-muted mt-1">Doanh thu tháng: <strong class="font-mono">{{ dnsn_period_revenue|vnd }}đ</strong></div>
+        </div></div></div>
+
+        <div class="col-md-4"><div class="card border-danger"><div class="card-body">
+            <div class="d-flex justify-content-between"><span class="text-muted small">Chi phí</span><i class="bi bi-receipt-cutoff text-danger"></i></div>
+            <div class="h3 mt-2 text-danger">{{ dnsn_period_cost|vnd }}đ</div>
+            <div class="small text-muted mt-1">Tổng chi phí tháng này</div>
+        </div></div></div>
+
+        <div class="col-md-4"><div class="card {% if dnsn_period_profit >= 0 %}border-success{% else %}border-danger{% endif %}"><div class="card-body">
+            <div class="d-flex justify-content-between"><span class="text-muted small">Lợi nhuận</span><i class="bi bi-bar-chart {% if dnsn_period_profit >= 0 %}text-success{% else %}text-danger{% endif %}"></i></div>
+            <div class="h3 mt-2 {% if dnsn_period_profit >= 0 %}text-success{% else %}text-danger{% endif %}">{% if dnsn_period_profit >= 0 %}+{% endif %}{{ dnsn_period_profit|vnd }}đ</div>
+            <div class="small text-muted mt-1">= Doanh thu - Chi phí</div>
+        </div></div></div>
+    </div>
+
+    <div class="row g-3 mb-3 d-none d-md-flex">
+        <div class="col-md-3"><div class="card border-warning"><div class="card-body">
+            <div class="d-flex justify-content-between"><span class="text-muted small">Thuế phải nộp</span><i class="bi bi-calendar-event text-warning"></i></div>
+            <div class="h4 mt-2 text-warning">{{ dnsn_tax_payable|vnd }}đ</div>
+            <div class="small text-muted">GTGT: {{ dnsn_vat_payable|vnd }}đ · TNDN: {{ dnsn_tndn_payable|vnd }}đ</div>
+        </div></div></div>
+
+        <div class="col-md-3"><div class="card {% if dnsn_receivable_total > 0 %}border-info{% else %}border-light{% endif %}"><div class="card-body">
+            <div class="d-flex justify-content-between"><span class="text-muted small">Công nợ phải thu</span><i class="bi bi-people text-info"></i></div>
+            <div class="h4 mt-2 text-info">{{ dnsn_receivable_total|vnd }}đ</div>
+            <div class="small text-muted">Khách hàng chưa thanh toán</div>
+        </div></div></div>
+
+        <div class="col-md-3"><div class="card border-secondary"><div class="card-body">
+            <div class="d-flex justify-content-between"><span class="text-muted small">Công nợ phải trả</span><i class="bi bi-truck text-secondary"></i></div>
+            <div class="h4 mt-2 text-secondary">{{ dnsn_payable_total|vnd }}đ</div>
+            <div class="small text-muted">Nợ nhà cung cấp</div>
+        </div></div></div>
+
+        <div class="col-md-3"><div class="card border-info"><div class="card-body">
+            <div class="d-flex justify-content-between"><span class="text-muted small">Tồn kho</span><i class="bi bi-box-seam text-info"></i></div>
+            <div class="h4 mt-2 text-info">{{ dnsn_inventory_value|vnd }}đ</div>
+            <div class="small text-muted">Giá trị hàng tồn</div>
+        </div></div></div>
+    </div>
+
+    <!-- DNSN recent vouchers -->
+    <div class="row g-3">
+        <div class="col-md-8"><div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Chứng từ gần đây</span>
+            </div>
+            <div class="card-body p-0">
+                {% if dnsn_recent_vouchers %}
+                <div class="table-responsive"><table class="table table-sm table-hover mb-0">
+                    <thead class="table-light"><tr><th>Ngày</th><th>Số CT</th><th>Loại</th><th>Diễn giải</th><th class="text-end">Số tiền</th></tr></thead>
+                    <tbody>{% for v in dnsn_recent_vouchers %}
+                    <tr>
+                        <td>{{ v.voucher_date|date:"d/m/Y" }}</td><td class="font-mono">{{ v.voucher_no }}</td>
+                        <td><small class="text-muted">{{ v.get_voucher_type_display }}</small></td>
+                        <td>{{ v.description|truncatechars:40 }}</td><td class="text-end font-mono">{{ v.total_amount|vnd }}</td>
+                    </tr>{% endfor %}</tbody>
+                </table></div>
+                {% else %}<p class="text-muted text-center py-4 mb-0"><i class="bi bi-inbox"></i> Chưa có chứng từ nào.</p>{% endif %}
+            </div>
+        </div></div>
+        <div class="col-md-4"><div class="card"><div class="card-header">Thông tin nhanh</div><div class="card-body">
+            <div class="d-flex justify-content-between mb-2"><span class="text-muted">Tổng chứng từ:</span><strong>{{ total_vouchers|default:0 }}</strong></div>
+            <div class="d-flex justify-content-between mb-2"><span class="text-muted">Đã ghi sổ:</span><strong class="text-success">{{ posted_count|default:0 }}</strong></div>
+            <div class="d-flex justify-content-between mb-2"><span class="text-muted">Lưu tạm:</span><strong class="text-warning">{{ draft_count|default:0 }}</strong></div>
+            <hr><a href="{% url 'ui_modern:voucher_create' %}" class="btn btn-primary btn-sm w-100"><i class="bi bi-plus"></i> Tạo phiếu mới</a>
+        </div></div></div>
+    </div>
+
+    {% else %}
+    <!-- ===== Standard (non-DNSN) dashboard ===== -->
 
     <div class="d-flex flex-wrap gap-2 mb-3">
         <a href="{% url 'ui_modern:voucher_create' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-receipt"></i> Phiếu</a>
@@ -152,5 +268,6 @@
             <hr><a href="{% url 'ui_modern:voucher_create' %}" class="btn btn-primary btn-sm w-100"><i class="bi bi-plus"></i> Tạo phiếu mới</a>
         </div></div></div>
     </div>
+    {% endif %}
 </div>
 {% endblock %}
