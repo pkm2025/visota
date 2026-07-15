@@ -23,26 +23,25 @@ INSURANCE_RATES = {
     "unemployment_employer": Decimal("0.01"),  # BHTN DN 1%
 }
 
-# PIT brackets (monthly taxable income, VND)
+# PIT brackets (monthly taxable income, VND) — 5-bracket system per NQ 110/2025/UBTVQH15
+# (effective 01/07/2026) + Luật 09/2026/QH16.
 PIT_BRACKETS = [
-    (Decimal("5000000"), Decimal("0.05")),
-    (Decimal("10000000"), Decimal("0.10")),
-    (Decimal("18000000"), Decimal("0.15")),
-    (Decimal("32000000"), Decimal("0.20")),
-    (Decimal("52000000"), Decimal("0.25")),
-    (Decimal("80000000"), Decimal("0.30")),
-    (Decimal("999999999"), Decimal("0.35")),
+    (Decimal("5000000"), Decimal("0.05")),  # ≤ 5M: 5%
+    (Decimal("10000000"), Decimal("0.10")),  # 5M–10M: 10%
+    (Decimal("18000000"), Decimal("0.20")),  # 10M–18M: 20%
+    (Decimal("32000000"), Decimal("0.30")),  # 18M–32M: 30%
+    (Decimal("999999999"), Decimal("0.35")),  # > 32M: 35%
 ]
 
-PERSONAL_DEDUCTION = Decimal("11000000")  # Giảm trừ gia cảnh bản thân
-DEPENDENT_DEDUCTION = Decimal("4400000")  # Mỗi người phụ thuộc
+PERSONAL_DEDUCTION = Decimal("15500000")  # Giảm trừ gia cảnh bản thân (NQ 110/2025)
+DEPENDENT_DEDUCTION = Decimal("6200000")  # Mỗi người phụ thuộc (NQ 110/2025)
 
 
 def calculate_pit(taxable_income: Decimal, brackets=None) -> Decimal:
     """Progressive PIT calculation based on brackets.
 
     ``brackets`` is an optional iterable of ``(cap, rate)`` pairs; if omitted,
-    the hardcoded ``PIT_BRACKETS`` (per TT 111/2013) are used as fallback.
+    the hardcoded ``PIT_BRACKETS`` (per NQ 110/2025) are used as fallback.
     """
     if taxable_income <= 0:
         return Decimal("0")
@@ -106,13 +105,17 @@ class PayrollService:
 
         ins_svc = InsuranceService(company=self.company)
 
-        # Read PIT deductions + brackets from TaxRateConfig (Luật TNCN 2025 ready);
-        # fall back to hardcoded TT 111/2013 values if no active config.
+        # Read PIT deductions + brackets from TaxRateConfig (NQ 110/2025 ready);
+        # fall back to hardcoded NQ 110/2025 values if no active config.
+        # Prefer the _2026 fields (current rates per NQ 110/2025 effective 01/07/2026);
+        # fall back to the base fields for configs that haven't been updated.
         config = TaxConfigService.get_active(self.company)
         if config is not None:
-            personal_deduction = config.pit_personal_deduction
-            dependent_deduction = config.pit_dependent_deduction
-            pit_brackets = config.pit_brackets or None
+            personal_deduction = config.pit_personal_deduction_2026 or config.pit_personal_deduction
+            dependent_deduction = (
+                config.pit_dependent_deduction_2026 or config.pit_dependent_deduction
+            )
+            pit_brackets = config.pit_brackets_2026 or config.pit_brackets or None
         else:
             personal_deduction = PERSONAL_DEDUCTION
             dependent_deduction = DEPENDENT_DEDUCTION

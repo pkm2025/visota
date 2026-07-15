@@ -72,7 +72,7 @@ class LaborContract(models.Model):
 
 
 class Dependent(models.Model):
-    """Người phụ thuộc — giảm trừ gia cảnh 4.4M/người."""
+    """Người phụ thuộc — giảm trừ gia cảnh 6.2M/người (NQ 110/2025)."""
 
     class Relationship(models.TextChoices):
         SPOUSE = "spouse", "Vợ/Chồng"
@@ -96,7 +96,7 @@ class Dependent(models.Model):
     birth_date = models.DateField(null=True, blank=True)
     id_card_no = models.CharField(max_length=20, blank=True, default="")
     tax_code = models.CharField(max_length=20, blank=True, default="")
-    deduction_amount = models.DecimalField(max_digits=20, decimal_places=4, default=4400000)
+    deduction_amount = models.DecimalField(max_digits=20, decimal_places=4, default=6200000)
     valid_from = models.DateField()
     valid_to = models.DateField(null=True, blank=True)
     registration_status = models.CharField(

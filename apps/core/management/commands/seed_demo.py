@@ -266,7 +266,7 @@ class Command(BaseCommand):
             defaults={
                 "relationship": Dependent.Relationship.CHILD,
                 "birth_date": _date(2015, 3, 10),
-                "deduction_amount": _Decimal("4400000"),
+                "deduction_amount": _Decimal("6200000"),
                 "valid_from": _date(2024, 1, 1),
                 "registration_status": Dependent.RegistrationStatus.REGISTERED,
             },
@@ -281,7 +281,7 @@ class Command(BaseCommand):
             },
         )
         self.stdout.write(
-            "Sample HR detail: NV001 contract (15M), 1 dependent (4.4M), "
+            "Sample HR detail: NV001 contract (15M), 1 dependent (6.2M), "
             "2026 leave balance (12 days)"
         )
 
@@ -314,25 +314,26 @@ class Command(BaseCommand):
                 "vat_rate_standard": _Decimal("0.10"),
                 "vat_rate_reduced": _Decimal("0.08"),
                 "vat_rate_reduced_active": True,  # ND 174/2025 active until 31/12/2026
-                # Current PIT — Luật 09/2026/QH16 (hiệu lực từ 01/01/2026)
-                "pit_personal_deduction": _Decimal("13200000"),
-                "pit_dependent_deduction": _Decimal("5200000"),
+                # Active PIT — NQ 110/2025/UBTVQH15 (hiệu lực từ 01/07/2026)
+                # GTGC 15.5M/tháng, NPT 6.2M, 5 bậc lũy tiến 5%/10%/20%/30%/35%
+                "pit_personal_deduction": _Decimal("15500000"),
+                "pit_dependent_deduction": _Decimal("6200000"),
                 "pit_brackets": [
                     [5000000, "0.05"],
                     [10000000, "0.10"],
-                    [18000000, "0.15"],
-                    [32000000, "0.20"],
-                    [999999999, "0.25"],
+                    [18000000, "0.20"],
+                    [32000000, "0.30"],
+                    [999999999, "0.35"],
                 ],
-                # Reserved for future NQ 110/2025 (dự kiến từ 01/07/2026)
+                # 2026 fields (mirrors active values — NQ 110/2025 effective 01/07/2026)
                 "pit_personal_deduction_2026": _Decimal("15500000"),
                 "pit_dependent_deduction_2026": _Decimal("6200000"),
                 "pit_brackets_2026": [
                     [5000000, "0.05"],
                     [10000000, "0.10"],
-                    [18000000, "0.15"],
-                    [32000000, "0.20"],
-                    [999999999, "0.25"],
+                    [18000000, "0.20"],
+                    [32000000, "0.30"],
+                    [999999999, "0.35"],
                 ],
                 # TTĐB rates (Luật TTĐB 66/2025/QH15)
                 "ttdb_alcohol_high": _Decimal("0.65"),
@@ -353,7 +354,7 @@ class Command(BaseCommand):
                 "fct_vat_rate": _Decimal("0.05"),
                 "bhxh_cap": _Decimal("46800000"),
                 "base_salary": _Decimal("2340000"),
-                "effective_date": _date(2025, 7, 1),
+                "effective_date": _date(2026, 7, 1),
             },
         )
         self.stdout.write("Seeded TaxRateConfig (CIT/VAT/PIT/TTĐB/môn bài/trước bạ/FCT)")
