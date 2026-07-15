@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 
 from apps.master_data.models import InvoiceGroup
 
-# 3 nhóm hóa đơn theo TT133/TT78
+# 3 nhóm hóa đơn theo TT133/ND 254/2026
 INVOICE_GROUPS = [
     (
         "4",

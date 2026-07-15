@@ -1,4 +1,6 @@
-"""E-invoice models per TT78/2021/TT-BTC.
+"""E-invoice models per ND 254/2026/ND-CP, TT 91/2026/TT-BTC, Luat QLT 108/2025/QH15.
+
+Replaces earlier TT78/2021/TT-BTC references (superseded from 01/07/2026).
 
 EInvoiceConfig: per-company provider settings (MISA, VNPT, eHoadon, BKAV, manual).
 EInvoice: a single issued invoice with XML/JSON/PDF storage + transaction code.
@@ -22,7 +24,7 @@ class EInvoiceProvider(models.TextChoices):
 
 
 class EInvoiceFormSymbol(models.TextChoices):
-    """Mẫu số hóa đơn điện tử theo TT78/2021/TT-BTC.
+    """Mẫu số hóa đơn điện tử theo ND 254/2026/ND-CP, TT 91/2026/TT-BTC.
 
     01GTKT: Hóa đơn GTGT — for DN nộp thuế GTGT theo phương pháp khấu trừ.
     02BANHANG: Hóa đơn bán hàng — for DN nộp thuế GTGT theo tỷ lệ %.
@@ -67,6 +69,19 @@ class EInvoiceConfig(CompanyOwnedModel):
         return f"{self.company.name} — {self.get_provider_display()} ({self.pattern})"
 
 
+class EInvoiceCategory(models.TextChoices):
+    """Loại hóa đơn điện tử theo phân loại mã CQT (ND 254/2026/ND-CP, Điều 3).
+
+    CODED: Hóa đơn có mã của cơ quan thuế — invoice with tax authority code.
+    UNCODED: Hóa đơn không có mã — invoice without code.
+    CASH_REGISTER: Hóa đơn khởi tạo từ máy tính tiền — invoice from POS/cash register.
+    """
+
+    CODED = "coded", "Có mã của CQT"
+    UNCODED = "uncoded", "Không có mã"
+    CASH_REGISTER = "cash_register", "Khởi tạo từ máy tính tiền"
+
+
 class EInvoice(CompanyOwnedModel):
     """A single issued e-invoice with files + status tracking."""
 
@@ -88,6 +103,13 @@ class EInvoice(CompanyOwnedModel):
         max_length=10,
         choices=EInvoiceFormSymbol.choices,
         default=EInvoiceFormSymbol.GTKT_01,
+    )
+
+    # Invoice category per ND 254/2026/ND-CP (có mã / không mã / máy tính tiền).
+    invoice_category = models.CharField(
+        max_length=20,
+        choices=EInvoiceCategory.choices,
+        default=EInvoiceCategory.CODED,
     )
 
     # Link to SalesInvoice (1-1 optional)
@@ -118,10 +140,10 @@ class EInvoice(CompanyOwnedModel):
     # Notes
     payment_method = models.CharField(max_length=100, blank=True, default="")
     note = models.TextField(blank=True, default="")
-    # ISO 8601 of issue (per TT78 spec)
+    # ISO 8601 of issue (per ND 254/2026 + TT 91/2026 spec)
     issue_date = models.DateTimeField(null=True, blank=True)
 
-    # Files — XML (per TT78 schema), JSON (provider-specific), signed PDF
+    # Files — XML (per ND 254/2026 + TT 91/2026 schema), JSON (provider-specific), signed PDF
     xml_file = models.FileField(upload_to="einvoice/xml/", null=True, blank=True)
     json_file = models.FileField(upload_to="einvoice/json/", null=True, blank=True)
     pdf_file = models.FileField(upload_to="einvoice/pdf/", null=True, blank=True)

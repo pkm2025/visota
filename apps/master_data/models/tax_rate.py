@@ -1,4 +1,4 @@
-"""TaxRateCode model — hệ thống mã thuế GTGT theo TT78/2021."""
+"""TaxRateCode model — hệ thống mã thuế GTGT theo ND 254/2026/ND-CP, TT 91/2026/TT-BTC."""
 
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models

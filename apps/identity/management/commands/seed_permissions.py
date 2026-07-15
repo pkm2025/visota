@@ -37,7 +37,7 @@ MODULE_PERMISSIONS = [
     ("bidding", "Đấu thầu", "Cơ hội đấu thầu, HSDT, kết quả theo Luật 23/2023"),
     ("budget", "Ngân sách & Dòng tiền", "Ngân sách năm, variance, cash flow forecast"),
     ("fx", "Tỷ giá & Định giá ngoại tệ", "Exchange rate, period-end revaluation"),
-    ("einvoice", "Hóa đơn điện tử", "HĐĐT TT78/2021, XML/JSON, BC01/BC26"),
+    ("einvoice", "Hóa đơn điện tử", "HĐĐT ND 254/2026 + TT 91/2026, XML/JSON, BC01/BC26"),
     ("approvals", "Phê duyệt", "Chuỗi duyệt phiếu/hóa đơn theo quy tắc"),
     ("notifications", "Thông báo", "Hộp thư thông báo hệ thống"),
     ("pkm", "Quản lý tri thức cá nhân", "PKM - Notes, RAG documents, Q&A AI"),

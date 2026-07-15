@@ -16,10 +16,10 @@ HELP_ARTICLES = [
     {
         "title": "Hóa đơn điện tử (HĐĐT) là gì? Cấu hình lần đầu",
         "slug": "huong-dan-hoadt-cau-hinh",
-        "excerpt": "Tìm hiểu về hóa đơn điện tử theo TT78/2021 và cách cấu hình provider.",
+        "excerpt": "Tìm hiểu về hóa đơn điện tử theo ND 254/2026 và cách cấu hình provider.",
         "tags": "help,hdtd,hoadon",
         "content": """<h2>Hóa đơn điện tử là gì?</h2>
-<p>Hóa đơn điện tử (HĐĐT) là hóa đơn được tạo lập, xử lý trên máy tính và truyền qua mạng cho người mua và cơ quan thuế. Theo <strong>TT78/2021/TT-BTC</strong>, doanh nghiệp phải sử dụng HĐĐT thay vì hóa đơn giấy.</p>
+<p>Hóa đơn điện tử (HĐĐT) là hóa đơn được tạo lập, xử lý trên máy tính và truyền qua mạng cho người mua và cơ quan thuế. Theo <strong>ND 254/2026/ND-CP</strong> (hướng dẫn bởi <strong>TT 91/2026/TT-BTC</strong> và <strong>Luật QLT 108/2025/QH15</strong>), doanh nghiệp phải sử dụng HĐĐT thay vì hóa đơn giấy.</p>
 
 <h3>Các bước cấu hình</h3>
 <ol>

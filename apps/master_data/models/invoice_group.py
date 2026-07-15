@@ -1,4 +1,4 @@
-"""InvoiceGroup model — nhóm hóa đơn theo TT133/TT78."""
+"""InvoiceGroup model — nhóm hóa đơn theo TT133/ND 254/2026."""
 
 from django.db import models
 

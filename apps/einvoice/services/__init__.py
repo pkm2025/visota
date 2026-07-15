@@ -1,7 +1,7 @@
 """E-invoice issue + reporting services.
 
-EInvoiceService.issue_from_sales_invoice(): generates XML per TT78 schema,
-stores files, optionally calls provider API.
+EInvoiceService.issue_from_sales_invoice(): generates XML per ND 254/2026 +
+TT 91/2026 schema, stores files, optionally calls provider API.
 """
 
 import json
@@ -160,7 +160,7 @@ class EInvoiceService:
             issued_by=issued_by,
         )
 
-        # Generate XML payload (TT78 schema, simplified)
+        # Generate XML payload (ND 254/2026 + TT 91/2026 schema, simplified)
         xml = cls._build_xml(ei, sales_invoice)
         ei.xml_file.save(f"{ei.transaction_id}.xml", ContentFile(xml.encode("utf-8")))
 
@@ -282,7 +282,7 @@ class EInvoiceService:
 
     @staticmethod
     def _build_xml(einvoice, sales_invoice):
-        """Build XML per TT78 schema (simplified)."""
+        """Build XML per ND 254/2026 + TT 91/2026 schema (simplified)."""
         lines_xml = []
         for idx, line in enumerate(sales_invoice.lines.all(), 1):
             lines_xml.append(f"""

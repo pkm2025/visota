@@ -88,7 +88,7 @@ MODULE_DESCRIPTIONS: dict[str, str] = {
     "ke_toan": "Kế toán tổng hợp — phiếu kế toán, sổ cái, bút toán, khóa sổ",
     "ban_hang": "Hóa đơn bán hàng, khách hàng, công nợ phải thu",
     "mua_hang": "Hóa đơn mua hàng, nhà cung cấp, công nợ phải trả",
-    "hoa_don": "Hóa đơn điện tử TT78/2021",
+    "hoa_don": "Hóa đơn điện tử ND 254/2026 + TT 91/2026",
     "kho": "Nhập/xuất/tồn, phiếu kho, kiểm kê",
     "bao_cao": "Báo cáo tài chính — B01, B02, BCĐTK, VAT, TNCN",
     "nhan_su": "Nhân viên, hợp đồng lao động, BHXH, tính lương",

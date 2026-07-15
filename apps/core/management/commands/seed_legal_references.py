@@ -40,12 +40,12 @@ LEGAL_REFS = [
     {
         "code": "TT32",
         "name": "TT32/2025",
-        "full_name": "Thông tư 32/2025/TT-BTC - Hóa đơn điện tử (thay TT78)",
+        "full_name": "Thông tư 32/2025/TT-BTC - Hóa đơn điện tử khởi tạo từ máy tính tiền",
         "issuing_body": "Bộ Tài chính",
         "issue_date": "2025-05-15",
         "effective_date": "2025-06-01",
         "applicable_to": ["e-invoice"],
-        "summary": "Hóa đơn điện tử khởi tạo từ máy tính tiền, thay thế TT78/2021.",
+        "summary": "Hóa đơn điện tử khởi tạo từ máy tính tiền (POS). Bổ sung cho ND 254/2026.",
     },
     {
         "code": "TT80",

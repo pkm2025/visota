@@ -1,4 +1,4 @@
-"""Seed management command for TaxRateCode (8 TT78/2021 codes)."""
+"""Seed management command for TaxRateCode (8 mã thuế GTGT theo ND 254/2026 + TT 91/2026)."""
 
 from decimal import Decimal
 
@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand
 
 from apps.master_data.models import TaxRateCode
 
-# 8 mã thuế GTGT theo Thông tư 78/2021/TT-BTC
+# 8 mã thuế GTGT theo ND 254/2026/ND-CP, TT 91/2026/TT-BTC
 TAX_RATES = [
     ("00", Decimal("0"), "0% - Hàng xuất khẩu", 1),
     ("05", Decimal("5"), "5% - Thuế suất 5%", 2),
@@ -20,7 +20,7 @@ TAX_RATES = [
 
 
 class Command(BaseCommand):
-    help = "Seed 8 TaxRateCode entries per TT78/2021 (idempotent)"
+    help = "Seed 8 TaxRateCode entries per ND 254/2026 + TT 91/2026 (idempotent)"
 
     def handle(self, *args, **options):
         created_count = 0

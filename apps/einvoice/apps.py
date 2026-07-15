@@ -1,4 +1,4 @@
-"""E-invoice app config (Hóa đơn điện tử TT78/2021)."""
+"""E-invoice app config (Hóa đơn điện tử ND 254/2026/ND-CP, TT 91/2026/TT-BTC)."""
 
 from django.apps import AppConfig
 
