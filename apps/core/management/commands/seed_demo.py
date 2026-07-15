@@ -311,6 +311,8 @@ class Command(BaseCommand):
                 "cit_rate_standard": _Decimal("0.20"),
                 "cit_rate_small": _Decimal("0.17"),
                 "cit_rate_micro": _Decimal("0.15"),
+                # CIT exemption threshold (ND 141/2026 — revenue <= 1 tỷ/year = 0% CIT)
+                "cit_exemption_threshold": _Decimal("1000000000"),
                 "vat_rate_standard": _Decimal("0.10"),
                 "vat_rate_reduced": _Decimal("0.08"),
                 "vat_rate_reduced_active": True,  # ND 174/2025 active until 31/12/2026

@@ -246,6 +246,10 @@ class TaxRateConfig(models.Model):
     cit_rate_micro = models.DecimalField(
         max_digits=6, decimal_places=4, default=0.15
     )  # 15% (<=3 tỷ)
+    # CIT exemption threshold (ND 141/2026 — revenue <= 1B VND/year = 0% CIT)
+    cit_exemption_threshold = models.DecimalField(
+        max_digits=20, decimal_places=4, default=1000000000
+    )  # 1 tỷ VND/year
 
     # VAT rates (ND 174/2025)
     vat_rate_standard = models.DecimalField(max_digits=6, decimal_places=4, default=0.10)  # 10%

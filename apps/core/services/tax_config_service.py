@@ -46,7 +46,11 @@ class TaxConfigService:
 
     @staticmethod
     def get_cit_rate(company):
-        """Get CIT rate based on company SME size."""
+        """Get CIT rate based on company SME size and annual revenue.
+
+        Per ND 141/2026, enterprises with annual revenue <= cit_exemption_threshold
+        (default 1 billion VND/year) are fully exempt (rate = 0%).
+        """
         # Only filter by company if it has a pk; otherwise fall back to global config.
         if company is not None and getattr(company, "pk", None) is not None:
             config = TaxConfigService.get_active(company)
@@ -56,6 +60,10 @@ class TaxConfigService:
             return Decimal("0.20")  # fallback to standard 20%
         if company is None:
             return config.cit_rate_standard
+        # CIT exemption per ND 141/2026: revenue <= threshold -> 0%
+        annual_revenue = getattr(company, "annual_revenue", None)
+        if annual_revenue is not None and annual_revenue <= config.cit_exemption_threshold:
+            return Decimal("0")
         if company.sme_size == Company.SMESize.MICRO:
             return config.cit_rate_micro
         if company.sme_size == Company.SMESize.SMALL:

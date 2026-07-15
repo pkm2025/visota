@@ -50,21 +50,21 @@ def test_vat_rate_10_when_reduced_disabled(db, tax_config):
 
 def test_cit_rate_micro(db, tax_config):
     """Micro enterprise (DT <=3 tỷ) -> CIT 15%."""
-    company = Company(sme_size="micro")
+    company = Company(sme_size="micro", annual_revenue=Decimal("2000000000"))
     rate = TaxConfigService.get_cit_rate(company)
     assert rate == Decimal("0.15")
 
 
 def test_cit_rate_small(db, tax_config):
     """Small enterprise (DT 3-50 tỷ) -> CIT 17%."""
-    company = Company(sme_size="small")
+    company = Company(sme_size="small", annual_revenue=Decimal("10000000000"))
     rate = TaxConfigService.get_cit_rate(company)
     assert rate == Decimal("0.17")
 
 
 def test_cit_rate_large(db, tax_config):
     """Large enterprise -> CIT 20%."""
-    company = Company(sme_size="large")
+    company = Company(sme_size="large", annual_revenue=Decimal("100000000000"))
     rate = TaxConfigService.get_cit_rate(company)
     assert rate == Decimal("0.20")
 
