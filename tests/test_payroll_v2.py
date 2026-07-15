@@ -38,13 +38,13 @@ def make_emp(company):
 
 
 def test_cap_applied_to_insurance(company, make_emp):
-    """Salary above 46.8M → BHXH capped, not at full salary."""
+    """Salary above 50.6M → BHXH capped, not at full salary (ND 161/2026)."""
     emp = make_emp(salary=Decimal("100000000"))
     svc = PayrollService(company=company)
     run = svc.calculate("2026-06")
     line = run.lines.get(employee=emp)
-    # Employee BHXH 8% of cap (46.8M) = 3,744,000
-    assert line.social_insurance_employee == Decimal("3744000")
+    # Employee BHXH 8% of cap (50.6M) = 4,048,000
+    assert line.social_insurance_employee == Decimal("4048000")
     # NOT 8% of 100M (8,000,000)
     assert line.social_insurance_employee < Decimal("8000000")
 

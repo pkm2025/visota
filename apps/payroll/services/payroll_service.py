@@ -131,7 +131,7 @@ class PayrollService:
             # Prorated base salary by work days (simplified — assume full month)
             gross = emp.base_salary + emp.allowance
 
-            # Delegate to InsuranceService — handles 46.8M cap + correct 2025 rates.
+            # Delegate to InsuranceService — handles cap via TaxRateConfig (ND 161/2026).
             # Insurance base is base_salary only (allowance treated as non-insurance pay
             # in line with VN practice for capped allowances); capped inside service.
             ic = ins_svc.calculate_monthly(emp, period)

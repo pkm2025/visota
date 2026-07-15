@@ -342,11 +342,11 @@ class TaxRateConfig(models.Model):
     fct_cit_rate = models.DecimalField(max_digits=6, decimal_places=4, default=0.05)  # TNDN 5%
     fct_vat_rate = models.DecimalField(max_digits=6, decimal_places=4, default=0.05)  # VAT (varies)
 
-    # Insurance
+    # Insurance (ND 161/2026 — effective 01/07/2026)
     bhxh_cap = models.DecimalField(
-        max_digits=15, decimal_places=4, default=46800000
-    )  # 20 x 2,340,000
-    base_salary = models.DecimalField(max_digits=15, decimal_places=4, default=2340000)
+        max_digits=15, decimal_places=4, default=50600000
+    )  # 20 x 2,530,000
+    bhxh_base_salary = models.DecimalField(max_digits=15, decimal_places=4, default=2530000)
 
     effective_date = models.DateField()
     is_active = models.BooleanField(default=True)

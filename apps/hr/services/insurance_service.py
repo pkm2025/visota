@@ -1,10 +1,12 @@
-"""InsuranceService — monthly BHXH/BHYT/BHTN/BHTNLĐ/KPCĐ calculation (2025 rates)."""
+"""InsuranceService — monthly BHXH/BHYT/BHTN/BHTNLĐ/KPCĐ calculation (ND 161/2026)."""
 
 from decimal import Decimal
 
-from apps.hr.models.insurance import INSURANCE_CAP, InsuranceContribution
+from apps.core.services.tax_config_service import TaxConfigService
+from apps.hr.models.insurance import InsuranceContribution
 
-# 2025 Vietnamese social insurance rates
+# Vietnamese social insurance rate percentages (ND 161/2026).
+# Cap and base salary are read from TaxRateConfig (no hardcoded constants).
 RATES = {
     # Employee portion — 10.5% total
     "bhxh_emp": Decimal("0.08"),  # BHXH 8% (hưu + ốm + thai sản + TNLĐ-BNN)
@@ -18,6 +20,9 @@ RATES = {
     "kpcd_er": Decimal("0.02"),  # Kinh phí công đoàn 2%
 }
 
+# Fallback values used only when TaxRateConfig has no active entry.
+_DEFAULT_CAP = Decimal("50600000")  # 20 x 2,530,000 (ND 161/2026)
+
 
 def _round(amount: Decimal) -> Decimal:
     """Round to integer VND."""
@@ -30,13 +35,22 @@ class InsuranceService:
     def __init__(self, company):
         self.company = company
 
+    def _get_cap(self) -> Decimal:
+        """Read insurance cap from TaxRateConfig; fall back to ND 161/2026 default."""
+        config = TaxConfigService.get_active(self.company)
+        if config is not None:
+            return config.bhxh_cap
+        return _DEFAULT_CAP
+
     def calculate_monthly(self, employee, period: str) -> InsuranceContribution:
         """Calculate contribution for given employee/period (YYYY-MM).
 
-        Caps salary_base at INSURANCE_CAP (46,800,000 VND = 20 × lương cơ sở).
+        Caps salary_base at bhxh_cap from TaxRateConfig
+        (50,600,000 VND = 20 x luong co so 2,530,000 per ND 161/2026).
         """
         raw = employee.base_salary or Decimal("0")
-        capped = min(raw, Decimal(str(INSURANCE_CAP)))
+        cap = self._get_cap()
+        capped = min(raw, cap)
 
         bhxh_emp = _round(capped * RATES["bhxh_emp"])
         bhyt_emp = _round(capped * RATES["bhyt_emp"])

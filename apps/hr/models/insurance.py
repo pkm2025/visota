@@ -2,9 +2,6 @@
 
 from django.db import models
 
-# Trần đóng bảo hiểm: 20 × lương cơ sở (2,340,000 VND for 2025)
-INSURANCE_CAP = 46800000
-
 
 class InsuranceContribution(models.Model):
     """Bảng kê đóng bảo hiểm xã hội/y tế/thất nghiệp hàng tháng.

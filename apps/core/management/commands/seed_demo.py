@@ -359,8 +359,8 @@ class Command(BaseCommand):
                 # Thuế nhà thầu (TT 20/2026)
                 "fct_cit_rate": _Decimal("0.05"),
                 "fct_vat_rate": _Decimal("0.05"),
-                "bhxh_cap": _Decimal("46800000"),
-                "base_salary": _Decimal("2340000"),
+                "bhxh_cap": _Decimal("50600000"),
+                "bhxh_base_salary": _Decimal("2530000"),
                 "effective_date": _date(2026, 7, 1),
             },
         )
