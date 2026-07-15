@@ -181,19 +181,27 @@
                         <input type="email" name="representative_email" class="form-control" value="{{ company.representative_email }}">
                     </div>
                     <hr>
-                    <h6 class="text-muted mb-3">Kế toán trưởng</h6>
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Họ tên</label>
-                            <input type="text" name="chief_accountant" class="form-control" value="{{ company.chief_accountant }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Số chứng chỉ KTV</label>
-                            <input type="text" name="chief_accountant_license" class="form-control" value="{{ company.chief_accountant_license }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Điện thoại</label>
-                            <input type="text" name="chief_accountant_phone" class="form-control" value="{{ company.chief_accountant_phone }}">
+                    <div id="chief-accountant-section" data-hide-for-dnsn data-hide-for-hkd
+                         {% if company.accounting_regime == 'tt58' %}style="display:none;"{% endif %}>
+                        <h6 class="text-muted mb-3">
+                            Kế toán trưởng
+                            {% if company.accounting_regime == 'tt58' %}
+                            <small class="text-muted">— không bắt buộc cho DNSN/HKD theo TT58/2026</small>
+                            {% endif %}
+                        </h6>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Họ tên</label>
+                                <input type="text" name="chief_accountant" class="form-control" value="{{ company.chief_accountant }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Số chứng chỉ KTV</label>
+                                <input type="text" name="chief_accountant_license" class="form-control" value="{{ company.chief_accountant_license }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Điện thoại</label>
+                                <input type="text" name="chief_accountant_phone" class="form-control" value="{{ company.chief_accountant_phone }}">
+                            </div>
                         </div>
                     </div>
                 </div></div>
@@ -435,15 +443,23 @@ renderBankRows();
 
 // --- TT58 conditional fields ---
 // Show TT58 config section only when accounting_regime = 'tt58'
+// Hide kế toán trưởng section for TT58 (DNSN/HKD) entities
 function updateTT58Visibility() {
     const regimeSelect = document.querySelector('select[name="accounting_regime"]');
     const tt58Section = document.getElementById('tt58-config-section');
-    if (!regimeSelect || !tt58Section) return;
+    const chiefAccountantSection = document.getElementById('chief-accountant-section');
+    const entityTypeSelect = document.getElementById('id_entity_type');
+    if (!regimeSelect) return;
 
-    if (regimeSelect.value === 'tt58') {
-        tt58Section.style.display = '';
-    } else {
-        tt58Section.style.display = 'none';
+    const isTT58 = regimeSelect.value === 'tt58';
+
+    if (tt58Section) {
+        tt58Section.style.display = isTT58 ? '' : 'none';
+    }
+
+    // Hide kế toán trưởng section for TT58 entities (DNSN/HKD per TT58/2026)
+    if (chiefAccountantSection) {
+        chiefAccountantSection.style.display = isTT58 ? 'none' : '';
     }
 }
 
