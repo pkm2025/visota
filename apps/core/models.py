@@ -258,6 +258,15 @@ class TaxRateConfig(models.Model):
     )  # 8% (reduced 2025-2026)
     vat_rate_reduced_active = models.BooleanField(default=True)  # toggle 8% on/off
 
+    # VAT exemption + refund thresholds (Luật GTGT 09/2026)
+    # Revenue <= 1 tỷ/year = VAT exempt; input VAT >= 300 triệu = refund eligible.
+    vat_exemption_threshold = models.DecimalField(
+        max_digits=20, decimal_places=4, default=1000000000
+    )  # 1 tỷ VND/year
+    vat_refund_threshold = models.DecimalField(
+        max_digits=20, decimal_places=4, default=300000000
+    )  # 300 triệu VND
+
     # PIT (TNCN) — personal deduction (Luật 09/2026/QH16 effective 01/01/2026)
     pit_personal_deduction = models.DecimalField(max_digits=15, decimal_places=4, default=13200000)
     pit_dependent_deduction = models.DecimalField(max_digits=15, decimal_places=4, default=5200000)

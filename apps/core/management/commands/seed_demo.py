@@ -316,6 +316,9 @@ class Command(BaseCommand):
                 "vat_rate_standard": _Decimal("0.10"),
                 "vat_rate_reduced": _Decimal("0.08"),
                 "vat_rate_reduced_active": True,  # ND 174/2025 active until 31/12/2026
+                # VAT thresholds (Luật GTGT 09/2026)
+                "vat_exemption_threshold": _Decimal("1000000000"),  # < 1 tỷ/year = VAT exempt
+                "vat_refund_threshold": _Decimal("300000000"),  # input VAT >= 300 triệu = refund
                 # Active PIT — NQ 110/2025/UBTVQH15 (hiệu lực từ 01/07/2026)
                 # GTGC 15.5M/tháng, NPT 6.2M, 5 bậc lũy tiến 5%/10%/20%/30%/35%
                 "pit_personal_deduction": _Decimal("15500000"),

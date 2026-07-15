@@ -80,6 +80,38 @@ class TaxConfigService:
             return config.vat_rate_reduced
         return config.vat_rate_standard
 
+    @staticmethod
+    def is_vat_exempt(company):
+        """Check if a company qualifies for VAT exemption per Luật GTGT 09/2026.
+
+        A company with annual revenue <= vat_exemption_threshold
+        (default 1 billion VND/year) is exempt from VAT.
+        """
+        config = TaxConfigService.get_active()
+        if config is None:
+            return False
+        annual_revenue = getattr(company, "annual_revenue", None)
+        if annual_revenue is None:
+            return False
+        return annual_revenue <= config.vat_exemption_threshold
+
+    @staticmethod
+    def is_vat_refund_eligible(company, input_vat):
+        """Check if a company is eligible for VAT refund per Luật GTGT 09/2026.
+
+        A company qualifies for VAT refund when:
+        - It is NOT VAT-exempt (revenue exceeds the exemption threshold), AND
+        - Input VAT >= vat_refund_threshold (default 300 million VND).
+        """
+        if TaxConfigService.is_vat_exempt(company):
+            return False
+        config = TaxConfigService.get_active()
+        if config is None:
+            return False
+        if input_vat is None:
+            return False
+        return input_vat >= config.vat_refund_threshold
+
     @classmethod
     def classify_sme(cls, annual_revenue, total_capital, employee_count, sector):
         """Classify company as micro/small/medium/large per ND 80/2021.
