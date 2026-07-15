@@ -335,6 +335,13 @@ class Command(BaseCommand):
                     [32000000, "0.30"],
                     [999999999, "0.35"],
                 ],
+                # PIT non-taxable allowances (ND 253/2026 + TT 87/2026)
+                "pit_meal_allowance": _Decimal("1200000"),  # Trợ cấp ăn trưa — 1.2M/mo
+                "pit_pension_allowance": _Decimal("3000000"),  # BHXH tự nguyện/BHNT — 3M/mo
+                "pit_medical_deduction": _Decimal("23000000"),  # 23M/yr
+                "pit_education_deduction": _Decimal("24000000"),  # 24M/yr
+                "pit_dependent_income_threshold": _Decimal("3000000"),  # 3M/mo
+                "pit_withholding_threshold": _Decimal("5000000"),  # 5M/payment
                 # TTĐB rates (Luật TTĐB 66/2025/QH15)
                 "ttdb_alcohol_high": _Decimal("0.65"),
                 "ttdb_alcohol_low": _Decimal("0.35"),

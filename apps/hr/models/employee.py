@@ -105,6 +105,13 @@ class Employee(CompanyOwnedModel):
 
     base_salary = models.DecimalField(max_digits=20, decimal_places=4, default=0)
     allowance = models.DecimalField(max_digits=20, decimal_places=4, default=0)
+    # Non-taxable allowances per ND 253/2026 + TT 87/2026 (effective 01/07/2026)
+    meal_allowance = models.DecimalField(
+        max_digits=20, decimal_places=4, default=0
+    )  # Trợ cấp ăn trưa — non-taxable up to TaxRateConfig.pit_meal_allowance
+    pension_allowance = models.DecimalField(
+        max_digits=20, decimal_places=4, default=0
+    )  # Trợ cấp BHXH tự nguyện / BHNT — non-taxable up to pit_pension_allowance
     bank_account_no = models.CharField(max_length=50, blank=True, default="")
     bank_id = models.CharField(max_length=20, blank=True, default="")
 

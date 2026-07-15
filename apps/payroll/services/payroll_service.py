@@ -116,10 +116,16 @@ class PayrollService:
                 config.pit_dependent_deduction_2026 or config.pit_dependent_deduction
             )
             pit_brackets = config.pit_brackets_2026 or config.pit_brackets or None
+            # Non-taxable allowance caps (ND 253/2026 + TT 87/2026)
+            meal_cap = config.pit_meal_allowance
+            pension_cap = config.pit_pension_allowance
         else:
             personal_deduction = PERSONAL_DEDUCTION
             dependent_deduction = DEPENDENT_DEDUCTION
             pit_brackets = None
+            # Fallback caps per ND 253/2026 + TT 87/2026
+            meal_cap = Decimal("1200000")
+            pension_cap = Decimal("3000000")
 
         for idx, emp in enumerate(employees, start=1):
             # Prorated base salary by work days (simplified — assume full month)
@@ -144,7 +150,9 @@ class PayrollService:
             bhtnld_er = ic.bhtnld_employer
 
             # PIT: taxable = gross - insurance_employee - personal deduction
-            #      - dependent deduction (4.4M per active dependent)
+            #      - dependent deduction (6.2M per active dependent)
+            #      - non-taxable allowances (meal up to cap, pension up to cap)
+            #      per ND 253/2026 + TT 87/2026
             active_dependents = emp.dependents.filter(
                 registration_status="registered",
                 valid_from__lte=date.today(),
@@ -155,7 +163,11 @@ class PayrollService:
             total_deduction = personal_deduction + (
                 dependent_deduction * Decimal(active_dependents)
             )
-            taxable = gross - ins_emp_total - total_deduction
+            # Exclude non-taxable portion of meal + pension allowances
+            meal_exclude = min(emp.meal_allowance, meal_cap)
+            pension_exclude = min(emp.pension_allowance, pension_cap)
+            non_taxable_allowances = meal_exclude + pension_exclude
+            taxable = gross - ins_emp_total - total_deduction - non_taxable_allowances
             pit = calculate_pit(taxable, brackets=pit_brackets) if taxable > 0 else Decimal("0")
 
             net = gross - ins_emp_total - pit

@@ -278,6 +278,27 @@ class TaxRateConfig(models.Model):
         help_text="5-bracket system from Luật 09/2026/QH16 (from 01/07/2026)",
     )
 
+    # --- PIT non-taxable allowances (ND 253/2026 + TT 87/2026, from 01/07/2026) ---
+    # Các khoản trợ cấp không chịu thuế TNCN.
+    pit_meal_allowance = models.DecimalField(
+        max_digits=15, decimal_places=4, default=1200000
+    )  # Trợ cấp ăn trưa — tối đa 1.2M/tháng
+    pit_pension_allowance = models.DecimalField(
+        max_digits=15, decimal_places=4, default=3000000
+    )  # Trợ cấp BHXH tự nguyện / Bảo hiểm人寿 — tối đa 3M/tháng
+    pit_medical_deduction = models.DecimalField(
+        max_digits=15, decimal_places=4, default=23000000
+    )  # Tan thuốc BHYT tự thanh toán — tối đa 23M/năm
+    pit_education_deduction = models.DecimalField(
+        max_digits=15, decimal_places=4, default=24000000
+    )  # Học phí con — tối đa 24M/năm
+    pit_dependent_income_threshold = models.DecimalField(
+        max_digits=15, decimal_places=4, default=3000000
+    )  # Mức thu nhập tối thiểu của người phụ thuộc — 3M/tháng
+    pit_withholding_threshold = models.DecimalField(
+        max_digits=15, decimal_places=4, default=5000000
+    )  # Mức thu nhập phải khấu trừ tại nguồn — 5M/lần chi trả
+
     # --- TTĐB rates (Luật TTĐB 66/2025/QH15) ---
     ttdb_alcohol_high = models.DecimalField(
         max_digits=6, decimal_places=4, default=0.65
