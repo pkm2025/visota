@@ -1,0 +1,148 @@
+{% extends 'modern/base/layout.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dnsn_report_list' %}">DNSN</a></li>
+                    <li class="breadcrumb-item active">Chuyển đổi số dư</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+            <small class="text-muted">
+                Áp dụng cho công ty chuyển từ TT132/TT133 sang TT58/2026/TT-BTC
+            </small>
+        </div>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-arrow-left-right"></i> Thông tin chuyển đổi</h5>
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Công ty</dt>
+                <dd class="col-sm-9">{{ company.name }}</dd>
+                <dt class="col-sm-3">Chế độ hiện tại</dt>
+                <dd class="col-sm-9">
+                    {% if is_tt58 %}
+                    <span class="badge bg-success">TT58/2026 (DNSN)</span>
+                    {% else %}
+                    <span class="badge bg-info">{{ company.accounting_regime|upper }}</span>
+                    → Sẽ chuyển sang <span class="badge bg-success">TT58/2026</span>
+                    {% endif %}
+                </dd>
+                <dt class="col-sm-3">Năm tài chính</dt>
+                <dd class="col-sm-9">{{ fiscal_year }}</dd>
+                <dt class="col-sm-3">Kỳ nguồn</dt>
+                <dd class="col-sm-9">Tháng {{ period }}</dd>
+            </dl>
+        </div>
+    </div>
+
+    {% if has_source_data %}
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> Số dư nguồn (TT133/TT200)</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tài khoản</th>
+                            <th class="text-end">Nợ</th>
+                            <th class="text-end">Có</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bal in source_balances %}
+                        <tr>
+                            <td>{{ bal.account_code }}</td>
+                            <td class="text-end">{{ bal.closing_debit|default:0|floatformat:0 }}</td>
+                            <td class="text-end">{{ bal.closing_credit|default:0|floatformat:0 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if summary.rows %}
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-arrow-right-circle"></i> Sổ DNSN đã chuyển đổi</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Sổ DNSN</th>
+                            <th class="text-end">Số dư đầu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in summary.rows %}
+                        <tr>
+                            <td>{{ row.target_ledger_label }} ({{ row.target_ledger_type|upper }})</td>
+                            <td class="text-end">{{ row.converted_amount|floatformat:0 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <th>Tổng cộng</th>
+                            <th class="text-end">{{ summary.total_converted|floatformat:0 }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card border-warning">
+        <div class="card-body">
+            <h5 class="text-warning"><i class="bi bi-exclamation-triangle"></i> Xác nhận chuyển đổi</h5>
+            <p class="mb-2">
+                Việc chuyển đổi sẽ ánh xạ số dư tài khoản TT133/TT200 sang sổ DNSN theo TT58/2026.
+                Chế độ kế toán của công ty sẽ được chuyển sang <strong>TT58/2026</strong>.
+            </p>
+            <p class="text-muted small mb-3">
+                Phép chuyển đổi là <strong>idempotent</strong>: chạy lại sẽ cập nhật số dư mà không tạo trùng lặp.
+            </p>
+            <form method="post" action="{% url 'ui_modern:dnsn_conversion' %}?fiscal_year={{ fiscal_year }}&period={{ period }}">
+                {% csrf_token %}
+                <input type="hidden" name="fiscal_year" value="{{ fiscal_year }}">
+                <input type="hidden" name="period" value="{{ period }}">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-arrow-repeat"></i> Thực hiện chuyển đổi sang TT58
+                </button>
+                <a href="{% url 'ui_modern:dashboard' %}" class="btn btn-outline-secondary">Hủy</a>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        Không có số dư nguồn nào cho kỳ Tháng {{ period }} / {{ fiscal_year }}.
+        Hãy đảm bảo dữ liệu TT133/TT200 đã được ghi sổ trước khi chuyển đổi.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

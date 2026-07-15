@@ -113,6 +113,10 @@ from .dnsn_report_views import (
     DnsnReportExportView,
     DnsnReportListView,
 )
+from .dnsn_conversion_views import (
+    DnsnConversionResultView,
+    DnsnConversionView,
+)
 from .dnsn_voucher_views import (
     DnsnVoucherCreateView,
     DnsnVoucherDeleteView,
@@ -250,6 +254,8 @@ __all__ = [
     "DnsnB01ReportView",
     "DnsnB02ReportView",
     "DnsnReportExportView",
+    "DnsnConversionView",
+    "DnsnConversionResultView",
     "ChartOfAccountsListView",
     "ChartOfAccountsChangeCodeView",
     "VisotaLoginView",

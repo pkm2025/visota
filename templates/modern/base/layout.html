@@ -277,6 +277,19 @@
                         <a href="{% url 'ui_modern:dnsn_ledger_settings' %}" class="nav-item">
                             <i class="bi bi-gear"></i> <span>Tùy chọn sổ (S4)</span>
                         </a>
+                        <div class="nav-item-text small text-muted text-uppercase mt-2 mb-1 ps-2">Báo cáo & Chuyển đổi</div>
+                        <a href="{% url 'ui_modern:dnsn_report_list' %}" class="nav-item">
+                            <i class="bi bi-file-earmark-bar-graph"></i> <span>Báo cáo DNSN</span>
+                        </a>
+                        <a href="{% url 'ui_modern:dnsn_report_b01' %}" class="nav-item">
+                            <i class="bi bi-file-earmark-spreadsheet"></i> <span>B01-DNSN (Tình hình TC)</span>
+                        </a>
+                        <a href="{% url 'ui_modern:dnsn_report_b02' %}" class="nav-item">
+                            <i class="bi bi-file-earmark-spreadsheet"></i> <span>B02-DNSN (KQHD KD)</span>
+                        </a>
+                        <a href="{% url 'ui_modern:dnsn_conversion' %}" class="nav-item">
+                            <i class="bi bi-arrow-left-right"></i> <span>Chuyển đổi số dư TT58</span>
+                        </a>
                     </div>
                 </div>
                 {% endif %}

@@ -84,6 +84,8 @@ from .views import (
     DepreciationRunView,
     DnsnB01ReportView,
     DnsnB02ReportView,
+    DnsnConversionResultView,
+    DnsnConversionView,
     DnsnLedgerDetailView,
     DnsnLedgerListView,
     DnsnLedgerSettingsView,
@@ -597,6 +599,17 @@ urlpatterns = [
         "dnsn-reports/export/",
         login_required(DnsnReportExportView.as_view()),
         name="dnsn_report_export",
+    ),
+    # TT58 DNSN balance conversion (TT132/TT133 → TT58)
+    path(
+        "dnsn-conversion/",
+        login_required(DnsnConversionView.as_view()),
+        name="dnsn_conversion",
+    ),
+    path(
+        "dnsn-conversion/result/",
+        login_required(DnsnConversionResultView.as_view()),
+        name="dnsn_conversion_result",
     ),
     path(
         "documents/<int:pk>/download/",
