@@ -149,13 +149,15 @@ LEGAL_REFS = [
     },
     {
         "code": "LuatThueTNDN",
-        "name": "Luật Thuế TNDN",
-        "full_name": "Luật Thuế thu nhập doanh nghiệp số 14/2008/QH12 (sửa đổi 2022)",
+        "name": "Luật Thuế TNDN (cũ)",
+        "full_name": "Luật Thuế thu nhập doanh nghiệp số 14/2008/QH12 (sửa đổi 2022) — đã bị thay thế",
         "issuing_body": "Quốc hội",
         "issue_date": "2008-06-03",
         "effective_date": "2009-01-01",
         "applicable_to": ["tax"],
-        "summary": "Thuế TNDN, thuế suất 20%.",
+        "summary": "Thuế TNDN, thuế suất 20%. Đã bị thay thế bởi Luật 67/2025/QH15 từ 01/01/2026.",
+        "status": "superseded",
+        "replaced_by_code": "LuatTNDN2025",
     },
     # --- New 2025/2026 tax & SME regulations ---
     # Tax rates
@@ -444,6 +446,142 @@ LEGAL_REFS = [
         "summary": "Ban hành mẫu HĐ thi công xây dựng, HĐ tư vấn, HĐ cung cấp hàng hóa theo Luật Đấu thầu 2023.",
         "applicable_to": ["contracts"],
     },
+    # --- P1 compliance additions (July 2026): missing regulations ---
+    # E-invoice framework (replaces ND 123/2020 and ND 78)
+    {
+        "code": "ND254_2026",
+        "name": "ND 254/2026",
+        "full_name": "Nghị định 254/2026/NĐ-CP - Hóa đơn, chứng từ điện tử",
+        "issuing_body": "Chính phủ",
+        "issue_date": "2026-06-30",
+        "effective_date": "2026-07-01",
+        "url": "",
+        "summary": (
+            "Khung pháp lý mới về hóa đơn điện tử thay thế ND 123/2020 và ND 78. "
+            "Phân loại: có mã CQT, không có mã, khởi tạo từ máy tính tiền. "
+            "Bắt buộc HKD doanh thu > 1 tỷ/năm phải dùng HĐĐT."
+        ),
+        "applicable_to": ["e-invoice", "tax"],
+    },
+    {
+        "code": "TT91_2026",
+        "name": "TT 91/2026",
+        "full_name": "Thông tư 91/2026/TT-BTC - Hướng dẫn ND 254/2026 về hóa đơn điện tử",
+        "issuing_body": "Bộ Tài chính",
+        "issue_date": "2026-06-30",
+        "effective_date": "2026-07-01",
+        "url": "",
+        "summary": (
+            "Hướng dẫn chi tiết triển khai ND 254/2026: quy trình truyền nhận, "
+            "mẫu hóa đơn, xử lý hóa đơn sai, tra cứu mã CQT."
+        ),
+        "applicable_to": ["e-invoice", "tax"],
+    },
+    # Tax administration law
+    {
+        "code": "LuatQLT108_2025",
+        "name": "Luật Quản lý thuế 108/2025",
+        "full_name": "Luật Quản lý thuế số 108/2025/QH15",
+        "issuing_body": "Quốc hội",
+        "issue_date": "2025-11-28",
+        "effective_date": "2026-07-01",
+        "url": "",
+        "summary": (
+            "Luật Quản lý thuế thay thế Luật 38/2019/QH14. Quy định đăng ký thuế, "
+            "kê khai, nộp thuế, thanh tra, cưỡng chế thi hành án thuế."
+        ),
+        "applicable_to": ["tax"],
+    },
+    # BHXH base salary update
+    {
+        "code": "ND161_2026",
+        "name": "ND 161/2026",
+        "full_name": "Nghị định 161/2026/NĐ-CP - Lương cơ sở BHXH 2.530.000đ",
+        "issuing_body": "Chính phủ",
+        "issue_date": "2026-06-15",
+        "effective_date": "2026-07-01",
+        "url": "",
+        "summary": (
+            "Mức lương cơ sở dùng tính BHXH/BHYT/BHTN tăng từ 2.340.000đ lên 2.530.000đ. "
+            "Trần đóng BHXH = 20 × 2.530.000 = 50.600.000đ/tháng."
+        ),
+        "applicable_to": ["hr", "payroll"],
+    },
+    # PIT non-taxable allowances
+    {
+        "code": "ND253_2026",
+        "name": "ND 253/2026",
+        "full_name": "Nghị định 253/2026/NĐ-CP - Thu nhập miễn thuế TNCN",
+        "issuing_body": "Chính phủ",
+        "issue_date": "2026-06-15",
+        "effective_date": "2026-07-01",
+        "url": "",
+        "summary": (
+            "Quy định chi tiết các khoản thu nhập miễn thuế TNCN theo Luật 09/2026/QH16: "
+            "tiền ăn 1,2 triệu/tháng, tự nguyện BHTN/BHSS 3 triệu/tháng, "
+            "y tế 23 triệu/năm, giáo dục 24 triệu/năm."
+        ),
+        "applicable_to": ["tax", "payroll"],
+    },
+    {
+        "code": "TT87_2026",
+        "name": "TT 87/2026",
+        "full_name": "Thông tư 87/2026/TT-BTC - Hướng dẫn giảm trừ gia cảnh TNCN",
+        "issuing_body": "Bộ Tài chính",
+        "issue_date": "2026-06-20",
+        "effective_date": "2026-07-01",
+        "url": "",
+        "summary": (
+            "Hướng dẫn chi tiết ND 253/2026 về các khoản không chịu thuế TNCN: "
+            "tiền ăn ca, BHXH tự nguyện, BH y tế, giáo dục, và ngưỡng thu nhập NPT (3 triệu/tháng)."
+        ),
+        "applicable_to": ["tax", "payroll"],
+    },
+    # CIT exemption for micro enterprises
+    {
+        "code": "ND141_2026",
+        "name": "ND 141/2026",
+        "full_name": "Nghị định 141/2026/NĐ-CP - Miễn thuế TNDN cho DN DT ≤ 1 tỷ",
+        "issuing_body": "Chính phủ",
+        "issue_date": "2026-05-30",
+        "effective_date": "2026-01-01",
+        "url": "",
+        "summary": (
+            "Miễn thuế TNDN cho doanh nghiệp có doanh thu ≤ 1 tỷ VND/năm. "
+            "Áp dụng cho cả HKD và cá nhân kinh doanh."
+        ),
+        "applicable_to": ["tax"],
+    },
+    # Minimum wage 2026
+    {
+        "code": "ND293_2025",
+        "name": "ND 293/2025",
+        "full_name": "Nghị định 293/2025/NĐ-CP - Lương tối thiểu vùng 2026",
+        "issuing_body": "Chính phủ",
+        "issue_date": "2025-12-30",
+        "effective_date": "2026-01-01",
+        "url": "",
+        "summary": (
+            "Lương tối thiểu vùng áp dụng từ 01/01/2026: "
+            "Vùng I 5.310.000đ, Vùng II 4.720.000đ, Vùng III 4.120.000đ, Vùng IV 3.700.000đ."
+        ),
+        "applicable_to": ["hr", "payroll"],
+    },
+    # HKD tax & e-invoice obligations
+    {
+        "code": "TT50_2026",
+        "name": "TT 50/2026",
+        "full_name": "Thông tư 50/2026/TT-BTC - Hóa đơn cho hộ kinh doanh",
+        "issuing_body": "Bộ Tài chính",
+        "issue_date": "2026-04-30",
+        "effective_date": "2026-07-01",
+        "url": "",
+        "summary": (
+            "Hướng dẫn HĐĐT cho HKD: HKD doanh thu > 1 tỷ VND/năm bắt buộc dùng HĐĐT "
+            "có mã CQT, kê khai thuế theo phương pháp kê khai. HKD ≤ 1 tỷ được miễn."
+        ),
+        "applicable_to": ["e-invoice", "tax"],
+    },
 ]
 
 
@@ -452,6 +590,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         created_count = 0
+        # First pass: create/update all references so FK lookups can resolve.
         for ref in LEGAL_REFS:
             issue_date = date.fromisoformat(ref["issue_date"])
             effective_date = date.fromisoformat(ref["effective_date"])
@@ -468,11 +607,23 @@ class Command(BaseCommand):
                     "applicable_to": ref["applicable_to"],
                     "summary": ref.get("summary", ""),
                     "url": ref.get("url", ""),
-                    "status": "active",
+                    "status": ref.get("status", "active"),
+                    # replaced_by is wired in the second pass.
+                    "replaced_by": None,
                 },
             )
             if created:
                 created_count += 1
+        # Second pass: wire replaced_by FK after every code exists.
+        for ref in LEGAL_REFS:
+            replaced_by_code = ref.get("replaced_by_code")
+            if not replaced_by_code:
+                continue
+            current = LegalReference.objects.filter(code=ref["code"]).first()
+            replacement = LegalReference.objects.filter(code=replaced_by_code).first()
+            if current is not None and replacement is not None:
+                current.replaced_by = replacement
+                current.save(update_fields=["replaced_by"])
         self.stdout.write(
             self.style.SUCCESS(f"Seeded {len(LEGAL_REFS)} legal references ({created_count} new).")
         )

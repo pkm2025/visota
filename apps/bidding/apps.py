@@ -1,4 +1,4 @@
-"""Bidding app config (Luật Đấu thầu 23/2023/QH15)."""
+"""Bidding app config (Luật Đấu thầu 22/2023/QH15)."""
 
 from django.apps import AppConfig
 

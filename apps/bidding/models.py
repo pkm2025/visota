@@ -1,4 +1,4 @@
-"""Bidding models per Luật Đấu thầu 23/2023/QH15.
+"""Bidding models per Luật Đấu thầu 22/2023/QH15.
 
 BidOpportunity: cơ hội đấu thầu (được mời / tự tìm).
 BidDocument: gói hồ sơ dự thầu / hồ sơ mời thầu.

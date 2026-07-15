@@ -17,7 +17,9 @@ class Company(models.Model):
     class AccountingRegime(models.TextChoices):
         TT133 = "tt133", "TT133/2016 (DN nhỏ và vừa)"
         TT200 = "tt200", "TT200/2014 (DN lớn)"
-        Q48 = "q48", "QĐ48/2006 (cũ)"
+        # QĐ48/2006 was superseded by TT133/2016 and TT200/2014; kept only for
+        # backward-compatibility with legacy data. Do NOT use for new companies.
+        Q48 = "q48", "QĐ48/2006 (cũ — deprecated, khuyến nghị không dùng)"
         TT58 = "tt58", "TT58/2026 (DN siêu nhỏ)"
 
     class VatMethod(models.TextChoices):
