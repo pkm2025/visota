@@ -172,11 +172,28 @@ class ModuleVisibilityService:
 
         A permission module is visible if at least one display module that
         maps to it is visible.
+
+        Permission modules that are **not** listed in ``MODULE_PERMISSION_MAP``
+        (e.g. ``pkm``, ``master_data``, ``contracts``, ``fx``, ``approvals``,
+        ``documents``, ``notifications``) are not part of any configurable
+        display module. For non-DNSN companies these default to visible so
+        that the sidebar navigation works as before. For DNSN companies they
+        default to hidden (conservative: only mapped modules are shown).
         """
+        mapped = False
         for display_module, perm_modules in MODULE_PERMISSION_MAP.items():
-            if perm_module in perm_modules and self.is_module_visible(display_module):
-                return True
-        return False
+            if perm_module in perm_modules:
+                mapped = True
+                if self.is_module_visible(display_module):
+                    return True
+        if mapped:
+            return False
+
+        # Unmapped permission module: default to visible for non-DNSN
+        # companies, hidden for DNSN companies and when no company is set.
+        if not self.company:
+            return False
+        return not self._is_dnsn
 
     def get_visible_display_modules(self) -> list[str]:
         """Return ordered list of visible display module keys."""

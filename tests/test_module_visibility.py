@@ -435,6 +435,61 @@ class TestEdgeCases:
         assert "tai_san" not in visible
 
 
+class TestUnmappedPermissionModules:
+    """Permission modules not in MODULE_PERMISSION_MAP (pkm, master_data,
+    contracts, fx, approvals, documents, notifications) must default to
+    visible for non-DNSN companies so the sidebar navigation works.
+
+    For DNSN companies they remain hidden (conservative default).
+    """
+
+    def test_pkm_visible_for_non_dnsn(self, tt133_company):
+        """pkm is not in MODULE_PERMISSION_MAP but must be visible for TT133."""
+        svc = ModuleVisibilityService(tt133_company)
+        assert svc.is_permission_module_visible("pkm") is True
+
+    def test_master_data_visible_for_non_dnsn(self, tt133_company):
+        svc = ModuleVisibilityService(tt133_company)
+        assert svc.is_permission_module_visible("master_data") is True
+
+    def test_contracts_visible_for_non_dnsn(self, tt133_company):
+        svc = ModuleVisibilityService(tt133_company)
+        assert svc.is_permission_module_visible("contracts") is True
+
+    def test_fx_visible_for_non_dnsn(self, tt133_company):
+        svc = ModuleVisibilityService(tt133_company)
+        assert svc.is_permission_module_visible("fx") is True
+
+    def test_approvals_visible_for_non_dnsn(self, tt133_company):
+        svc = ModuleVisibilityService(tt133_company)
+        assert svc.is_permission_module_visible("approvals") is True
+
+    def test_documents_visible_for_non_dnsn(self, tt133_company):
+        svc = ModuleVisibilityService(tt133_company)
+        assert svc.is_permission_module_visible("documents") is True
+
+    def test_notifications_visible_for_non_dnsn(self, tt133_company):
+        svc = ModuleVisibilityService(tt133_company)
+        assert svc.is_permission_module_visible("notifications") is True
+
+    def test_pkm_hidden_for_dnsn(self, dnsn_company):
+        """pkm is unmapped and should remain hidden for DNSN by default."""
+        svc = ModuleVisibilityService(dnsn_company)
+        assert svc.is_permission_module_visible("pkm") is False
+
+    def test_unmapped_hidden_when_no_company(self):
+        """No company means unmapped permission modules are not visible."""
+        svc = ModuleVisibilityService(None)
+        assert svc.is_permission_module_visible("pkm") is False
+
+    def test_truly_nonexistent_still_visible_for_non_dnsn(self, tt133_company):
+        """Any permission module not in MODULE_PERMISSION_MAP defaults to
+        visible for non-DNSN companies. This is intentional: the map only
+        covers configurable display modules, not all permission modules."""
+        svc = ModuleVisibilityService(tt133_company)
+        assert svc.is_permission_module_visible("totally_fake_module") is True
+
+
 # --- Company model field ---
 
 
