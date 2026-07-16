@@ -92,7 +92,7 @@
 </div>
 {% endif %}
 
-{% if note_count == 0 and doc_count == 0 and qa_count == 0 %}
+{% if note_count == 0 and doc_count == 0 and qa_count == 0 and not role_suggestions %}
 <!-- Empty state / getting started -->
 <div class="card border-0 shadow-sm">
     <div class="card-body text-center py-5">

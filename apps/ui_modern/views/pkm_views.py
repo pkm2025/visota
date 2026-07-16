@@ -35,7 +35,6 @@ from django.views import View
 from django.views.generic import DeleteView, DetailView, ListView
 
 from apps.core.models import Company
-from apps.identity.models import UserCompanyRole
 from apps.pkm.models import (
     DocumentChunk,
     KnowledgeNote,
@@ -47,6 +46,12 @@ from apps.pkm.models import (
 )
 from apps.pkm.services import encryption_service, llm_service, qa_service, rag_pipeline
 from apps.pkm.services.interaction_service import log_interaction
+from apps.pkm.services.role_templates import (
+    get_role_suggestions_queryset,
+)
+from apps.pkm.services.role_templates import (
+    get_user_role_codes as _get_role_codes_helper,
+)
 from apps.ui_modern.mixins import require_current_company
 
 
@@ -138,11 +143,7 @@ def _get_user_role_codes(request: HttpRequest) -> list[str]:
     knowledge suggestions on the dashboard.
     """
     company = _get_company(request)
-    codes = UserCompanyRole.objects.filter(
-        user=request.user,
-        company=company,
-    ).values_list("role__code", flat=True)
-    return [c for c in codes if c]
+    return _get_role_codes_helper(user=request.user, company=company)
 
 
 class PKMDashboardView(LoginRequiredMixin, View):
@@ -174,14 +175,23 @@ class PKMDashboardView(LoginRequiredMixin, View):
             "failed": docs_qs.filter(status=PKMDocument.Status.FAILED).count(),
         }
 
-        # Recent activity feed (latest 10 interactions)
-        recent_activity = interactions_qs.select_related("user", "company")[:10]
+        # Recent activity feed (latest 10 interactions).
+        # NOTE: the template only reads scalar fields (interaction_type, module,
+        # created_at) so no select_related is needed; adding one triggers an
+        # nplusone "unnecessary eager load" warning.
+        recent_activity = interactions_qs[:10]
 
-        # Role-based knowledge suggestions: notes whose role_context matches
-        # one of the user's role codes in the current company.
+        # Role-based knowledge suggestions: the user's own role-tagged notes
+        # PLUS shared role template notes (any owner in the company) whose
+        # role_context matches one of the user's role codes.
         user_role_codes = _get_user_role_codes(request)
+        company = _get_company(request)
         role_suggestions = (
-            notes_qs.filter(role_context__in=user_role_codes).order_by("-updated_at")[:5]
+            get_role_suggestions_queryset(
+                user=request.user,
+                company=company,
+                role_codes=user_role_codes,
+            )[:5]
             if user_role_codes
             else notes_qs.none()
         )

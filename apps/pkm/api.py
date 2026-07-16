@@ -986,18 +986,20 @@ def get_pkm_stats(request: HttpRequest) -> dict[str, Any]:
     tags_qs = Tag.objects.filter(user=request.user, company=company)
     configs_qs = UserLLMConfig.objects.filter(user=request.user, company=company)
 
-    # User's role codes in the current company (for role-based filtering)
-    from apps.identity.models import UserCompanyRole
-
-    user_role_codes = list(
-        UserCompanyRole.objects.filter(
-            user=request.user,
-            company=company,
-        ).values_list("role__code", flat=True)
+    # User's role codes in the current company (for role-based filtering).
+    # Uses the shared helper so the stats API stays consistent with the UI
+    # dashboard's role suggestions (which include shared role templates).
+    from apps.pkm.services.role_templates import (
+        get_role_suggestions_queryset,
+        get_user_role_codes,
     )
 
-    role_suggestions_qs = (
-        notes_qs.filter(role_context__in=user_role_codes) if user_role_codes else notes_qs.none()
+    user_role_codes = get_user_role_codes(user=request.user, company=company)
+
+    role_suggestions_qs = get_role_suggestions_queryset(
+        user=request.user,
+        company=company,
+        role_codes=user_role_codes,
     )
 
     return {

@@ -78,7 +78,7 @@
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li class="px-3 py-1 small text-muted">Công ty của bạn</li>
-                    {% for ucr in user.company_roles.all %}
+                    {% for ucr in company_roles_dropdown|default:user.company_roles.all %}
                     <li>
                         <form method="post" action="/switch-company/" class="d-inline">
                             {% csrf_token %}
