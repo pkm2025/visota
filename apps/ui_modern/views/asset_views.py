@@ -16,7 +16,7 @@ from apps.assets.models import (
     FixedAsset,
 )
 from apps.assets.services import AssetLifecycleService, DepreciationService
-from apps.ui_modern.mixins import require_current_company
+from apps.ui_modern.mixins import PermissionRequiredMixin, require_current_company
 
 
 class AssetListView(LoginRequiredMixin, ListView):
@@ -48,12 +48,13 @@ class AssetListView(LoginRequiredMixin, ListView):
         return ctx
 
 
-class AssetCreateView(LoginRequiredMixin, View):
+class AssetCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Create a fixed asset. Custom POST pulls default GL accounts from the
     selected category and using_department."""
 
     template_name = "modern/assets/asset_form.html"
     login_url = "/auth/login/"
+    required_permission = "assets.access"
 
     def get(self, request, *args, **kwargs):
         return render(

@@ -5,7 +5,7 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, ListView
 
 from apps.hr.models import Employee
-from apps.ui_modern.mixins import require_current_company
+from apps.ui_modern.mixins import PermissionRequiredMixin, require_current_company
 
 
 class EmployeeListView(LoginRequiredMixin, ListView):
@@ -38,7 +38,7 @@ class EmployeeListView(LoginRequiredMixin, ListView):
         return ctx
 
 
-class EmployeeCreateView(LoginRequiredMixin, CreateView):
+class EmployeeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     """Create a new employee (Django generic CreateView)."""
 
     model = Employee
@@ -67,6 +67,7 @@ class EmployeeCreateView(LoginRequiredMixin, CreateView):
         "notes",
     ]
     login_url = "/auth/login/"
+    required_permission = "hr.access"
     success_url = reverse_lazy("ui_modern:employee_list")
 
     def get_context_data(self, **kwargs):

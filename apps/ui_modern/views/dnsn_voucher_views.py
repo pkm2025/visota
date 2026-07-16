@@ -19,7 +19,7 @@ from django.views.generic import DetailView, ListView
 
 from apps.core.models import Company
 from apps.ledger.models import DnsnVoucher
-from apps.ui_modern.mixins import require_current_company
+from apps.ui_modern.mixins import PermissionRequiredMixin, require_current_company
 
 
 def _get_company(request) -> Company:
@@ -104,7 +104,7 @@ class DnsnVoucherListView(LoginRequiredMixin, ListView):
         return ctx
 
 
-class DnsnVoucherCreateView(LoginRequiredMixin, View):
+class DnsnVoucherCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Create a new DNSN voucher (phiếu thu/chi/nhập/xuất etc.).
 
     The form does NOT contain account_code, debit, or credit fields.
@@ -113,6 +113,7 @@ class DnsnVoucherCreateView(LoginRequiredMixin, View):
 
     template_name = "modern/dnsn/voucher_form.html"
     login_url = "/auth/login/"
+    required_permission = "ledger.access"
 
     def get(self, request, *args, **kwargs):
         company = _get_company(request)
@@ -203,7 +204,7 @@ class DnsnVoucherDetailView(LoginRequiredMixin, DetailView):
         return ctx
 
 
-class DnsnVoucherEditView(LoginRequiredMixin, View):
+class DnsnVoucherEditView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Edit a DRAFT DNSN voucher.
 
     Only DRAFT vouchers can be edited. POSTED or LOCKED vouchers
@@ -212,6 +213,7 @@ class DnsnVoucherEditView(LoginRequiredMixin, View):
 
     template_name = "modern/dnsn/voucher_form.html"
     login_url = "/auth/login/"
+    required_permission = "ledger.access"
 
     def get_voucher(self, request, pk):
         company = _get_company(request)
@@ -265,13 +267,14 @@ class DnsnVoucherEditView(LoginRequiredMixin, View):
         return redirect("ui_modern:dnsn_voucher_detail", pk=voucher.pk)
 
 
-class DnsnVoucherDeleteView(LoginRequiredMixin, View):
+class DnsnVoucherDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Delete a DRAFT DNSN voucher.
 
     POSTED or LOCKED vouchers cannot be deleted.
     """
 
     login_url = "/auth/login/"
+    required_permission = "ledger.access"
 
     def post(self, request, pk, *args, **kwargs):
         company = _get_company(request)

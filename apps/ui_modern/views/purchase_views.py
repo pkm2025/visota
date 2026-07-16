@@ -11,7 +11,7 @@ from django.views.generic import ListView, TemplateView
 from apps.master_data.models import Product, Vendor
 from apps.purchasing.models import PurchaseInvoice
 from apps.purchasing.services import PurchaseInvoiceService
-from apps.ui_modern.mixins import require_current_company
+from apps.ui_modern.mixins import PermissionRequiredMixin, require_current_company
 
 
 class PurchaseInvoiceListView(LoginRequiredMixin, ListView):
@@ -34,11 +34,12 @@ class PurchaseInvoiceListView(LoginRequiredMixin, ListView):
         return ctx
 
 
-class PurchaseInvoiceCreateView(LoginRequiredMixin, TemplateView):
+class PurchaseInvoiceCreateView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """Custom POST handling that delegates to PurchaseInvoiceService.create()."""
 
     template_name = "modern/purchasing/invoice_form.html"
     login_url = "/auth/login/"
+    required_permission = "purchasing.access"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

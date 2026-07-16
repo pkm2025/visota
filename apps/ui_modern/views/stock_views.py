@@ -17,7 +17,7 @@ from apps.inventory.models import (
 )
 from apps.inventory.services import StockDashboardService, StockService
 from apps.master_data.models import Product, Warehouse
-from apps.ui_modern.mixins import require_current_company
+from apps.ui_modern.mixins import PermissionRequiredMixin, require_current_company
 
 
 class StockVoucherListView(LoginRequiredMixin, ListView):
@@ -35,11 +35,12 @@ class StockVoucherListView(LoginRequiredMixin, ListView):
         return ctx
 
 
-class StockVoucherCreateView(LoginRequiredMixin, TemplateView):
+class StockVoucherCreateView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """Custom POST handling that delegates to StockService.create_receipt() / create_issue()."""
 
     template_name = "modern/inventory/stock_form.html"
     login_url = "/auth/login/"
+    required_permission = "inventory.access"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -158,11 +159,12 @@ class StockAdjustmentListView(LoginRequiredMixin, ListView):
         return ctx
 
 
-class StockAdjustmentCreateView(LoginRequiredMixin, TemplateView):
+class StockAdjustmentCreateView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """Create a stock count/adjustment. POST: per-product system vs counted qty."""
 
     template_name = "modern/inventory/stock_adjustment_form.html"
     login_url = "/auth/login/"
+    required_permission = "inventory.access"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

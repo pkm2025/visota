@@ -9,7 +9,7 @@ from django.views.generic import ListView, View
 
 from apps.ledger.models import AccountPeriodBalance, VoucherLine
 from apps.master_data.models import ChartOfAccounts
-from apps.ui_modern.mixins import require_current_company
+from apps.ui_modern.mixins import PermissionRequiredMixin, require_current_company
 
 
 class ChartOfAccountsListView(LoginRequiredMixin, ListView):
@@ -50,7 +50,7 @@ class ChartOfAccountsListView(LoginRequiredMixin, ListView):
         return ctx
 
 
-class ChartOfAccountsChangeCodeView(LoginRequiredMixin, View):
+class ChartOfAccountsChangeCodeView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Đổi mã tài khoản (Change account code).
 
     GET renders a form with a ``new_code`` field showing the current code.
@@ -68,6 +68,7 @@ class ChartOfAccountsChangeCodeView(LoginRequiredMixin, View):
 
     login_url = "/auth/login/"
     template_name = "modern/ledger/change_account_code.html"
+    required_permission = "master_data.access"
 
     def _get_account(self, request: HttpRequest, pk: int) -> ChartOfAccounts:
         company = require_current_company(request)

@@ -17,7 +17,7 @@ from apps.ui_modern.forms import (
     VoucherLineFormSet,
     VoucherTaxLineFormSet,
 )
-from apps.ui_modern.mixins import require_current_company
+from apps.ui_modern.mixins import PermissionRequiredMixin, require_current_company
 
 from ._export_utils import autosize, new_workbook, style_header, xlsx_response
 
@@ -63,11 +63,12 @@ class VoucherListView(LoginRequiredMixin, ListView):
         return ctx
 
 
-class VoucherCreateView(LoginRequiredMixin, View):
+class VoucherCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Create a new accounting voucher (Standard style — full form)."""
 
     template_name = "modern/ledger/voucher_form.html"
     login_url = "/auth/login/"
+    required_permission = "ledger.access"
 
     def _company_accounts(self):
         from apps.master_data.models import ChartOfAccounts
@@ -345,10 +346,11 @@ class VoucherExportView(LoginRequiredMixin, View):
         return xlsx_response(wb, "vouchers.xlsx")
 
 
-class VoucherDeleteView(LoginRequiredMixin, View):
+class VoucherDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Delete a DRAFT voucher and reverse its ledger entries."""
 
     login_url = "/auth/login/"
+    required_permission = "ledger.access"
 
     def post(self, request, pk, *args, **kwargs):
         company = require_current_company(request)
@@ -374,11 +376,12 @@ class VoucherDeleteView(LoginRequiredMixin, View):
         return redirect("ui_modern:voucher_detail", pk=pk)
 
 
-class VoucherGuidedView(LoginRequiredMixin, View):
+class VoucherGuidedView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Guided voucher creation — pick action → auto-generate lines."""
 
     template_name = "modern/ledger/voucher_guided.html"
     login_url = "/auth/login/"
+    required_permission = "ledger.access"
 
     def get(self, request, *args, **kwargs):
         ctx = {"page_title": "Tạo phiếu nhanh"}

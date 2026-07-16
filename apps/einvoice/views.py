@@ -8,6 +8,7 @@ from django.views import View
 from django.views.generic import DetailView, ListView
 
 from apps.core.models import Company
+from apps.ui_modern.mixins import PermissionRequiredMixin
 
 from .models import EInvoice
 from .services import EInvoiceReportService, EInvoiceService
@@ -56,10 +57,11 @@ class EInvoiceDetailView(LoginRequiredMixin, DetailView):
         return ctx
 
 
-class EInvoiceIssueFromSalesView(LoginRequiredMixin, View):
+class EInvoiceIssueFromSalesView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """POST: create draft EInvoice from a SalesInvoice."""
 
     login_url = "/auth/login/"
+    required_permission = "einvoice.access"
 
     def post(self, request, sales_invoice_id, *args, **kwargs):
         from apps.sales.models import SalesInvoice
@@ -73,10 +75,11 @@ class EInvoiceIssueFromSalesView(LoginRequiredMixin, View):
         return redirect("ui_modern:einvoice_detail", pk=ei.pk)
 
 
-class EInvoicePublishView(LoginRequiredMixin, View):
+class EInvoicePublishView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """POST: mark as issued — assigns invoice_no + (optionally) calls provider API."""
 
     login_url = "/auth/login/"
+    required_permission = "einvoice.access"
 
     def post(self, request, pk, *args, **kwargs):
         # ponytail: scope by current_company — IDOR guard.
@@ -91,8 +94,9 @@ class EInvoicePublishView(LoginRequiredMixin, View):
         return redirect("ui_modern:einvoice_detail", pk=pk)
 
 
-class EInvoiceCancelView(LoginRequiredMixin, View):
+class EInvoiceCancelView(LoginRequiredMixin, PermissionRequiredMixin, View):
     login_url = "/auth/login/"
+    required_permission = "einvoice.access"
 
     def post(self, request, pk, *args, **kwargs):
         # ponytail: scope by current_company — IDOR guard.

@@ -8,12 +8,13 @@ from django.shortcuts import redirect
 from django.views.generic import TemplateView
 
 from apps.ledger.services import PeriodClosingService
-from apps.ui_modern.mixins import require_current_company
+from apps.ui_modern.mixins import PermissionRequiredMixin, require_current_company
 
 
-class PeriodClosingView(LoginRequiredMixin, TemplateView):
+class PeriodClosingView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     template_name = "modern/ledger/closing.html"
     login_url = "/auth/login/"
+    required_permission = "ledger.access"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

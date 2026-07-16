@@ -19,7 +19,7 @@ from apps.crm.models import (
     Ticket,
 )
 from apps.crm.services import OpportunityConverter
-from apps.ui_modern.mixins import require_current_company
+from apps.ui_modern.mixins import PermissionRequiredMixin, require_current_company
 
 # ---------------------------------------------------------------------------
 # Leads
@@ -64,7 +64,7 @@ class LeadListView(LoginRequiredMixin, ListView):
         return ctx
 
 
-class LeadCreateView(LoginRequiredMixin, CreateView):
+class LeadCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     model = CRMLead
     template_name = "modern/crm/lead_form.html"
     fields = [
@@ -83,6 +83,7 @@ class LeadCreateView(LoginRequiredMixin, CreateView):
         "description",
     ]
     login_url = "/auth/login/"
+    required_permission = "crm.access"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -104,7 +105,7 @@ class LeadCreateView(LoginRequiredMixin, CreateView):
 # ---------------------------------------------------------------------------
 
 
-class AccountCreateView(LoginRequiredMixin, CreateView):
+class AccountCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     model = CRMAccount
     template_name = "modern/crm/account_form.html"
     fields = [
@@ -120,6 +121,7 @@ class AccountCreateView(LoginRequiredMixin, CreateView):
         "description",
     ]
     login_url = "/auth/login/"
+    required_permission = "crm.access"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -173,7 +175,7 @@ class OpportunityListView(LoginRequiredMixin, ListView):
         return ctx
 
 
-class OpportunityCreateView(LoginRequiredMixin, CreateView):
+class OpportunityCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     model = Opportunity
     template_name = "modern/crm/opportunity_form.html"
     fields = [
@@ -190,6 +192,7 @@ class OpportunityCreateView(LoginRequiredMixin, CreateView):
         "description",
     ]
     login_url = "/auth/login/"
+    required_permission = "crm.access"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -258,10 +261,11 @@ class OpportunityDetailView(LoginRequiredMixin, DetailView):
         return ctx
 
 
-class OpportunityConvertView(LoginRequiredMixin, View):
+class OpportunityConvertView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """POST handler — mark opportunity WON and run OpportunityConverter."""
 
     login_url = "/auth/login/"
+    required_permission = "crm.access"
 
     def post(self, request, pk, *args, **kwargs):
         company = require_current_company(request)
@@ -334,7 +338,7 @@ class TicketListView(LoginRequiredMixin, ListView):
         return ctx
 
 
-class TicketCreateView(LoginRequiredMixin, CreateView):
+class TicketCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     model = Ticket
     template_name = "modern/crm/ticket_form.html"
     fields = [
@@ -352,6 +356,7 @@ class TicketCreateView(LoginRequiredMixin, CreateView):
         "related_opportunity",
     ]
     login_url = "/auth/login/"
+    required_permission = "crm.access"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -399,7 +404,7 @@ class CampaignListView(LoginRequiredMixin, ListView):
         return ctx
 
 
-class CampaignCreateView(LoginRequiredMixin, CreateView):
+class CampaignCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     model = Campaign
     template_name = "modern/crm/campaign_form.html"
     fields = [
@@ -414,6 +419,7 @@ class CampaignCreateView(LoginRequiredMixin, CreateView):
         "description",
     ]
     login_url = "/auth/login/"
+    required_permission = "crm.access"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

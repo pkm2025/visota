@@ -10,7 +10,7 @@ from django.views import View
 from django.views.generic import DetailView, ListView
 
 from apps.contracts.models import Contract
-from apps.ui_modern.mixins import require_current_company
+from apps.ui_modern.mixins import PermissionRequiredMixin, require_current_company
 
 
 class ContractListView(LoginRequiredMixin, ListView):
@@ -68,11 +68,12 @@ class ContractDetailView(LoginRequiredMixin, DetailView):
         return ctx
 
 
-class ContractCreateView(LoginRequiredMixin, View):
+class ContractCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Create a new contract."""
 
     template_name = "modern/contracts/contract_form.html"
     login_url = "/auth/login/"
+    required_permission = "contracts.access"
 
     def get(self, request, *args, **kwargs):
         company = require_current_company(request)

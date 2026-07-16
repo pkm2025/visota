@@ -15,7 +15,7 @@ from apps.hr.models import (
     LeaveRecord,
 )
 from apps.ui_modern.forms import LaborContractForm, LeaveRequestForm
-from apps.ui_modern.mixins import require_current_company
+from apps.ui_modern.mixins import PermissionRequiredMixin, require_current_company
 
 
 class LaborContractListView(LoginRequiredMixin, ListView):
@@ -40,13 +40,14 @@ class LaborContractListView(LoginRequiredMixin, ListView):
         return ctx
 
 
-class LaborContractCreateView(LoginRequiredMixin, CreateView):
+class LaborContractCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     """Tạo hợp đồng lao động mới."""
 
     model = LaborContract
     template_name = "modern/hr/labor_contract_form.html"
     form_class = LaborContractForm
     login_url = "/auth/login/"
+    required_permission = "hr.access"
     success_url = reverse_lazy("ui_modern:labor_contract_list")
 
     def get_context_data(self, **kwargs):

@@ -7,16 +7,17 @@ from django.views import View
 
 from apps.payroll.models import PayrollRun
 from apps.payroll.services import PayrollService
-from apps.ui_modern.mixins import require_current_company
+from apps.ui_modern.mixins import PermissionRequiredMixin, require_current_company
 
 
-class PayrollRunView(LoginRequiredMixin, View):
+class PayrollRunView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """GET shows the period picker + recent runs table.
     POST with action=calculate → PayrollService.calculate(period, 22).
     POST with action=post → calculate then PayrollService.post(run)."""
 
     template_name = "modern/payroll/run.html"
     login_url = "/auth/login/"
+    required_permission = "payroll.access"
 
     def get(self, request, *args, **kwargs):
         from datetime import date

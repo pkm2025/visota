@@ -11,7 +11,7 @@ from django.views.generic import ListView, TemplateView
 from apps.master_data.models import Customer, Product
 from apps.sales.models import SalesInvoice
 from apps.sales.services import SalesInvoiceService
-from apps.ui_modern.mixins import require_current_company
+from apps.ui_modern.mixins import PermissionRequiredMixin, require_current_company
 
 
 class SalesInvoiceListView(LoginRequiredMixin, ListView):
@@ -34,11 +34,12 @@ class SalesInvoiceListView(LoginRequiredMixin, ListView):
         return ctx
 
 
-class SalesInvoiceCreateView(LoginRequiredMixin, TemplateView):
+class SalesInvoiceCreateView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
     """Custom POST handling that delegates to SalesInvoiceService.create()."""
 
     template_name = "modern/sales/invoice_form.html"
     login_url = "/auth/login/"
+    required_permission = "sales.access"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
