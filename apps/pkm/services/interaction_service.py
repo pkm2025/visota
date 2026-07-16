@@ -51,16 +51,64 @@ DEFAULT_SUMMARY_HOURS: int = 24
 #: Default maximum number of recent interactions returned by ``get_recent_interactions``.
 DEFAULT_RECENT_LIMIT: int = 20
 
-#: Human-readable labels for each interaction type, used in the summary.
+#: Vietnamese labels for each interaction type used in the smart-context summary.
+#: Each entry is a callable or string that describes one occurrence; the
+#: summary uses :data:`INTERACTION_TYPE_LABEL_VN` for the noun form.
 INTERACTION_LABELS: dict[str, str] = {
-    "page_view": "page views",
-    "search": "searches",
-    "note_create": "notes created",
-    "document_create": "documents uploaded",
-    "voucher_create": "vouchers created",
+    "page_view": "lượt xem trang",
+    "search": "lượt tìm kiếm",
+    "note_create": "ghi chú đã tạo",
+    "document_create": "tài liệu đã tải lên",
+    "voucher_create": "phiếu đã lập",
+    "invoice_create": "hóa đơn đã lập",
+    "dnsn_voucher_create": "phiếu DNSN đã lập",
+    "period_close": "lần khóa sổ kỳ",
+    "einvoice_issue": "hóa đơn điện tử đã phát hành",
 }
 
-#: Module-specific labels for page views (nicer summaries).
+#: Human-readable Vietnamese verb phrases for business-event interaction types.
+#: Used to render individual recent events in the summary.
+INTERACTION_VERB_VN: dict[str, str] = {
+    "voucher_create": "lập phiếu kế toán",
+    "invoice_create": "lập hóa đơn bán hàng",
+    "dnsn_voucher_create": "lập phiếu DNSN",
+    "period_close": "khóa sổ kỳ kế toán",
+    "einvoice_issue": "phát hành hóa đơn điện tử",
+    "note_create": "tạo ghi chú",
+    "document_create": "tải lên tài liệu",
+    "search": "tìm kiếm",
+}
+
+#: Vietnamese labels for each module code (used in the activity summary
+#: and the "current module" line).
+MODULE_LABELS_VN: dict[str, str] = {
+    "ledger": "Kế toán",
+    "pkm": "Quản lý tri thức",
+    "sales": "Bán hàng",
+    "purchasing": "Mua hàng",
+    "inventory": "Kho",
+    "hr": "Nhân sự",
+    "payroll": "Tiền lương",
+    "reporting": "Báo cáo",
+    "assets": "Tài sản cố định",
+    "master_data": "Dữ liệu nền",
+    "contracts": "Hợp đồng",
+    "input_docs": "Chứng từ đầu vào",
+    "recurring": "Khoản định kỳ",
+    "projects": "Dự án",
+    "crm": "CRM",
+    "treasury": "Quỹ",
+    "banking": "Ngân hàng",
+    "guarantees": "Bảo lãnh",
+    "loans": "Tiền vay",
+    "bidding": "Đấu thầu",
+    "budget": "Ngân sách",
+    "fx": "Ngoại tệ",
+    "einvoice": "Hóa đơn điện tử",
+    "approvals": "Phê duyệt",
+}
+
+#: Legacy English module-page labels (kept for backwards compatibility).
 MODULE_PAGE_LABELS: dict[str, str] = {
     "ledger": "ledger pages",
     "pkm": "PKM pages",
@@ -70,6 +118,22 @@ MODULE_PAGE_LABELS: dict[str, str] = {
     "hr": "HR pages",
     "reporting": "reporting pages",
 }
+
+#: Interaction types that represent business events (as opposed to passive
+#: page views or content actions). These are rendered with their amounts in
+#: the summary when the metadata carries an amount.
+BUSINESS_EVENT_TYPES: frozenset[str] = frozenset(
+    {
+        "voucher_create",
+        "invoice_create",
+        "dnsn_voucher_create",
+        "period_close",
+        "einvoice_issue",
+    }
+)
+
+#: Metadata keys that may carry a monetary amount for a business event.
+_AMOUNT_METADATA_KEYS: tuple[str, ...] = ("amount", "total_amount", "voucher_amount")
 
 
 # ---------------------------------------------------------------------------
@@ -328,35 +392,168 @@ def get_recent_interactions(
     ]
 
 
-def _format_page_views(page_view_modules: dict[str, int]) -> str | None:
-    """Format the page-view portion of the summary.
+def _format_vnd(amount: Any) -> str:
+    """Format a numeric amount as a Vietnamese-number VND string.
 
-    Returns a string like "viewed 3 ledger pages, 2 PKM pages" or ``None``
-    if there are no page views.
+    Accepts ``Decimal``, ``int``, ``float``, or numeric string. Returns the
+    value formatted with thousands separators (e.g. ``50.000.000``). Falls
+    back to ``str(amount)`` when the value cannot be normalised.
+    """
+    try:
+        from decimal import Decimal
+
+        if isinstance(amount, str):
+            value = Decimal(amount)
+        elif isinstance(amount, (int, float)):
+            value = Decimal(str(amount))
+        elif isinstance(amount, Decimal):
+            value = amount
+        else:
+            return str(amount)
+        # Quantize to integer VND (no sub-unit) and use '.' as the thousands
+        # separator which is the Vietnamese convention.
+        integer_part = int(value.quantize(Decimal("1")))
+        return f"{integer_part:,}".replace(",", ".")
+    except Exception:
+        return str(amount)
+
+
+def _extract_amount(metadata: dict[str, Any]) -> str | None:
+    """Return the first amount-like value found in the event metadata.
+
+    Looks up keys in :data:`_AMOUNT_METADATA_KEYS`. Returns the raw value
+    (caller formats via :func:`_format_vnd`) or ``None`` when no amount key
+    is present.
+    """
+    if not isinstance(metadata, dict):
+        return None
+    for key in _AMOUNT_METADATA_KEYS:
+        value = metadata.get(key)
+        if value is not None:
+            return str(value)
+    return None
+
+
+def _format_page_views_vn(page_view_modules: dict[str, int]) -> str | None:
+    """Format the page-view portion of the summary in Vietnamese.
+
+    Returns a string like "xem 3 trang Kế toán, 2 trang Bán hàng" or
+    ``None`` if there are no page views.
     """
     if not page_view_modules:
         return None
-    module_parts = []
+    parts: list[str] = []
+    # Sort by module code for a stable, deterministic order.
     for mod, cnt in sorted(page_view_modules.items()):
-        label = MODULE_PAGE_LABELS.get(mod, f"{mod} pages")
-        module_parts.append(f"{cnt} {label}")
-    return "viewed " + ", ".join(module_parts)
+        label = MODULE_LABELS_VN.get(mod, mod)
+        parts.append(f"{cnt} trang {label}")
+    return "xem " + ", ".join(parts)
 
 
-def _format_interaction(itype: str, count: int) -> str | None:
-    """Format a non-page-view interaction into a readable fragment.
+def _format_business_events_vn(events: list[UserInteractionLog]) -> str | None:
+    """Format recent business events (with amounts) as a Vietnamese fragment.
 
-    Returns ``None`` if the interaction type is not one of the known types.
+    Each event becomes a short clause such as::
+
+        "lập phiếu kế toán BE-V01 (50.000.000 VND)"
+
+    Returns ``None`` when the events list is empty.
     """
-    if itype == "note_create":
-        return f"created {count} note" + ("s" if count != 1 else "")
-    if itype == "document_create":
-        return f"uploaded {count} document" + ("s" if count != 1 else "")
-    if itype == "search":
-        return f"performed {count} search" + ("es" if count != 1 else "")
-    if itype == "voucher_create":
-        return f"created {count} voucher" + ("s" if count != 1 else "")
-    return None
+    if not events:
+        return None
+    parts: list[str] = []
+    for entry in events:
+        verb = INTERACTION_VERB_VN.get(
+            entry.interaction_type,
+            INTERACTION_LABELS.get(entry.interaction_type, entry.interaction_type),
+        )
+        clause = verb
+        if entry.entity_id:
+            clause += f" {entry.entity_id}"
+        amount_raw = _extract_amount(entry.metadata or {})
+        if amount_raw is not None:
+            clause += f" ({_format_vnd(amount_raw)} VND)"
+        parts.append(clause)
+    return "hoạt động nghiệp vụ: " + ", ".join(parts)
+
+
+def _format_content_actions_vn(counts: dict[str, int]) -> str | None:
+    """Format non-business content actions (notes, documents, searches).
+
+    Returns a Vietnamese fragment like "tạo 2 ghi chú, tải lên 1 tài liệu"
+    or ``None`` when there are no content actions to summarise.
+    """
+    if not counts:
+        return None
+    order = ["note_create", "document_create", "search"]
+    parts: list[str] = []
+    for itype in order:
+        count = counts.get(itype)
+        if not count:
+            continue
+        verb = INTERACTION_VERB_VN.get(itype, INTERACTION_LABELS.get(itype, itype))
+        parts.append(f"{verb} {count}")
+    # Include any remaining content-action types not explicitly handled.
+    handled = {"page_view"} | set(order) | set(BUSINESS_EVENT_TYPES)
+    for itype, count in counts.items():
+        if itype in handled or not count:
+            continue
+        label = INTERACTION_LABELS.get(itype, itype)
+        parts.append(f"{count} {label}")
+    return ", ".join(parts) if parts else None
+
+
+def _get_current_module_vn(
+    page_view_modules: dict[str, int],
+    latest_page_view: UserInteractionLog | None,
+) -> str | None:
+    """Determine the user's current module as a Vietnamese phrase.
+
+    Prefers the module of the most recent page view (closest to "where the
+    user is right now"). Falls back to the most-viewed module in the window.
+    Returns ``None`` when there are no page views.
+    """
+    module_code: str | None = None
+    if latest_page_view is not None:
+        module_code = latest_page_view.module
+    elif page_view_modules:
+        module_code = max(page_view_modules, key=lambda m: page_view_modules[m])
+    if not module_code:
+        return None
+    label = MODULE_LABELS_VN.get(module_code, module_code)
+    return f"Đang ở module {label}"
+
+
+def _get_user_role_vn(user: User, company: Company) -> str | None:
+    """Look up the user's role within the company and return a Vietnamese phrase.
+
+    Queries :class:`apps.identity.models.UserCompanyRole` for the user's role
+    in the given company. Returns a phrase like "Vai trò: Kế toán viên" or
+    ``None`` when no role assignment exists. Non-blocking: any lookup error
+    returns ``None``.
+    """
+    try:
+        from apps.identity.models import UserCompanyRole
+
+        ucr = (
+            UserCompanyRole.objects.filter(user=user, company=company)
+            .select_related("role")
+            .order_by("-is_default", "id")
+            .first()
+        )
+        if ucr is None or ucr.role_id is None:
+            return None
+        role_name = ucr.role.name or ucr.role.code
+        return f"Vai trò: {role_name}"
+    except Exception:
+        logger.debug(
+            "get_context_summary: không thể truy vấn vai trò người dùng "
+            "(user=%s, company=%s) — bỏ qua.",
+            getattr(user, "id", user),
+            getattr(company, "id", company),
+            exc_info=True,
+        )
+        return None
 
 
 def get_context_summary(
@@ -364,15 +561,23 @@ def get_context_summary(
     company: Company,
     hours: int = DEFAULT_SUMMARY_HOURS,
 ) -> str:
-    """Build a human-readable summary of the user's recent activity.
+    """Build a Vietnamese natural-language summary of the user's recent activity.
 
-    Aggregates interaction logs within the given time window by interaction
-    type and produces a sentence such as::
+    The summary is designed to be injected into the Q&A system prompt so the
+    LLM can personalise its answer based on what the user has been doing.
 
-        "Recently: viewed 3 ledger pages, created 2 notes, uploaded 1 document."
+    The summary includes (when available):
 
-    If no activity is recorded in the window, returns a message indicating
-    no recent activity.
+      - The user's role in the current company (e.g. "Vai trò: Kế toán viên").
+      - The current module inferred from the most recent page view
+        (e.g. "Đang ở module Kế toán").
+      - Recent business activities grouped by module, with amounts for
+        business events (e.g. "hoạt động nghiệp vụ: lập phiếu kế toán BE-V01
+        (50.000.000 VND)").
+      - A grouped breakdown of page views and content actions across modules.
+
+    All queries are scoped by ``user`` + ``company`` (per-user and
+    multi-tenant isolation) and restricted to the given time window.
 
     Args:
         user: The user whose activity to summarise.
@@ -380,21 +585,22 @@ def get_context_summary(
         hours: Time window in hours (default 24).
 
     Returns:
-        A human-readable summary string.
+        A Vietnamese natural-language summary string. When no activity is
+        recorded, returns a Vietnamese "no recent activity" message.
     """
     cutoff = timezone.now() - datetime.timedelta(hours=hours)
 
-    # Aggregate counts per interaction_type within the window
-    qs = UserInteractionLog.objects.filter(
+    base_qs = UserInteractionLog.objects.filter(
         user=user,
         company=company,
         created_at__gte=cutoff,
     )
 
+    # --- Aggregate counts per interaction_type / module ----------------------
     counts_by_type: dict[str, int] = {}
     page_view_modules: dict[str, int] = {}
 
-    for row in qs.values("interaction_type", "module").annotate(count=Count("id")):
+    for row in base_qs.values("interaction_type", "module").annotate(count=Count("id")):
         itype = row["interaction_type"]
         module = row["module"]
         count = row["count"]
@@ -402,32 +608,60 @@ def get_context_summary(
         if itype == "page_view":
             page_view_modules[module] = page_view_modules.get(module, 0) + count
 
+    # --- Assemble the summary ------------------------------------------------
+    lines: list[str] = []
+
+    # Role hint (non-blocking — may be None). Included even when there is no
+    # recent interaction activity so the LLM still knows the user's role.
+    role_line = _get_user_role_vn(user, company)
+    if role_line:
+        lines.append(role_line)
+
     if not counts_by_type:
-        return "No recent activity in the last %d hours." % hours
+        # No interaction activity, but still return the role line (if any)
+        # followed by the Vietnamese no-activity message.
+        if lines:
+            lines.append("Không có hoạt động gần đây trong %d giờ qua." % hours)
+            return ". ".join(lines) + "."
+        return "Không có hoạt động gần đây trong %d giờ qua." % hours
 
-    parts: list[str] = []
+    # --- Latest page view (for current-module detection) --------------------
+    latest_page_view: UserInteractionLog | None = (
+        base_qs.filter(interaction_type="page_view").order_by("-created_at").first()
+    )
 
-    # Page views: break down by module for a richer summary
-    page_fragment = _format_page_views(page_view_modules) if "page_view" in counts_by_type else None
+    # --- Recent business events (with amounts) ------------------------------
+    business_event_qs = base_qs.filter(interaction_type__in=list(BUSINESS_EVENT_TYPES)).order_by(
+        "-created_at"
+    )[:10]
+    business_events: list[UserInteractionLog] = list(business_event_qs)
+
+    # Current module context
+    module_line = _get_current_module_vn(page_view_modules, latest_page_view)
+    if module_line:
+        lines.append(module_line)
+
+    # Recent business activities (Vietnamese, with amounts when available)
+    events_fragment = _format_business_events_vn(business_events)
+    if events_fragment:
+        lines.append(events_fragment)
+
+    # Page views grouped by module
+    page_fragment = _format_page_views_vn(page_view_modules) if page_view_modules else None
     if page_fragment:
-        parts.append(page_fragment)
+        lines.append(page_fragment)
 
-    # Non-page-view interactions in a stable order
-    type_order = ["note_create", "document_create", "search", "voucher_create"]
-    handled = {"page_view"} | set(type_order)
-    for itype in type_order:
-        if itype in counts_by_type:
-            fragment = _format_interaction(itype, counts_by_type[itype])
-            if fragment:
-                parts.append(fragment)
+    # Other content actions (notes/documents/searches), excluding business events
+    content_counts = {
+        itype: count
+        for itype, count in counts_by_type.items()
+        if itype != "page_view" and itype not in BUSINESS_EVENT_TYPES
+    }
+    content_fragment = _format_content_actions_vn(content_counts)
+    if content_fragment:
+        lines.append(content_fragment)
 
-    # Include any interaction types not explicitly handled above
-    for itype, count in counts_by_type.items():
-        if itype not in handled:
-            label = INTERACTION_LABELS.get(itype, itype)
-            parts.append(f"{count} {label}")
+    if not lines:
+        return "Không có hoạt động gần đây trong %d giờ qua." % hours
 
-    if not parts:
-        return "No recent activity in the last %d hours." % hours
-
-    return "Recently: " + ", ".join(parts) + "."
+    return ". ".join(lines) + "."
