@@ -56,9 +56,7 @@ def admin_client(admin_user, company):
 @pytest.fixture
 def perm_client(company):
     """Client for a regular user WITH pkm.access permission."""
-    user = User.objects.create_user(
-        username="cap_perm", password="Test1234", email="cap_perm@t.co"
-    )
+    user = User.objects.create_user(username="cap_perm", password="Test1234", email="cap_perm@t.co")
     perm, _ = Permission.objects.get_or_create(
         code="pkm.access",
         defaults={"module": "pkm", "name": "PKM Access", "description": "Access PKM module"},
@@ -125,15 +123,13 @@ def test_page_view_logged_on_documents_page(admin_client, admin_user, company):
 
 
 @pytest.mark.django_db
-def test_page_view_not_logged_for_non_pkm_url(admin_client, admin_user, company):
-    """Non-PKM pages do not create PKM page_view interactions."""
+def test_page_view_not_logged_for_dashboard(admin_client, admin_user, company):
+    """Dashboard (/modern/) has no module mapping, so no page_view is logged."""
     UserInteractionLog.objects.all().delete()
-    # Dashboard (/modern/) is not a PKM URL
     admin_client.get("/modern/")
     logs = UserInteractionLog.objects.filter(
         user=admin_user,
         interaction_type="page_view",
-        module="pkm",
     )
     assert logs.count() == 0
 
@@ -143,9 +139,7 @@ def test_page_view_not_logged_for_post_requests(admin_client, admin_user, compan
     """POST requests do not create page_view interactions."""
     UserInteractionLog.objects.all().delete()
     # POST to note create (should not log page_view)
-    admin_client.post(
-        "/modern/knowledge/notes/new/", data={"title": "Test", "content": "x"}
-    )
+    admin_client.post("/modern/knowledge/notes/new/", data={"title": "Test", "content": "x"})
     logs = UserInteractionLog.objects.filter(
         user=admin_user,
         interaction_type="page_view",
@@ -161,6 +155,96 @@ def test_page_view_with_permission_user(perm_client, company):
     assert response.status_code == 200
     logs = UserInteractionLog.objects.filter(interaction_type="page_view", module="pkm")
     assert logs.count() == 1
+
+
+# ---------------------------------------------------------------------------
+# Cross-Module Page View Logging (VAL-CTX-001)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_page_view_logged_for_vouchers_with_ledger_module(admin_client, admin_user, company):
+    """Visiting /modern/vouchers/ logs page_view with module='ledger'."""
+    UserInteractionLog.objects.all().delete()
+    response = admin_client.get("/modern/vouchers/")
+    assert response.status_code == 200
+    logs = UserInteractionLog.objects.filter(
+        user=admin_user,
+        company=company,
+        interaction_type="page_view",
+        module="ledger",
+    )
+    assert logs.count() == 1
+    log = logs.first()
+    assert log.entity_type == "page"
+    assert log.entity_id == "/modern/vouchers/"
+    assert log.metadata["url"] == "/modern/vouchers/"
+
+
+@pytest.mark.django_db
+def test_page_view_logged_for_sales_invoices_with_sales_module(admin_client, admin_user, company):
+    """Visiting /modern/sales-invoices/ logs page_view with module='sales'."""
+    UserInteractionLog.objects.all().delete()
+    response = admin_client.get("/modern/sales-invoices/")
+    assert response.status_code == 200
+    logs = UserInteractionLog.objects.filter(
+        user=admin_user,
+        company=company,
+        interaction_type="page_view",
+        module="sales",
+    )
+    assert logs.count() == 1
+    log = logs.first()
+    assert log.entity_type == "page"
+    assert log.entity_id == "/modern/sales-invoices/"
+    assert log.metadata["url"] == "/modern/sales-invoices/"
+
+
+@pytest.mark.django_db
+def test_page_view_logged_for_knowledge_with_pkm_module(admin_client, admin_user, company):
+    """Visiting /modern/knowledge/ logs page_view with module='pkm'."""
+    UserInteractionLog.objects.all().delete()
+    response = admin_client.get("/modern/knowledge/")
+    assert response.status_code == 200
+    logs = UserInteractionLog.objects.filter(
+        user=admin_user,
+        company=company,
+        interaction_type="page_view",
+        module="pkm",
+    )
+    assert logs.count() == 1
+    log = logs.first()
+    assert log.entity_id == "/modern/knowledge/"
+
+
+@pytest.mark.django_db
+def test_page_view_logs_correct_modules_for_multiple_urls(admin_client, admin_user, company):
+    """Middleware resolves correct module for several /modern/* URLs."""
+    UserInteractionLog.objects.all().delete()
+    admin_client.get("/modern/vouchers/")
+    admin_client.get("/modern/sales-invoices/")
+    admin_client.get("/modern/knowledge/")
+
+    logs = UserInteractionLog.objects.filter(
+        user=admin_user,
+        interaction_type="page_view",
+    )
+    assert logs.count() == 3
+
+    modules = set(logs.values_list("module", flat=True))
+    assert modules == {"ledger", "sales", "pkm"}
+
+
+@pytest.mark.django_db
+def test_page_view_not_logged_for_non_modern_url(admin_client, admin_user, company):
+    """Non-modern pages (e.g. /auth/) do not create page_view interactions."""
+    UserInteractionLog.objects.all().delete()
+    admin_client.get("/auth/login/")
+    logs = UserInteractionLog.objects.filter(
+        user=admin_user,
+        interaction_type="page_view",
+    )
+    assert logs.count() == 0
 
 
 # ---------------------------------------------------------------------------
@@ -415,9 +499,7 @@ def test_logging_failure_does_not_break_note_creation(admin_user, company):
     assert note.pk is not None
     assert KnowledgeNote.objects.filter(pk=note.pk).exists()
     # No interaction log was created (logging failed)
-    assert not UserInteractionLog.objects.filter(
-        interaction_type="note_create"
-    ).exists()
+    assert not UserInteractionLog.objects.filter(interaction_type="note_create").exists()
 
 
 @pytest.mark.django_db
@@ -464,9 +546,10 @@ def test_page_view_log_is_per_user(admin_client, admin_user, company):
     # Other user has no logs
     assert UserInteractionLog.objects.filter(user=other_user).count() == 0
     # Admin user has 1 page_view log
-    assert UserInteractionLog.objects.filter(
-        user=admin_user, interaction_type="page_view"
-    ).count() == 1
+    assert (
+        UserInteractionLog.objects.filter(user=admin_user, interaction_type="page_view").count()
+        == 1
+    )
 
 
 # ---------------------------------------------------------------------------
