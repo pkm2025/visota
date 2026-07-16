@@ -167,16 +167,28 @@ class DnsnPostingService:
         return DnsnLedgerEntry.objects.create(**defaults)
 
     def _entry_total(self, entry: DnsnLedgerEntry) -> Decimal:
-        """Compute the total amount for an entry (for voucher total)."""
-        return (
+        """Compute the signed total amount for an entry (for voucher total).
+
+        Inflows (cash_in, bank_in) increase the total; outflows (cash_out,
+        bank_out) DECREASE it. This fixes VAL-DNSN-001 where outflows were
+        incorrectly added to the running balance.
+
+        To avoid double-counting (eval B-07), ``total_amount`` is only added
+        when the entry has no revenue/cost/cash component populated. This
+        covers S2c inventory entries that store value in ``total_amount``.
+        """
+        component = (
             entry.revenue_amount
             + entry.cost_amount
             + entry.cash_in
-            + entry.cash_out
+            - entry.cash_out
             + entry.bank_in
-            + entry.bank_out
-            + entry.total_amount
+            - entry.bank_out
         )
+        if component == Decimal("0") and entry.total_amount != Decimal("0"):
+            # Pure inventory/amount-only entry (e.g. S2c): use total_amount.
+            return entry.total_amount
+        return component
 
     def _recalculate_balance(self, voucher: DnsnVoucher, ledger_type: str) -> None:
         """Recalculate DnsnLedgerBalance from all entries for a ledger type.
@@ -207,12 +219,13 @@ class DnsnPostingService:
         last_date = None
         count = 0
         for entry in entries:
-            balance.period_revenue += entry.revenue_amount
-            balance.period_cost += entry.cost_amount
-            # S2c (inventory) tracks value via total_amount; accumulate it
-            # into period_revenue so B01-DNSN can read closing_revenue.
+            # S2c (inventory) tracks value via total_amount exclusively —
+            # do NOT also add revenue_amount (eval B-08 double-count fix).
             if ledger_type == "s2c":
                 balance.period_revenue += entry.total_amount
+            else:
+                balance.period_revenue += entry.revenue_amount
+            balance.period_cost += entry.cost_amount
             # VAT: distinguish input (credit) vs output (debit/payable).
             # Net VAT payable = vat_output - vat_input + vat_amount + vat_payable.
             if ledger_type == "s3b":
