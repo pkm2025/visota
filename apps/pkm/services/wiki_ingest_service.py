@@ -210,22 +210,34 @@ def build_ingest_prompt(
     source_title: str,
     chunks_text: str,
     existing_concepts: str,
+    mask: bool = True,
 ) -> list[dict[str, str]]:
     """Construct the chat message list for the wiki ingest LLM call.
 
-    The user message contains the (already masked) source content, the source
-    title, and the list of existing concept titles so the LLM can merge.
+    The user message contains the source content, the source title, and the
+    list of existing concept titles so the LLM can merge.
+
+    When ``mask`` is True (the default) the source text and existing concept
+    summary are passed through :func:`data_masker.mask_all` so MST, VND
+    amounts, phone numbers and emails are obfuscated before the LLM call.
+    Callers pass ``mask=False`` when the user's
+    ``UserLLMConfig.disable_masking`` flag is True (e.g. local Ollama).
 
     Args:
         source_title: Title of the source document or note.
         chunks_text: Concatenated source text (will be masked before sending).
         existing_concepts: Summary of existing concept/entity titles (for merge).
+        mask: When True, apply PII masking before building the prompt.
 
     Returns:
         A list of message dicts (system + user) for ``get_completion``.
     """
-    masked_source = mask_all(chunks_text)
-    masked_existing = mask_all(existing_concepts)
+    if mask:
+        masked_source = mask_all(chunks_text)
+        masked_existing = mask_all(existing_concepts)
+    else:
+        masked_source = chunks_text
+        masked_existing = existing_concepts
     user_content = (
         f"Source title: {source_title}\n\n"
         f"Existing context:\n{masked_existing or '(none)'}\n\n"
@@ -508,6 +520,7 @@ def ingest_document(document_id: int) -> dict[str, Any]:
     company = document.company
 
     llm_config = _resolve_llm_config(user, company)
+    mask_enabled = not getattr(llm_config, "disable_masking", False)
 
     chunks = list(DocumentChunk.objects.filter(document=document).order_by("chunk_index"))
     chunks_text = _chunks_to_text(chunks)
@@ -517,6 +530,7 @@ def ingest_document(document_id: int) -> dict[str, Any]:
         source_title=document.title,
         chunks_text=chunks_text,
         existing_concepts=existing_concepts,
+        mask=mask_enabled,
     )
 
     response = get_completion(llm_config, messages, stream=False)
@@ -599,6 +613,7 @@ def ingest_note(note_id: int) -> dict[str, Any]:
     company = note.company
 
     llm_config = _resolve_llm_config(user, company)
+    mask_enabled = not getattr(llm_config, "disable_masking", False)
 
     chunks_text = note.content or ""
     if len(chunks_text) > MAX_SOURCE_CHARS:
@@ -609,6 +624,7 @@ def ingest_note(note_id: int) -> dict[str, Any]:
         source_title=note.title,
         chunks_text=chunks_text,
         existing_concepts=existing_concepts,
+        mask=mask_enabled,
     )
 
     response = get_completion(llm_config, messages, stream=False)

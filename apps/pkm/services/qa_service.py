@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING, Any
 from django.db.models import Q
 
 from apps.pkm.models import DocumentChunk, KnowledgeNote, QAHistory, UserLLMConfig, WikiPage
+from apps.pkm.services.data_masker import mask_all
 from apps.pkm.services.interaction_service import get_context_summary
 from apps.pkm.services.llm_service import get_completion, get_embedding
 from apps.pkm.services.vector_store import search_similar
@@ -343,6 +344,8 @@ def _build_wiki_prompt(
     wiki_pages: list[dict[str, Any]],
     question: str,
     interaction_context: str | None = None,
+    *,
+    mask: bool = True,
 ) -> list[dict[str, str]]:
     """Construct the chat message list for a wiki-grounded LLM completion.
 
@@ -351,27 +354,42 @@ def _build_wiki_prompt(
     re-running vector search. Interaction context is included so the answer
     remains personalised.
 
+    When ``mask`` is True (the default), all sensitive data (MST tax IDs, VND
+    amounts, phone numbers, emails) inside the wiki content, interaction
+    context and question is passed through :func:`data_masker.mask_all`
+    **before** the text is sent to the LLM. Callers should pass ``mask=False``
+    only when the user's ``UserLLMConfig.disable_masking`` is True (e.g. for a
+    local Ollama model where data never leaves the machine).
+
     Args:
         wiki_pages: Relevant wiki page dicts (from :func:`query_wiki`).
         question: The user's original question.
         interaction_context: Optional summary of recent user activity.
+        mask: When True, apply PII masking before constructing the prompt.
 
     Returns:
         A list of message dicts ready for ``llm_service.get_completion``.
     """
     parts: list[str] = []
     if interaction_context:
+        masked_ctx = mask_all(interaction_context) if mask else interaction_context
         parts.append("=== HOAT DONG NGUOI DUNG GAU DAY (Recent user activity) ===")
-        parts.append(interaction_context)
+        parts.append(masked_ctx)
 
     parts.append("=== WIKI (noi dung wiki da tong hop) ===")
     for i, page in enumerate(wiki_pages, start=1):
-        parts.append(f"[Trang wiki {i}] (Tieu de: {page['title']})\n{page['content']}")
+        page_title = page["title"]
+        page_content = page["content"]
+        if mask:
+            page_title = mask_all(page_title)
+            page_content = mask_all(page_content)
+        parts.append(f"[Trang wiki {i}] (Tieu de: {page_title})\n{page_content}")
 
     context_str = "\n\n".join(parts)
+    masked_question = mask_all(question) if mask else question
     user_content = (
         f"NGU CANH (Context):\n{context_str}\n\n"
-        f"CAU HOI:\n{question}\n\n"
+        f"CAU HOI:\n{masked_question}\n\n"
         "Tra loi dua tren wiki tren. Trich dan ten trang wiki."
     )
     return [
@@ -525,6 +543,8 @@ def build_prompt(
     notes: list[dict[str, Any]],
     question: str,
     interaction_context: str | None = None,
+    *,
+    mask: bool = True,
 ) -> list[dict[str, str]]:
     """Construct the chat message list for the LLM completion call.
 
@@ -535,6 +555,13 @@ def build_prompt(
             {"role": "user", "content": "<context>\\n\\n<question>"},
         ]
 
+    When ``mask`` is True (the default), the chunks, notes, interaction
+    context and question are passed through :func:`data_masker.mask_all` so
+    that MST tax IDs, VND amounts, phone numbers and emails are obfuscated
+    **before** the text reaches an external LLM provider. Callers should pass
+    ``mask=False`` only when the user's ``UserLLMConfig.disable_masking`` is
+    True (e.g. for a local Ollama model).
+
     Args:
         context_chunks: List of retrieved chunk dicts (from search_similar +
             enriched with ``document_title``).
@@ -543,10 +570,32 @@ def build_prompt(
         interaction_context: Optional summary of the user's recent activity
             (from ``interaction_service.get_context_summary``). Prepended to
             the RAG context as a 'Recent user activity' section.
+        mask: When True, apply PII masking to all user-facing text.
 
     Returns:
         A list of message dicts ready for ``llm_service.get_completion``.
     """
+    if mask:
+        context_chunks = [
+            {
+                **c,
+                "content": mask_all(c.get("content", "")),
+                "document_title": mask_all(c.get("document_title", "")),
+            }
+            for c in context_chunks
+        ]
+        notes = [
+            {
+                **n,
+                "title": mask_all(n.get("title", "")),
+                "content_preview": mask_all(n.get("content_preview", "")),
+            }
+            for n in notes
+        ]
+        if interaction_context:
+            interaction_context = mask_all(interaction_context)
+        question = mask_all(question)
+
     context_str = _build_context_string(context_chunks, notes, interaction_context)
     user_content = (
         f"NGU CANH (Context):\n{context_str}\n\n"
@@ -615,6 +664,9 @@ def answer_question(
 
     # Step 1: Resolve LLM config (raises ValueError if none)
     llm_config = _resolve_llm_config(user, company)
+    # Masking is on by default; only disabled when the user opted out (e.g.
+    # for local Ollama models). VAL-MASK-004.
+    mask_enabled = not getattr(llm_config, "disable_masking", False)
 
     # Step 2: Interaction context summary (used by both paths)
     interaction_context = get_context_summary(user, company)
@@ -629,7 +681,7 @@ def answer_question(
     if wiki_consulted:
         # 3a. Wiki has relevant pages: synthesise from the wiki directly.
         #     No embedding/vector-search needed.
-        messages = _build_wiki_prompt(wiki_pages, question, interaction_context)
+        messages = _build_wiki_prompt(wiki_pages, question, interaction_context, mask=mask_enabled)
         response = get_completion(llm_config, messages, stream=False)
         answer = _extract_completion_text(response)
 
@@ -665,7 +717,9 @@ def answer_question(
         context_chunks = _enrich_chunks_with_titles(raw_chunks)
         notes = _search_notes(user, company, question, limit=note_limit)
 
-        messages = build_prompt(context_chunks, notes, question, interaction_context)
+        messages = build_prompt(
+            context_chunks, notes, question, interaction_context, mask=mask_enabled
+        )
         response = get_completion(llm_config, messages, stream=False)
         answer = _extract_completion_text(response)
 

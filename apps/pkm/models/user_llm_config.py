@@ -43,6 +43,14 @@ class UserLLMConfig(CompanyOwnedModel):
     default_model = models.CharField(max_length=100)
     default_embedding_model = models.CharField(max_length=100, blank=True, default="")
     is_active = models.BooleanField(default=False)
+    disable_masking = models.BooleanField(
+        default=False,
+        help_text=(
+            "When True, PII data (MST, VND amounts, phone, email) is NOT masked "
+            "before LLM calls. Useful for local Ollama models where data never "
+            "leaves the machine. Default False = mask everything (secure)."
+        ),
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

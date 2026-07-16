@@ -8,11 +8,11 @@ Masks sensitive data **before** it is sent to an external LLM provider:
   - ``mask_email`` -- Email addresses -> ``u***@domain.com``
   - ``mask_all``  -- Apply all masks in one pass
 
-The full implementation (regex patterns, ``UserLLMConfig.disable_masking``
-integration, and QA service wiring) is delivered by the ``pkm-pii-masking``
-feature.  This module ships a **functional stub** so that ``wiki_ingest_service``
-can import and call ``mask_all`` unconditionally.  The stub masks MST and VND
-amounts, the two patterns required by the wiki ingest workflow.
+The module provides five public functions covering MST tax IDs, VND amounts,
+phone numbers, emails, and a convenience ``mask_all`` that applies all of them
+in one pass. ``qa_service.build_prompt`` and ``wiki_ingest_service`` call
+``mask_all`` (or accept a ``mask=`` flag) so that no sensitive data ever
+leaves the process for an external LLM provider.
 
 Security principle: masking is the default.  Only the user can opt out (via
 ``UserLLMConfig.disable_masking=True``, e.g. for local Ollama models).
@@ -43,8 +43,11 @@ _MST_DIGITS_ONLY = re.compile(r"\d")
 
 #: VND amount: a number followed by optional thousands separators and the
 #: suffix ``VND`` or ``dong``.  e.g. ``50,000,000 VND``, ``50.000.000 d``.
+#: Accepts both ASCII and Vietnamese diacritic variants (``dong``, ``đồng``,
+#: ``đ``, ``d``, ``vnd``, ``vnđ``) plus magnitude words ``triệu`` / ``tỷ``.
 _VND_PATTERN = re.compile(
-    r"(\d{1,3}(?:[.,]\d{3})+|\d{4,})\s*(tri[eê]u|t[yỷ]ч?|ty|đ(?:o?ng)?|vnd|vn[dđ])",
+    r"(\d{1,3}(?:[.,]\d{3})+|\d{4,})\s*"
+    r"(tri[eê]u|t[yỷ]u?|ty|d(?:o?ng)?|đ(?:o?ng)?|vnd|vn[dđ])",
     flags=re.IGNORECASE,
 )
 
