@@ -194,14 +194,17 @@ class ReportEngine:
             return self._offset_cache[cache_key]
 
         # Vouchers in this period that have at least one offset-matching line.
+        offset_voucher_qs = VoucherLine.objects.filter(
+            voucher__fiscal_year=self.fiscal_year,
+            voucher__period=self.period,
+            voucher__status__gte=2,
+        )
+        if self.company is not None:
+            offset_voucher_qs = offset_voucher_qs.filter(voucher__company=self.company)
         offset_voucher_ids = set(
-            VoucherLine.objects.filter(
-                voucher__fiscal_year=self.fiscal_year,
-                voucher__period=self.period,
-                voucher__status__gte=2,
+            offset_voucher_qs.filter(_expand_pattern(offset_pattern)).values_list(
+                "voucher_id", flat=True
             )
-            .filter(_expand_pattern(offset_pattern))
-            .values_list("voucher_id", flat=True)
         )
 
         if not offset_voucher_ids:
@@ -211,6 +214,11 @@ class ReportEngine:
         cash_lines = VoucherLine.objects.filter(
             voucher_id__in=offset_voucher_ids,
         ).filter(_expand_pattern(cash_pattern))
+        # Redundant company filter for safety: offset_voucher_ids is already
+        # company-scoped, but this also guards against any voucher_id collision
+        # across companies.
+        if self.company is not None:
+            cash_lines = cash_lines.filter(voucher__company=self.company)
 
         amount_field = "debit_vnd" if side == "debit" else "credit_vnd"
         total = cash_lines.aggregate(s=Sum(amount_field))
