@@ -79,6 +79,12 @@ def test_post_unbalanced_voucher_raises(company):
 
 
 def test_post_already_posted_is_idempotent(company):
+    """Voucher with status=LEDGER (already posted) must not be re-posted.
+
+    With the idempotency guard, post() returns early if the voucher is already
+    posted. No balance entries should be created since the voucher was never
+    actually posted through the service (it was manually set to LEDGER).
+    """
     v = _make_voucher(
         company,
         debit_lines=[('111', 1000)],
@@ -86,13 +92,12 @@ def test_post_already_posted_is_idempotent(company):
         status=AccountingVoucher.Status.LEDGER,  # already posted
     )
     service = VoucherPostingService()
-    # Should not raise; should not double-count
+    # Should not raise; should not create balances (idempotent early-return)
     service.post(v)
-    # Verify balance was added once (not twice)
-    bal = AccountPeriodBalance.objects.get(
+    # No balance created because post() returned early
+    assert not AccountPeriodBalance.objects.filter(
         company=company, fiscal_year=2026, period=6, account_code='111',
-    )
-    assert bal.period_debit == Decimal('1000')  # not 2000
+    ).exists()
 
 
 def test_unpost_reverts_balance(company):
@@ -124,4 +129,95 @@ def test_post_locked_voucher_raises(company):
     )
     service = VoucherPostingService()
     with pytest.raises(VoucherLockedError):
+        service.post(v)
+
+
+# ---------------------------------------------------------------------------
+# Regression: post() idempotency (VAL-POST-001)
+# ---------------------------------------------------------------------------
+
+
+def test_post_twice_does_not_double_count_balances(company):
+    """VAL-POST-001: Calling post() twice must NOT double-count balances."""
+    v = _make_voucher(
+        company,
+        debit_lines=[('111', 1000)],
+        credit_lines=[('5111', 1000)],
+    )
+    service = VoucherPostingService()
+
+    # First post — creates balances
+    service.post(v)
+    bal_111 = AccountPeriodBalance.objects.get(
+        company=company, fiscal_year=2026, period=6, account_code='111',
+    )
+    first_debit = bal_111.period_debit
+    first_credit_5111 = AccountPeriodBalance.objects.get(
+        company=company, fiscal_year=2026, period=6, account_code='5111',
+    ).period_credit
+    assert first_debit == Decimal('1000')
+
+    # Second post — should be a no-op (idempotent)
+    service.post(v)
+
+    bal_111.refresh_from_db()
+    assert bal_111.period_debit == first_debit  # unchanged
+    assert bal_111.transaction_count == 1  # not 2
+
+    bal_5111 = AccountPeriodBalance.objects.get(
+        company=company, fiscal_year=2026, period=6, account_code='5111',
+    )
+    assert bal_5111.period_credit == first_credit_5111  # unchanged
+
+
+def test_post_twice_preserves_closing_balances(company):
+    """VAL-POST-001: Closing balances must remain unchanged after second post()."""
+    v = _make_voucher(
+        company,
+        debit_lines=[('111', 2000)],
+        credit_lines=[('5111', 2000)],
+    )
+    service = VoucherPostingService()
+    service.post(v)
+
+    closing_before = AccountPeriodBalance.objects.get(
+        company=company, fiscal_year=2026, period=6, account_code='111',
+    ).closing_debit
+
+    service.post(v)  # second call
+
+    closing_after = AccountPeriodBalance.objects.get(
+        company=company, fiscal_year=2026, period=6, account_code='111',
+    ).closing_debit
+    assert closing_before == closing_after == Decimal('2000')
+
+
+# ---------------------------------------------------------------------------
+# Regression: period lock check (VAL-POST-001)
+# ---------------------------------------------------------------------------
+
+
+def test_post_to_closed_period_raises(company):
+    """Posting to a closed period must raise PeriodClosedError."""
+    from apps.ledger.services.voucher_posting_service import PeriodClosedError
+
+    # Mark period as closed by creating a closing voucher
+    AccountingVoucher.objects.create(
+        company=company,
+        fiscal_year=2026,
+        period=6,
+        voucher_no='KC-CLOSED',
+        voucher_type='closing',
+        voucher_date=date(2026, 6, 30),
+        source='closing',
+        status=AccountingVoucher.Status.LEDGER,
+    )
+
+    v = _make_voucher(
+        company,
+        debit_lines=[('111', 1000)],
+        credit_lines=[('5111', 1000)],
+    )
+    service = VoucherPostingService()
+    with pytest.raises(PeriodClosedError):
         service.post(v)

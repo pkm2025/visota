@@ -24,6 +24,10 @@ class VoucherLockedError(Exception):
     """Raised when attempting to modify a locked voucher."""
 
 
+class PeriodClosedError(Exception):
+    """Raised when attempting to post to a closed period."""
+
+
 class VoucherPostingService:
     """Service for posting/unposting vouchers and updating balance projections."""
 
@@ -35,6 +39,10 @@ class VoucherPostingService:
         if voucher.is_locked:
             raise VoucherLockedError(f"Voucher {voucher.voucher_no} is locked")
 
+        if voucher.is_posted:
+            return  # idempotent — already posted
+
+        self._check_period_open(voucher)
         self._validate_balanced(voucher)
         self._update_balances(voucher, sign=+1)
 
@@ -86,6 +94,30 @@ class VoucherPostingService:
         )
         self._recompute_running_balances_for_codes(voucher.company, affected_codes)
 
+    def _check_period_open(self, voucher: AccountingVoucher) -> None:
+        """Raise PeriodClosedError if the voucher's period has been closed.
+
+        A period is considered closed if a *previously committed* closing
+        voucher (source='closing') exists for the same
+        (company, fiscal_year, period). The voucher being posted is excluded
+        so that PeriodClosingService can post the closing voucher itself.
+        """
+        period_closed = (
+            AccountingVoucher.objects.filter(
+                company=voucher.company,
+                fiscal_year=voucher.fiscal_year,
+                period=voucher.period,
+                source="closing",
+            )
+            .exclude(pk=voucher.pk)
+            .exists()
+        )
+        if period_closed:
+            raise PeriodClosedError(
+                f"Period {voucher.period}/{voucher.fiscal_year} is closed for company "
+                f"{voucher.company_id}"
+            )
+
     def _validate_balanced(self, voucher: AccountingVoucher) -> None:
         """Verify total debit == total credit on user-entered lines."""
         total_debit = Decimal("0")
@@ -111,7 +143,7 @@ class VoucherPostingService:
 
     def _update_one_balance(self, voucher: AccountingVoucher, line, sign: int) -> None:
         """Update or create the balance row for one line."""
-        balance, _ = AccountPeriodBalance.objects.get_or_create(
+        balance, _ = AccountPeriodBalance.objects.select_for_update().get_or_create(
             company=voucher.company,
             fiscal_year=voucher.fiscal_year,
             period=voucher.period,

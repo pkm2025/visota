@@ -9,6 +9,7 @@ from decimal import Decimal
 
 from django.db import transaction
 
+from apps.ledger.models import AccountingVoucher
 from apps.ledger.models.dnsn import (
     DnsnLedgerBalance,
     DnsnLedgerEntry,
@@ -18,6 +19,10 @@ from apps.ledger.models.dnsn import (
 
 class DnsnVoucherLockedError(Exception):
     """Raised when attempting to modify a locked DNSN voucher."""
+
+
+class DnsnPeriodClosedError(Exception):
+    """Raised when attempting to post a DNSN voucher to a closed period."""
 
 
 class DnsnPostingService:
@@ -40,9 +45,15 @@ class DnsnPostingService:
 
         Raises:
             DnsnVoucherLockedError: If voucher status is 'locked'.
+            DnsnPeriodClosedError: If the voucher's period has been closed.
         """
         if voucher.is_locked:
             raise DnsnVoucherLockedError(f"Voucher {voucher.voucher_no} is locked")
+
+        if voucher.is_posted:
+            return  # idempotent — already posted
+
+        self._check_period_open(voucher)
 
         # Create ledger entries
         total_amount = Decimal("0")
@@ -105,6 +116,24 @@ class DnsnPostingService:
         voucher.status = DnsnVoucher.Status.DRAFT
         voucher.save(update_fields=["status", "updated_at"])
 
+    def _check_period_open(self, voucher: DnsnVoucher) -> None:
+        """Raise DnsnPeriodClosedError if the voucher's period has been closed.
+
+        A period is considered closed if a closing voucher (source='closing')
+        exists for the same (company, fiscal_year, period) in AccountingVoucher.
+        """
+        period_closed = AccountingVoucher.objects.filter(
+            company=voucher.company,
+            fiscal_year=voucher.fiscal_year,
+            period=voucher.period,
+            source="closing",
+        ).exists()
+        if period_closed:
+            raise DnsnPeriodClosedError(
+                f"Period {voucher.period}/{voucher.fiscal_year} is closed for company "
+                f"{voucher.company_id}"
+            )
+
     def _create_entry(self, voucher: DnsnVoucher, line_no: int, data: dict) -> DnsnLedgerEntry:
         """Create a single DnsnLedgerEntry from a data dict."""
         # Extract known fields, defaulting to 0/blank
@@ -162,7 +191,7 @@ class DnsnPostingService:
             ledger_type=ledger_type,
         )
 
-        balance, _ = DnsnLedgerBalance.objects.get_or_create(
+        balance, _ = DnsnLedgerBalance.objects.select_for_update().get_or_create(
             company=voucher.company,
             fiscal_year=voucher.fiscal_year,
             period=voucher.period,

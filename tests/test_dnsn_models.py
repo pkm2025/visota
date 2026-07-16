@@ -593,3 +593,102 @@ def test_posting_accumulates_balance_across_vouchers(tt58_company):
         ledger_type="s1",
     )
     assert bal.closing_revenue == Decimal("1500000")
+
+
+# ---------------------------------------------------------------------------
+# Regression: DnsnPostingService.post() idempotency (VAL-POST-002)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_dnsn_post_twice_does_not_create_duplicates(tt58_voucher):
+    """VAL-POST-002: Calling post() twice must NOT create duplicate ledger entries."""
+    service = DnsnPostingService()
+    entry_data = [
+        {
+            "ledger_type": "s1",
+            "description": "Doanh thu ban hang",
+            "revenue_amount": Decimal("1000000"),
+        },
+    ]
+
+    # First post
+    service.post(tt58_voucher, entries=entry_data)
+    entry_count_after_first = DnsnLedgerEntry.objects.filter(voucher=tt58_voucher).count()
+    total_after_first = tt58_voucher.total_amount
+
+    assert entry_count_after_first == 1
+
+    # Second post — should be a no-op (idempotent)
+    service.post(tt58_voucher, entries=entry_data)
+
+    entry_count_after_second = DnsnLedgerEntry.objects.filter(voucher=tt58_voucher).count()
+    tt58_voucher.refresh_from_db()
+    total_after_second = tt58_voucher.total_amount
+
+    assert entry_count_after_second == entry_count_after_first  # no duplicates
+    assert total_after_second == total_after_first  # total unchanged
+
+
+@pytest.mark.django_db
+def test_dnsn_post_twice_balances_unchanged(tt58_voucher):
+    """VAL-POST-002: Balance values must remain unchanged after second post()."""
+    service = DnsnPostingService()
+    entry_data = [
+        {
+            "ledger_type": "s1",
+            "description": "Doanh thu ban hang",
+            "revenue_amount": Decimal("1000000"),
+        },
+    ]
+
+    service.post(tt58_voucher, entries=entry_data)
+
+    bal = DnsnLedgerBalance.objects.get(
+        company=tt58_voucher.company,
+        fiscal_year=tt58_voucher.fiscal_year,
+        period=tt58_voucher.period,
+        ledger_type="s1",
+    )
+    closing_revenue_after_first = bal.closing_revenue
+    txn_count_after_first = bal.transaction_count
+
+    assert closing_revenue_after_first == Decimal("1000000")
+
+    # Second post — no-op
+    service.post(tt58_voucher, entries=entry_data)
+
+    bal.refresh_from_db()
+    assert bal.closing_revenue == closing_revenue_after_first
+    assert bal.transaction_count == txn_count_after_first
+
+
+@pytest.mark.django_db
+def test_dnsn_post_to_closed_period_raises(tt58_company):
+    """Posting to a closed period must raise DnsnPeriodClosedError."""
+    from apps.ledger.models import AccountingVoucher
+    from apps.ledger.services.dnsn_posting_service import DnsnPeriodClosedError
+
+    # Mark period as closed by creating a closing voucher
+    AccountingVoucher.objects.create(
+        company=tt58_company,
+        fiscal_year=2026,
+        period=7,
+        voucher_no="KC-CLOSED",
+        voucher_type="closing",
+        voucher_date=date(2026, 7, 31),
+        source="closing",
+        status=AccountingVoucher.Status.LEDGER,
+    )
+
+    v = DnsnVoucher.objects.create(
+        company=tt58_company,
+        fiscal_year=2026,
+        period=7,
+        voucher_no="PT-CL",
+        voucher_type="phieu_thu",
+        voucher_date=date(2026, 7, 15),
+    )
+    service = DnsnPostingService()
+    with pytest.raises(DnsnPeriodClosedError):
+        service.post(v, entries=[{"ledger_type": "s1", "revenue_amount": Decimal("500000")}])
