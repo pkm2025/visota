@@ -293,8 +293,7 @@ def log_interaction(
         )
     except Exception:
         logger.exception(
-            "log_interaction: synchronous create failed "
-            "(user=%s, type=%s, module=%s)",
+            "log_interaction: synchronous create failed (user=%s, type=%s, module=%s)",
             getattr(user, "id", user),
             interaction_type,
             module,
@@ -321,10 +320,9 @@ def get_recent_interactions(
     Returns:
         A queryset of ``UserInteractionLog`` instances (not yet evaluated).
     """
-    return (
-        UserInteractionLog.objects.filter(user=user, company=company)
-        .order_by("-created_at")[:limit]
-    )
+    return UserInteractionLog.objects.filter(user=user, company=company).order_by("-created_at")[
+        :limit
+    ]
 
 
 def _format_page_views(page_view_modules: dict[str, int]) -> str | None:

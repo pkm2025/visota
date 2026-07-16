@@ -1,8 +1,8 @@
-# PMKetoan
+# Visota ERP
 
-Vietnamese accounting software (Visota). Built with Django 5.2 + django-ninja + HTMX + Alpine.js + MariaDB.
+ERP cho doanh nghiệp siêu nhỏ và nhỏ (DNSN). Built with Django 5.2 + django-ninja + HTMX + Alpine.js + MariaDB.
 
-Tuân thủ TT133/2016, TT200/2014, TT78/2021 (HĐĐT), Luật Kế toán 2015, Luật Đấu thầu 23/2023.
+Tuân thủ TT58/2026/TT-BTC (DNSN), TT133/2016, TT200/2014, TT78/2021 (HĐĐT), Luật Kế toán 2015, Luật Đấu thầu 23/2023.
 
 ## Quick Start
 
@@ -20,33 +20,37 @@ cp .env.example .env
 make migrate
 make seed
 
+# Seed TT58 demo data (DNSN companies for all 4 tax method groups)
+python manage.py seed_tt58_demo
+
 # Start dev server
 make dev
-# Open http://localhost:8000/auth/login/ -> admin / admin123
+# Open http://localhost:8903/auth/login/ -> admin / admin123
 ```
 
 ## Testing
 
 ```bash
-make test          # unit tests (521 passing)
+make test          # unit tests (1900+ passing)
 make test-fast     # parallel
 
 # E2E tests (requires running server on port 8903)
 DJANGO_SETTINGS_MODULE=config.settings.e2e python manage.py runserver 8903 --noreload &
-pytest -c pytest_e2e.ini   # 164 Playwright tests
+pytest -c pytest_e2e.ini
 ```
 
 ## Key Features
 
 | Module | Status |
 |--------|--------|
-| Kế toán tổng hợp (TT133) | Production |
+| Kế toán tổng hợp (TT133/TT200) | Production |
+| **Kế toán DNSN (TT58/2026)** | **Production** |
 | Bán hàng + Công nợ phải thu | Production |
 | Mua hàng + Công nợ phải trả | Production |
 | Tồn kho + Tính giá | Production |
 | Tài sản cố định + Khấu hao | Production |
 | Nhân sự + Tiền lương + PIT | Production |
-| Hóa đơn điện tử (TT78) | Stub (provider API) |
+| Hóa đơn điện tử (TT78 + 02BANHANG) | Stub (provider API) |
 | Hợp đồng + 22 mẫu văn bản | Production |
 | CRM (Lead/Opp/Ticket/Campaign) | Production |
 | Ngân hàng + Đối soát | Production |
@@ -56,17 +60,27 @@ pytest -c pytest_e2e.ini   # 164 Playwright tests
 | Định giá ngoại tệ | Production |
 | Phê duyệt (Workflow) | Production |
 
+### TT58/2026/TT-BTC (Doanh nghiệp siêu nhỏ)
+
+- **4 nhóm phương pháp nộp thuế** (GTGT + TNDN combinations)
+- **Sổ kế toán DNSN** (S1-S3 theo nhóm thuế, không dùng hệ thống tài khoản)
+- **Chứng từ đơn giản** (phiếu thu/chi/nhập/xuất, không hạch toán Nợ/Có)
+- **Báo cáo tài chính DNSN** (B01-DNSN, B02-DNSN)
+- **Chuyển đổi số dư** từ TT132/TT133 sang TT58
+- **Hóa đơn 02BANHANG** cho DN nộp thuế GTGT theo tỷ lệ %
+- **Hỗ trợ hộ kinh doanh** (entity type riêng, không bắt buộc kế toán trưởng)
+
 ### Startup-focused features (P0-P2)
 
-- **Onboarding Wizard** -- multi-step signup with auto-seed TT133
-- **Dashboard CEO** -- cash position, P&L card, AR aging, tax calendar
+- **Onboarding Wizard** -- multi-step signup with auto-seed
+- **Dashboard DNSN** -- simplified widgets (doanh thu, chi phí, lợi nhuận, thuế, công nợ, tồn kho)
 - **Mobile Home Screen** -- compact metrics + quick actions
 - **Quick Expense** -- 1-line entry, auto-generates voucher
 - **Guided Voucher Mode** -- pick action, auto-generates journal entry
+- **Modular Sidebar** -- core modules by default, advanced modules on-demand
 - **Contract Wizard** -- guided template selection
 - **Auto Tax Reminders** -- notifications 7d + 1d before deadlines
 - **Knowledge Base** -- in-app help center with seed articles
-- **Simplified CRM** -- hides Ticket/Campaign for micro/small companies
 - **VietQR Dynamic** -- QR thanh toan on invoices
 - **E-invoice PDF** -- signed PDF with stamp overlay
 - **Voice Input** -- Web Speech API (vi-VN)
@@ -99,25 +113,10 @@ sudo systemctl reload visota
 Module quản trị tri thức cá nhân cho mọi user theo vai trò công việc.
 
 - **Notes** -- ghi chú cá nhân với markdown, tags, ghim, tìm kiếm, role-based context
-
-- **Documents + RAG** -- upload PDF/DOCX/TXT/MD/XLSX, tự động chunk + embed + vector search, xử lý async qua django-q2
-
+- **Documents + RAG** -- upload PDF/DOCX/TXT/MD/XLSX, tự động chunk + embed + vector search
 - **Q&A AI** -- hỏi đáp dựa trên (RAG), trích nguồn, lưu lịch sử
-
-- **Multi-provider LLM** -- user tự nhập API key: OpenAI, Anthropic, Gemini, Groq, OpenRouter, Ollama (local)
-
-- **Auto-capture** -- ghi nhận tương tác (page view, search, tạo note/document) làm context cho AI
-
-- **Client cache** -- IndexedDB (Dexie.js) cache draft notes + Q&A history, offline drafts sync
-
-- **Vector storage** -- MariaDB 12.3 native VECTOR + HNSW index, zero new services
-
-- **Security** -- API keys mã hóa Fernet at rest, per-user + multi-tenant isolation
-
-- **Permission** -- module code `pkm`, gated by `% has_module_access 'pkm' %`
-
-
-**Tech stack additions:** litellm (LLM abstraction), pypdf (PDF parsing), tiktoken (token counting), langchain-text-splitters (chunking), cryptography (Fernet encryption), Dexie.js (IndexedDB).
+- **Multi-provider LLM** -- OpenAI, Anthropic, Gemini, Groq, OpenRouter, Ollama (local)
+- **Vector storage** -- MariaDB 12.3 native VECTOR + HNSW index
 
 
 Truy cập:

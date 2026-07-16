@@ -997,9 +997,7 @@ def get_pkm_stats(request: HttpRequest) -> dict[str, Any]:
     )
 
     role_suggestions_qs = (
-        notes_qs.filter(role_context__in=user_role_codes)
-        if user_role_codes
-        else notes_qs.none()
+        notes_qs.filter(role_context__in=user_role_codes) if user_role_codes else notes_qs.none()
     )
 
     return {
