@@ -18,14 +18,20 @@ and multi-tenant isolation.
 from __future__ import annotations
 
 import logging
+import re
 from typing import TYPE_CHECKING, Any
 
 from django.db.models import Q
 
-from apps.pkm.models import DocumentChunk, KnowledgeNote, QAHistory, UserLLMConfig
+from apps.pkm.models import DocumentChunk, KnowledgeNote, QAHistory, UserLLMConfig, WikiPage
 from apps.pkm.services.interaction_service import get_context_summary
 from apps.pkm.services.llm_service import get_completion, get_embedding
 from apps.pkm.services.vector_store import search_similar
+from apps.pkm.services.wiki_ingest_service import (
+    INDEX_PAGE_TITLE,
+    LOG_PAGE_TITLE,
+    append_log_entry,
+)
 
 if TYPE_CHECKING:
     from apps.core.models import Company
@@ -37,10 +43,13 @@ __all__ = [
     "answer_question",
     "build_prompt",
     "save_qa_history",
+    "query_wiki",
     "DEFAULT_TOP_K",
     "DEFAULT_NOTE_SEARCH_LIMIT",
     "PREVIEW_LENGTH",
     "SYSTEM_MESSAGE",
+    "WIKI_SYSTEM_MESSAGE",
+    "MAX_WIKI_PAGES_PER_QUERY",
     "ACCOUNTING_KEYWORDS",
     "REGULATION_BOOST_DISTANCE_BONUS",
 ]
@@ -127,6 +136,26 @@ SYSTEM_MESSAGE: str = (
     "Khi trả lời câu hỏi kế toán/thuế, hãy xem xét chế độ kế toán và "
     "phương pháp nộp thuế của doanh nghiệp người dùng."
 )
+
+
+#: System message for wiki-grounded Q&A. When the wiki has relevant pages the
+#: LLM is asked to synthesise the answer directly from those pages (the
+#: persistent, compounding artifact) rather than re-running vector search.
+#: The prompt instructs the model to rely on the wiki section first and to say
+#: so explicitly when the wiki does not contain enough information.
+WIKI_SYSTEM_MESSAGE: str = (
+    "Bạn là trợ lý kế toán ERP Visota. "
+    "Phần 'WIKI' bên dưới là tài liệu nội bộ do AI tổng hợp và duy trì liên tục "
+    "(theo Karpathy LLM Wiki pattern). "
+    "Trả lời câu hỏi dựa trên nội dung wiki này trước. "
+    "Trích dẫn tên trang wiki khi giải đáp. "
+    "Chỉ khi wiki không đủ thông tin mới trả lời 'wiki chưa có thông tin'. "
+    "Trả lời bằng tiếng Việt, rõ ràng và dễ hiểu."
+)
+
+#: Maximum number of wiki pages to include in a single Q&A prompt. Keeps the
+#: LLM context bounded while still allowing cross-page synthesis.
+MAX_WIKI_PAGES_PER_QUERY: int = 5
 
 
 # ---------------------------------------------------------------------------
@@ -231,6 +260,126 @@ def _search_notes(
     ]
 
 
+# ---------------------------------------------------------------------------
+# Wiki query (Karpathy LLM Wiki pattern, read-side)
+# ---------------------------------------------------------------------------
+
+
+def _extract_keywords(question: str, *, min_length: int = 2) -> list[str]:
+    """Extract significant keywords from ``question``.
+
+    Strips common punctuation so that trailing periods / commas / question
+    marks do not prevent substring matching (e.g. ``"VAT?"`` -> ``"VAT"``).
+    Very short tokens (below ``min_length`` characters) are dropped.
+    """
+    if not question:
+        return []
+    cleaned = re.sub(r"[^\w\s]", " ", question)
+    return [w for w in cleaned.split() if len(w) >= min_length]
+
+
+def query_wiki(
+    user: User,
+    company: Company,
+    question: str,
+    *,
+    limit: int = MAX_WIKI_PAGES_PER_QUERY,
+) -> list[dict[str, Any]]:
+    """Read the wiki index and select pages relevant to ``question``.
+
+    This is the read-side of the LLM wiki (Karpathy pattern). It:
+
+      1. Reads the auto-maintained **index page** (catalog of all wiki pages
+         with one-line summaries) if present, so we understand what knowledge
+         already exists for this tenant.
+      2. Selects the most relevant non-system wiki pages by keyword matching
+         the question against each page's title and content.
+
+    The index/log pages themselves are excluded from the results (they are
+    meta-pages, not knowledge pages).
+
+    Args:
+        user: The authenticated user (per-user isolation).
+        company: The user's current company (multi-tenant isolation).
+        question: The user's question.
+        limit: Maximum number of wiki pages to return.
+
+    Returns:
+        A list of wiki page dicts with keys: ``id``, ``title``, ``content``,
+        ``page_type``, ``source_type`` (always ``"wiki_page"``). Empty when no
+        wiki pages exist or none are relevant.
+    """
+    keywords = _extract_keywords(question)
+    # Exclude the auto-maintained meta-pages (index/log) from knowledge lookup.
+    pages_qs = WikiPage.objects.filter(
+        user=user,
+        company=company,
+    ).exclude(title__in=[INDEX_PAGE_TITLE, LOG_PAGE_TITLE])
+
+    if keywords:
+        query = Q()
+        for kw in keywords:
+            query |= Q(title__icontains=kw) | Q(content__icontains=kw)
+        pages_qs = pages_qs.filter(query).distinct()
+    else:
+        # No usable keywords -> nothing to match.
+        return []
+
+    pages = list(pages_qs[:limit])
+
+    return [
+        {
+            "id": page.id,
+            "title": page.title,
+            "content": page.content,
+            "page_type": page.page_type,
+            "source_type": "wiki_page",
+        }
+        for page in pages
+    ]
+
+
+def _build_wiki_prompt(
+    wiki_pages: list[dict[str, Any]],
+    question: str,
+    interaction_context: str | None = None,
+) -> list[dict[str, str]]:
+    """Construct the chat message list for a wiki-grounded LLM completion.
+
+    The wiki pages are inlined as a labelled ``WIKI`` section so the LLM
+    synthesises its answer from the persistent compounding wiki rather than
+    re-running vector search. Interaction context is included so the answer
+    remains personalised.
+
+    Args:
+        wiki_pages: Relevant wiki page dicts (from :func:`query_wiki`).
+        question: The user's original question.
+        interaction_context: Optional summary of recent user activity.
+
+    Returns:
+        A list of message dicts ready for ``llm_service.get_completion``.
+    """
+    parts: list[str] = []
+    if interaction_context:
+        parts.append("=== HOAT DONG NGUOI DUNG GAU DAY (Recent user activity) ===")
+        parts.append(interaction_context)
+
+    parts.append("=== WIKI (noi dung wiki da tong hop) ===")
+    for i, page in enumerate(wiki_pages, start=1):
+        parts.append(f"[Trang wiki {i}] (Tieu de: {page['title']})\n{page['content']}")
+
+    context_str = "\n\n".join(parts)
+    user_content = (
+        f"NGU CANH (Context):\n{context_str}\n\n"
+        f"CAU HOI:\n{question}\n\n"
+        "Tra loi dua tren wiki tren. Trich dan ten trang wiki."
+    )
+    return [
+        {"role": "system", "content": WIKI_SYSTEM_MESSAGE},
+        {"role": "user", "content": user_content},
+    ]
+
+
 def _build_context_string(
     chunks: list[dict[str, Any]],
     notes: list[dict[str, Any]],
@@ -299,6 +448,27 @@ def _collect_sources(
             }
         )
 
+    return sources
+
+
+def _collect_wiki_sources(wiki_pages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Collect source references from consulted wiki pages.
+
+    Each source dict has: ``wiki_page_id``, ``document_title`` (the wiki page
+    title), ``page_type``, ``content_preview``, ``source_type`` = ``"wiki_page"``.
+    """
+    sources: list[dict[str, Any]] = []
+    for page in wiki_pages:
+        content = page.get("content", "") or ""
+        sources.append(
+            {
+                "wiki_page_id": page.get("id"),
+                "document_title": page.get("title", ""),
+                "page_type": page.get("page_type", ""),
+                "content_preview": content[:PREVIEW_LENGTH],
+                "source_type": "wiki_page",
+            }
+        )
     return sources
 
 
@@ -397,31 +567,42 @@ def answer_question(
     top_k: int = DEFAULT_TOP_K,
     note_limit: int = DEFAULT_NOTE_SEARCH_LIMIT,
 ) -> dict[str, Any]:
-    """Answer a question using RAG (Retrieval-Augmented Generation).
+    """Answer a question using the wiki-grounded Q&A pipeline (Karpathy pattern).
+
+    The wiki is consulted **first** (persistent, compounding artifact). Only
+    when the wiki has no relevant pages does the pipeline fall back to the
+    existing RAG path (vector search + notes).
 
     Pipeline:
         1.  Resolve the user's active LLM config.
-        2.  Embed the question via ``llm_service.get_embedding``.
-        3.  Search for similar document chunks (vector search, per-user scoped).
-        4.  Search the user's notes by keyword.
-        5.  Enrich chunks with document titles.
-        6.  Build the prompt (system + context + question).
-        7.  Call ``llm_service.get_completion`` for the answer.
-        8.  Collect source references.
-        9.  Save Q&A history.
+        2.  **Read the wiki**: query the index and select relevant pages.
+        3a. If relevant wiki pages exist: synthesise the answer directly from
+            the wiki (no vector search, no embedding call). The wiki is a
+            persistent artifact so this is the cheap, fast, preferred path.
+        3b. If no relevant wiki pages: fall back to the RAG pipeline
+            (embed question -> vector search -> notes -> prompt).
+        4.  Collect source references (wiki pages and/or chunks + notes).
+        5.  Save Q&A history.
+        6.  Append a ``query`` entry to the wiki Log page.
+        7.  Suggest filing the answer back into the wiki when it came from the
+            RAG fallback (valuable synthesized knowledge worth persisting).
 
     Args:
         user: The authenticated user (per-user isolation).
         company: The user's current company (multi-tenant isolation).
         question: The question text.
-        top_k: Maximum number of document chunks to retrieve.
-        note_limit: Maximum number of notes to retrieve.
+        top_k: Maximum number of document chunks to retrieve (RAG fallback).
+        note_limit: Maximum number of notes to retrieve (RAG fallback).
 
     Returns:
         A dict with keys:
             - ``answer``: The generated answer text.
             - ``sources``: List of source reference dicts.
-            - ``context_used``: List of context chunk/note summaries.
+            - ``context_used``: List of context chunk/note/wiki summaries.
+            - ``interaction_context``: Recent activity summary (Vietnamese).
+            - ``wiki_consulted``: True if the answer was synthesised from wiki.
+            - ``suggest_file_to_wiki``: True if the answer should be filed to
+              the wiki (RAG-fallback answers only).
 
     Raises:
         ValueError: If the question is empty or no active LLM config exists.
@@ -435,66 +616,81 @@ def answer_question(
     # Step 1: Resolve LLM config (raises ValueError if none)
     llm_config = _resolve_llm_config(user, company)
 
-    # Step 2: Embed the question
-    embed_response = get_embedding(llm_config, [question])
-    query_vector = _extract_embedding_vector(embed_response)
-
-    # Step 3: Search for similar document chunks (per-user + company scoped).
-    # System-level regulation chunks (is_system=True) are always included so
-    # that shared Vietnamese regulation context (TT58, PIT rates, TT133,
-    # ND254) is available to every tenant's Q&A.
-    raw_chunks = search_similar(
-        user_id=user.id,
-        company_id=company.id,
-        query_embedding=query_vector,
-        top_k=top_k,
-        include_system=True,
-    )
-
-    # Step 3b: If the question mentions accounting/tax keywords, boost system
-    # regulation chunks so they are more likely to surface in the final top-K.
-    has_accounting_keywords = _contains_accounting_keywords(question)
-    if has_accounting_keywords and raw_chunks:
-        raw_chunks = _boost_regulation_chunks(raw_chunks)
-
-    # Step 5: Enrich chunks with document titles
-    context_chunks = _enrich_chunks_with_titles(raw_chunks)
-
-    # Step 4: Search the user's notes (keyword)
-    notes = _search_notes(user, company, question, limit=note_limit)
-
-    # Step 5: Build interaction context summary (smart context enrichment)
+    # Step 2: Interaction context summary (used by both paths)
     interaction_context = get_context_summary(user, company)
 
-    # Step 6: Build prompt (includes interaction context as 'Recent user activity')
-    messages = build_prompt(context_chunks, notes, question, interaction_context)
+    # Step 3: Read the wiki FIRST (Karpathy LLM Wiki pattern).
+    wiki_pages = query_wiki(user, company, question)
+    wiki_consulted = bool(wiki_pages)
 
-    # Step 7: Call LLM for completion
-    response = get_completion(llm_config, messages, stream=False)
-    answer = _extract_completion_text(response)
+    context_used: list[dict[str, Any]]
+    sources: list[dict[str, Any]]
 
-    # Step 8: Collect sources
-    sources = _collect_sources(context_chunks, notes)
+    if wiki_consulted:
+        # 3a. Wiki has relevant pages: synthesise from the wiki directly.
+        #     No embedding/vector-search needed.
+        messages = _build_wiki_prompt(wiki_pages, question, interaction_context)
+        response = get_completion(llm_config, messages, stream=False)
+        answer = _extract_completion_text(response)
 
-    # Build context_used summary for the response + history
-    context_used = [
-        {
-            "type": "document_chunk",
-            "chunk_id": c.get("chunk_id"),
-            "document_title": c.get("document_title"),
-            "distance": c.get("distance"),
-        }
-        for c in context_chunks
-    ] + [
-        {
-            "type": "note",
-            "note_id": n["id"],
-            "title": n["title"],
-        }
-        for n in notes
-    ]
+        sources = _collect_wiki_sources(wiki_pages)
+        context_used = [
+            {
+                "type": "wiki_page",
+                "wiki_page_id": p.get("id"),
+                "title": p.get("title"),
+                "page_type": p.get("page_type"),
+            }
+            for p in wiki_pages
+        ]
+        # The wiki already persists this knowledge; no need to re-file.
+        suggest_file_to_wiki = False
+    else:
+        # 3b. Wiki had nothing relevant: fall back to the RAG pipeline.
+        embed_response = get_embedding(llm_config, [question])
+        query_vector = _extract_embedding_vector(embed_response)
 
-    # Step 9: Save Q&A history (includes interaction context summary)
+        raw_chunks = search_similar(
+            user_id=user.id,
+            company_id=company.id,
+            query_embedding=query_vector,
+            top_k=top_k,
+            include_system=True,
+        )
+
+        has_accounting_keywords = _contains_accounting_keywords(question)
+        if has_accounting_keywords and raw_chunks:
+            raw_chunks = _boost_regulation_chunks(raw_chunks)
+
+        context_chunks = _enrich_chunks_with_titles(raw_chunks)
+        notes = _search_notes(user, company, question, limit=note_limit)
+
+        messages = build_prompt(context_chunks, notes, question, interaction_context)
+        response = get_completion(llm_config, messages, stream=False)
+        answer = _extract_completion_text(response)
+
+        sources = _collect_sources(context_chunks, notes)
+        context_used = [
+            {
+                "type": "document_chunk",
+                "chunk_id": c.get("chunk_id"),
+                "document_title": c.get("document_title"),
+                "distance": c.get("distance"),
+            }
+            for c in context_chunks
+        ] + [
+            {
+                "type": "note",
+                "note_id": n["id"],
+                "title": n["title"],
+            }
+            for n in notes
+        ]
+        # RAG-fallback answers synthesize new knowledge worth persisting to the
+        # wiki so future queries hit the wiki first.
+        suggest_file_to_wiki = True
+
+    # Step 5: Save Q&A history (includes interaction context summary)
     save_qa_history(
         user,
         company,
@@ -505,11 +701,22 @@ def answer_question(
         interaction_context=interaction_context,
     )
 
+    # Step 6: Append a query entry to the wiki Log page (best-effort).
+    try:
+        append_log_entry(
+            user,
+            company,
+            operation="query",
+            detail=f'Question: "{question}" (wiki_consulted={wiki_consulted})',
+        )
+    except Exception:  # noqa: BLE001 - log append must never break Q&A.
+        logger.warning("answer_question: failed to append wiki log entry", exc_info=True)
+
     logger.info(
-        "answer_question: answered question for user %s (%d chunks, %d notes retrieved)",
+        "answer_question: answered question for user %s (wiki_consulted=%s, %d sources)",
         getattr(user, "username", user),
-        len(context_chunks),
-        len(notes),
+        wiki_consulted,
+        len(sources),
     )
 
     return {
@@ -517,6 +724,8 @@ def answer_question(
         "sources": sources,
         "context_used": context_used,
         "interaction_context": interaction_context,
+        "wiki_consulted": wiki_consulted,
+        "suggest_file_to_wiki": suggest_file_to_wiki,
     }
 
 
