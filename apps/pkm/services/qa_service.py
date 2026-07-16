@@ -41,6 +41,8 @@ __all__ = [
     "DEFAULT_NOTE_SEARCH_LIMIT",
     "PREVIEW_LENGTH",
     "SYSTEM_MESSAGE",
+    "ACCOUNTING_KEYWORDS",
+    "REGULATION_BOOST_DISTANCE_BONUS",
 ]
 
 #: Number of similar chunks to retrieve from the vector store.
@@ -52,23 +54,111 @@ DEFAULT_NOTE_SEARCH_LIMIT: int = 5
 #: Number of characters to include in a source/preview snippet.
 PREVIEW_LENGTH: int = 200
 
-#: System message instructing the LLM to answer in Vietnamese based on context.
+#: Bonus (subtracted from distance) applied to system regulation chunks when
+#: the question contains accounting/tax keywords. Lower distance == higher rank.
+REGULATION_BOOST_DISTANCE_BONUS: float = 0.15
+
+#: Vietnamese + English accounting / tax keywords that trigger regulation
+#: chunk boosting. Matching is case-insensitive substring.
+ACCOUNTING_KEYWORDS: tuple[str, ...] = (
+    # Vietnamese
+    "thuế",
+    "kế toán",
+    "hóa đơn",
+    "hoadon",
+    "chứng từ",
+    "tài khoản",
+    "ghi sổ",
+    "khấu hao",
+    "GTGT",
+    "TNDN",
+    "TNCN",
+    "BHXH",
+    "BCTC",
+    "báo cáo tài chính",
+    "TT58",
+    "TT133",
+    "TT200",
+    "NĐ253",
+    "NĐ254",
+    "TT87",
+    "TT91",
+    "PIT",
+    "CIT",
+    "VAT",
+    "định khoản",
+    "công nợ",
+    "lương",
+    "ngân sách",
+    # English fallbacks
+    "tax",
+    "accounting",
+    "invoice",
+    "depreciation",
+    "ledger",
+    "payroll",
+)
+
+#: System message instructing the LLM to act as a Visota accounting assistant
+#: grounded in current Vietnamese regulations and the user's activity context.
+#: Must contain the substrings required by VAL-RAG-003 ("trợ lý kế toán").
 SYSTEM_MESSAGE: str = (
-    "Ban la tro ly AI cua nguoi dung trong he thong Quan Ly Tri Thuc Cá Nhan (PKM) "
-    "cua phan mem ERP Visota. "
-    "Tra loi cau hoi cua nguoi dung dua TREN thong tin duoc cung cap trong phan 'NGU CANH' "
-    "(context) ben duoi. Neu thong tin khong co trong ngu canh, hay noi rang ban khong tim "
-    "thay thong tin phu hop. Luon trich dan nguon (ten tai lieu hoac ghi chu) khi phan tich. "
-    "Tra loi bang tieng Viet, ro rang va de hieu. "
-    "Phan 'HOAT DONG NGUOI DUNG GAU DAY' mo ta cac hoat dong nghiep vu gan nhat cua nguoi dung "
-    "(module hien tai, vai tro, cac su kien nghiep vu voi gia tri). "
-    "Su dung thong tin nay de ca nhan hoa cau tra loi cho phu hop voi ngu canh cong viec cua ho."
+    "Bạn là trợ lý kế toán ERP Visota. "
+    "Trả lời dựa trên quy định pháp luật Việt Nam hiện hành "
+    "và ngữ cảnh hoạt động của người dùng. "
+    "Sử dụng thông tin trong phần 'NGU CANH' (context) bên dưới để trả lời câu hỏi. "
+    "Nếu thông tin không có trong ngữ cảnh, hãy nói rằng bạn không tìm thấy thông tin phù hợp. "
+    "Luôn trích dẫn nguồn (tên tài liệu hoặc ghi chú) khi phân tích. "
+    "Trả lời bằng tiếng Việt, rõ ràng và dễ hiểu. "
+    "Phần 'HOAT DONG NGUOI DUNG GAU DAY' mô tả các hoạt động nghiệp vụ gần nhất của người dùng "
+    "(module hiện tại, vai trò, các sự kiện nghiệp vụ với giá trị). "
+    "Sử dụng thông tin này để cá nhân hóa câu trả lời cho phù hợp với ngữ cảnh công việc của họ."
 )
 
 
 # ---------------------------------------------------------------------------
 # Helpers (internal)
 # ---------------------------------------------------------------------------
+
+
+def _contains_accounting_keywords(question: str) -> bool:
+    """Return True if ``question`` mentions accounting/tax regulation keywords.
+
+    Used to decide whether to boost system regulation chunks in retrieval.
+    Matching is case-insensitive substring against :data:`ACCOUNTING_KEYWORDS`.
+    """
+    if not question:
+        return False
+    lowered = question.lower()
+    return any(kw.lower() in lowered for kw in ACCOUNTING_KEYWORDS)
+
+
+def _boost_regulation_chunks(
+    chunks: list[dict[str, Any]],
+    bonus: float = REGULATION_BOOST_DISTANCE_BONUS,
+) -> list[dict[str, Any]]:
+    """Re-rank retrieved chunks so system regulation chunks are prioritised.
+
+    System chunks (``is_system=True``) get their cosine ``distance`` reduced by
+    ``bonus`` (lower distance == higher rank), then the list is re-sorted by
+    ascending adjusted distance. The original ``distance`` value is preserved
+    on each chunk under the ``original_distance`` key for transparency.
+
+    Non-system chunks are left unchanged. This is a soft boost: a regulation
+    chunk whose true distance is much worse than a user chunk's will still
+    rank below it.
+    """
+    adjusted: list[tuple[float, dict[str, Any]]] = []
+    for chunk in chunks:
+        distance = chunk.get("distance")
+        original_distance = distance
+        if chunk.get("is_system") and distance is not None:
+            distance = max(0.0, distance - bonus)
+        chunk["original_distance"] = original_distance
+        sort_key = distance if distance is not None else float("inf")
+        adjusted.append((sort_key, chunk))
+    adjusted.sort(key=lambda pair: pair[0])
+    return [chunk for _, chunk in adjusted]
 
 
 def _extract_embedding_vector(response: Any) -> list[float]:
@@ -336,13 +426,23 @@ def answer_question(
     embed_response = get_embedding(llm_config, [question])
     query_vector = _extract_embedding_vector(embed_response)
 
-    # Step 3: Search for similar document chunks (per-user + company scoped)
+    # Step 3: Search for similar document chunks (per-user + company scoped).
+    # System-level regulation chunks (is_system=True) are always included so
+    # that shared Vietnamese regulation context (TT58, PIT rates, TT133,
+    # ND254) is available to every tenant's Q&A.
     raw_chunks = search_similar(
         user_id=user.id,
         company_id=company.id,
         query_embedding=query_vector,
         top_k=top_k,
+        include_system=True,
     )
+
+    # Step 3b: If the question mentions accounting/tax keywords, boost system
+    # regulation chunks so they are more likely to surface in the final top-K.
+    has_accounting_keywords = _contains_accounting_keywords(question)
+    if has_accounting_keywords and raw_chunks:
+        raw_chunks = _boost_regulation_chunks(raw_chunks)
 
     # Step 5: Enrich chunks with document titles
     context_chunks = _enrich_chunks_with_titles(raw_chunks)

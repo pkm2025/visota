@@ -72,6 +72,8 @@ def search_similar(
     company_id: int,
     query_embedding: list[float],
     top_k: int = 10,
+    *,
+    include_system: bool = False,
 ) -> list[dict[str, Any]]:
     """Return the top-k most similar embeddings for a user/company.
 
@@ -89,26 +91,60 @@ def search_similar(
         List of floats representing the query vector.
     top_k:
         Maximum number of results to return (default 10).
+    include_system:
+        When True, the search also returns system-level regulation chunks
+        (``PKMDocument.is_system = True``) in addition to the user/company-
+        scoped chunks. This lets the Q&A RAG pipeline include shared
+        Vietnamese regulation context (TT58, PIT rates, TT133, ND254) for
+        every tenant. Default False preserves the existing per-user scope.
 
     Returns
     -------
     list[dict]
-        Each dict has keys ``id``, ``content``, ``chunk_id``, ``distance``.
+        Each dict has keys ``id``, ``content``, ``chunk_id``, ``distance``,
+        and ``is_system`` (True only for system/regulation chunks).
         Results are ordered by ascending cosine distance (most similar first).
     """
     vec_str = json.dumps(query_embedding)
     with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            SELECT e.id, e.content, e.chunk_id,
-                   VEC_DISTANCE_COSINE(e.embedding, VEC_FromText(%s)) AS distance
-            FROM pkm_embedding e
-            WHERE e.user_id = %s AND e.company_id = %s
-            ORDER BY VEC_DISTANCE_COSINE(e.embedding, VEC_FromText(%s))
-            LIMIT %s
-            """,
-            [vec_str, user_id, company_id, vec_str, top_k],
-        )
+        if include_system:
+            # UNION of (a) user/company-scoped embeddings and (b) system
+            # regulation embeddings. Both halves are ordered by distance and
+            # limited so the merge stays bounded; the caller is expected to
+            # deduplicate / re-rank if needed.
+            cursor.execute(
+                """
+                SELECT e.id, e.content, e.chunk_id,
+                       VEC_DISTANCE_COSINE(e.embedding, VEC_FromText(%s)) AS distance,
+                       COALESCE(d.is_system, 0) AS is_system
+                FROM pkm_embedding e
+                LEFT JOIN pkm_documentchunk dc ON dc.id = e.chunk_id
+                LEFT JOIN pkm_document d ON d.id = dc.document_id
+                WHERE (e.user_id = %s AND e.company_id = %s)
+                   OR COALESCE(d.is_system, 0) = 1
+                ORDER BY VEC_DISTANCE_COSINE(e.embedding, VEC_FromText(%s))
+                LIMIT %s
+                """,
+                [vec_str, user_id, company_id, vec_str, top_k],
+            )
+        else:
+            # Default: per-user / per-company scope, explicitly excluding any
+            # system regulation chunks so retrieval stays user-private.
+            cursor.execute(
+                """
+                SELECT e.id, e.content, e.chunk_id,
+                       VEC_DISTANCE_COSINE(e.embedding, VEC_FromText(%s)) AS distance,
+                       0 AS is_system
+                FROM pkm_embedding e
+                LEFT JOIN pkm_documentchunk dc ON dc.id = e.chunk_id
+                LEFT JOIN pkm_document d ON d.id = dc.document_id
+                WHERE (e.user_id = %s AND e.company_id = %s)
+                  AND COALESCE(d.is_system, 0) = 0
+                ORDER BY VEC_DISTANCE_COSINE(e.embedding, VEC_FromText(%s))
+                LIMIT %s
+                """,
+                [vec_str, user_id, company_id, vec_str, top_k],
+            )
         rows = cursor.fetchall()
     return [
         {
@@ -116,6 +152,7 @@ def search_similar(
             "content": row[1],
             "chunk_id": row[2],
             "distance": float(row[3]) if row[3] is not None else None,
+            "is_system": bool(row[4]),
         }
         for row in rows
     ]

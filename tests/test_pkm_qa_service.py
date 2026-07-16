@@ -189,9 +189,11 @@ def test_build_prompt_system_message_is_vietnamese():
     """The system message instructs the LLM to answer in Vietnamese."""
     messages = build_prompt([], [], "question")
     system_content = messages[0]["content"]
-    assert "tieng Viet" in system_content or "tieng Viet".lower() in system_content.lower()
+    # The updated system prompt uses proper Vietnamese diacritics.
+    lowered = system_content.lower()
+    assert "tiếng việt" in lowered or "tieng viet" in lowered
     # Should mention context-based answering
-    assert "NGU CANH" in system_content or "ngu canh" in system_content.lower()
+    assert "ngu canh" in lowered or "ngữ cảnh" in lowered
 
 
 def test_build_prompt_includes_question_in_user_message():
