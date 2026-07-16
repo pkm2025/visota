@@ -6,6 +6,7 @@ from .knowledge_note import KnowledgeNote
 from .qa_history import QAHistory
 from .tag import Tag
 from .user_llm_config import UserLLMConfig
+from .wiki_page import WikiPage
 
 __all__ = [
     "DocumentChunk",
@@ -16,4 +17,5 @@ __all__ = [
     "Tag",
     "UserInteractionLog",
     "UserLLMConfig",
+    "WikiPage",
 ]
