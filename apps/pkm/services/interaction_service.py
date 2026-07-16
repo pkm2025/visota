@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import re
 from typing import TYPE_CHECKING, Any
 
 from django.db.models import Count
@@ -174,6 +175,21 @@ BUSINESS_EVENT_TYPES: frozenset[str] = frozenset(
 
 #: Metadata keys that may carry a monetary amount for a business event.
 _AMOUNT_METADATA_KEYS: tuple[str, ...] = ("amount", "total_amount", "voucher_amount")
+
+#: Regex extracting a numeric project id from a project-module page URL such
+#: as ``/modern/projects/42/``. Used by :func:`_format_project_context` to
+#: pin the user's "current" project from recent interaction logs.
+_PROJECT_PATH_ID_RE: re.Pattern[str] = re.compile(r"/modern/projects/(\d+)")
+
+#: Vietnamese status labels for ``Project.Status`` choice values. Used by
+#: :func:`_format_project_context` to render the project's phase/status.
+_PROJECT_STATUS_LABELS_VN: dict[str, str] = {
+    "planned": "Lập kế hoạch",
+    "active": "Đang thực hiện",
+    "on_hold": "Tạm dừng",
+    "completed": "Hoàn thành",
+    "cancelled": "Đã hủy",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -662,6 +678,126 @@ def _format_company_context(user: User, company: Company) -> str:  # noqa: ARG00
         return ""
 
 
+def _resolve_current_project_id(user: User, company: Company) -> int | None:
+    """Return the project id inferred from the user's most recent project
+    page-view, or ``None`` when no project detail page was visited.
+
+    Scans ``UserInteractionLog`` rows for ``interaction_type='page_view'``
+    and ``module='projects'`` scoped to ``user`` + ``company`` (per-user and
+    multi-tenant isolation), ordered most-recent-first. The first row whose
+    ``entity_id`` or ``metadata.url`` matches :data:`_PROJECT_PATH_ID_RE`
+    yields the project id. Pure list-page views (no numeric id) are skipped.
+
+    Returns ``None`` when no detail page can be resolved.
+    """
+    try:
+        rows = (
+            UserInteractionLog.objects.filter(
+                user=user,
+                company=company,
+                interaction_type="page_view",
+                module="projects",
+            )
+            .order_by("-created_at")
+            .values("entity_id", "metadata")[:20]
+        )
+    except Exception:
+        logger.debug(
+            "_resolve_current_project_id: không thể truy vấn activity log "
+            "(user=%s, company=%s) — bỏ qua.",
+            getattr(user, "id", user),
+            getattr(company, "id", company),
+            exc_info=True,
+        )
+        return None
+
+    for row in rows:
+        entity_id = row.get("entity_id") or ""
+        match = _PROJECT_PATH_ID_RE.search(entity_id)
+        if match is None:
+            meta = row.get("metadata") or {}
+            url = meta.get("url") if isinstance(meta, dict) else None
+            if url:
+                match = _PROJECT_PATH_ID_RE.search(str(url))
+        if match is None:
+            continue
+        try:
+            return int(match.group(1))
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def _format_project_context(user: User, company: Company) -> str:
+    """Build a Vietnamese natural-language fragment describing the user's
+    current project, inferred from recent project-module page views.
+
+    The fragment is appended to the activity summary inside
+    :func:`get_context_summary` so the Q&A LLM can personalise its answers
+    based on the project the user is currently working on.
+
+    Behaviour is non-blocking: any unexpected error (e.g. project missing,
+    tenant mismatch, malformed log row) returns an empty string so the
+    caller never breaks.
+
+    Args:
+        user: The user whose current project to infer.
+        company: The company scope (multi-tenant isolation).
+
+    Returns:
+        A Vietnamese string such as:
+        ``"Đang làm việc với dự án 'Website TMĐT' — Trạng thái: Đang thực hiện,
+        Ngân sách doanh thu: 500.000.000 VND, Tiến độ: 60%."``
+        Returns ``""`` when no project activity is detected or the project
+        cannot be resolved.
+    """
+    try:
+        project_id = _resolve_current_project_id(user, company)
+        if project_id is None:
+            return ""
+
+        from apps.projects.models import Project
+
+        project = Project.objects.filter(pk=project_id, company=company).first()
+        if project is None:
+            # Detail page was viewed but project is gone / wrong tenant.
+            return ""
+
+        parts: list[str] = [f"Đang làm việc với dự án '{project.name}'"]
+
+        status_label = _PROJECT_STATUS_LABELS_VN.get(project.status, project.status)
+        parts.append(f"Trạng thái: {status_label}")
+
+        try:
+            revenue = project.budget_revenue
+            if revenue is not None and revenue > 0:
+                parts.append(f"Ngân sách doanh thu: {_format_vnd(revenue)} VND")
+        except Exception:
+            pass
+
+        try:
+            progress = project.progress_percent
+            if progress is not None and progress > 0:
+                # Render as integer percent when possible for readability.
+                progress_text = (
+                    str(int(progress)) if float(progress).is_integer() else str(progress)
+                )
+                parts.append(f"Tiến độ: {progress_text}%")
+        except Exception:
+            pass
+
+        return ", ".join(parts) + "."
+    except Exception:
+        logger.debug(
+            "_format_project_context: không thể dựng bối cảnh dự án "
+            "(user=%s, company=%s) — bỏ qua.",
+            getattr(user, "id", user),
+            getattr(company, "id", company),
+            exc_info=True,
+        )
+        return ""
+
+
 def get_context_summary(
     user: User,
     company: Company,
@@ -723,6 +859,15 @@ def get_context_summary(
     company_context = _format_company_context(user, company)
     if company_context:
         lines.append(company_context)
+
+    # Project context (non-blocking). Appended after the company context so
+    # the Q&A LLM knows which project the user is currently working on. Empty
+    # string is treated as "no project activity". Included before the
+    # no-activity fallback so it shows up even when the user has only visited
+    # a project page in the time window.
+    project_context = _format_project_context(user, company)
+    if project_context:
+        lines.append(project_context)
 
     # Role hint (non-blocking — may be None). Included even when there is no
     # recent interaction activity so the LLM still knows the user's role.
