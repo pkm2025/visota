@@ -47,13 +47,14 @@ from apps.pkm.models import (
 )
 from apps.pkm.services import encryption_service, llm_service, qa_service, rag_pipeline
 from apps.pkm.services.interaction_service import log_interaction
+from apps.ui_modern.mixins import require_current_company
 
 
 def _get_company(request: HttpRequest) -> Company:
     """Return the current company from the request, falling back to the first."""
     company = getattr(request, "current_company", None)
     if company is None:
-        company = Company.objects.first()
+        company = require_current_company(request)
     return company
 
 
@@ -137,13 +138,10 @@ def _get_user_role_codes(request: HttpRequest) -> list[str]:
     knowledge suggestions on the dashboard.
     """
     company = _get_company(request)
-    codes = (
-        UserCompanyRole.objects.filter(
-            user=request.user,
-            company=company,
-        )
-        .values_list("role__code", flat=True)
-    )
+    codes = UserCompanyRole.objects.filter(
+        user=request.user,
+        company=company,
+    ).values_list("role__code", flat=True)
     return [c for c in codes if c]
 
 
@@ -538,9 +536,7 @@ class LLMConfigCreateView(LoginRequiredMixin, View):
         api_key = request.POST.get("api_key", "").strip()
         api_base = request.POST.get("api_base", "").strip()
         default_model = request.POST.get("default_model", "").strip()
-        default_embedding_model = request.POST.get(
-            "default_embedding_model", ""
-        ).strip()
+        default_embedding_model = request.POST.get("default_embedding_model", "").strip()
         is_active = request.POST.get("is_active") == "on"
 
         errors = self._validate(
@@ -567,8 +563,7 @@ class LLMConfigCreateView(LoginRequiredMixin, View):
         if _get_llm_configs_qs(request).filter(provider=provider).exists():
             messages.error(
                 request,
-                "Đã có cấu hình cho nhà cung cấp này."
-                " Vui lòng chỉnh sửa cấu hình hiện có.",
+                "Đã có cấu hình cho nhà cung cấp này. Vui lòng chỉnh sửa cấu hình hiện có.",
             )
             context = self._build_context(
                 request,
@@ -665,9 +660,7 @@ class LLMConfigUpdateView(LoginRequiredMixin, View):
         api_key = request.POST.get("api_key", "").strip()
         api_base = request.POST.get("api_base", "").strip()
         default_model = request.POST.get("default_model", "").strip()
-        default_embedding_model = request.POST.get(
-            "default_embedding_model", ""
-        ).strip()
+        default_embedding_model = request.POST.get("default_embedding_model", "").strip()
         is_active = request.POST.get("is_active") == "on"
 
         if not default_model:

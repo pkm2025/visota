@@ -7,7 +7,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Sum
 from django.views.generic import TemplateView
 
-from apps.core.models import Company
 from apps.ledger.models import AccountingVoucher, AccountPeriodBalance, VoucherLine
 from apps.reporting.services import (
     BalanceSheetService,
@@ -20,6 +19,7 @@ from apps.reporting.services.hr_reports import (
     PITMonthlyReportService,
     SalaryFundReportService,
 )
+from apps.ui_modern.mixins import require_current_company
 
 
 class TrialBalanceView(LoginRequiredMixin, TemplateView):
@@ -42,6 +42,7 @@ class TrialBalanceView(LoginRequiredMixin, TemplateView):
 
         balances = (
             AccountPeriodBalance.objects.filter(
+                company=require_current_company(self.request),
                 fiscal_year=fiscal_year,
                 period=period,
             )
@@ -113,7 +114,7 @@ class BalanceSheetView(LoginRequiredMixin, TemplateView):
         except (TypeError, ValueError):
             period = today.month
 
-        company = Company.objects.first()
+        company = require_current_company(self.request)
         if company:
             data = BalanceSheetService(company=company).generate(fiscal_year, period)
             ctx.update(data)
@@ -148,7 +149,7 @@ class PnLView(LoginRequiredMixin, TemplateView):
         except (TypeError, ValueError):
             period = today.month
 
-        company = Company.objects.first()
+        company = require_current_company(self.request)
         if company:
             data = PnLService(company=company).generate(fiscal_year, period)
             ctx.update(data)
@@ -183,7 +184,7 @@ class VATReturnView(LoginRequiredMixin, TemplateView):
         except (TypeError, ValueError):
             period = today.month
 
-        company = Company.objects.first()
+        company = require_current_company(self.request)
         # Compute unconditionally so empty periods render zeros (VAL-M2-011)
         # and the recalculate button always re-runs the engine (VAL-M2-010).
         data = VATReturnService(company=company).generate(fiscal_year, period)
@@ -219,7 +220,7 @@ class GeneralJournalView(LoginRequiredMixin, TemplateView):
         except (TypeError, ValueError):
             period = today.month
 
-        company = Company.objects.first()
+        company = require_current_company(self.request)
         vouchers_qs = AccountingVoucher.objects.all()
         if company:
             vouchers_qs = vouchers_qs.filter(company=company)
@@ -301,7 +302,7 @@ class GeneralLedgerView(LoginRequiredMixin, TemplateView):
 
         account_code = self.request.GET.get("account_code", "").strip()
 
-        company = Company.objects.first()
+        company = require_current_company(self.request)
         lines_qs = VoucherLine.objects.select_related("voucher")
         if company:
             lines_qs = lines_qs.filter(voucher__company=company)
@@ -422,7 +423,7 @@ class D62ReportView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         fiscal_year, period = _parse_period_kwargs(self.request)
-        company = Company.objects.first()
+        company = require_current_company(self.request)
         if company:
             ctx.update(D62ReportService(company=company).generate(fiscal_year, period))
         ctx.update(
@@ -449,7 +450,7 @@ class LaborUsageReportView(LoginRequiredMixin, TemplateView):
             fiscal_year = int(self.request.GET.get("fiscal_year", today.year))
         except (TypeError, ValueError):
             fiscal_year = today.year
-        company = Company.objects.first()
+        company = require_current_company(self.request)
         if company:
             ctx.update(LaborUsageReportService(company=company).generate(fiscal_year))
         ctx.update(
@@ -471,7 +472,7 @@ class SalaryFundReportView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         fiscal_year, period = _parse_period_kwargs(self.request)
-        company = Company.objects.first()
+        company = require_current_company(self.request)
         if company:
             ctx.update(SalaryFundReportService(company=company).generate(fiscal_year, period))
         ctx.update(
@@ -494,7 +495,7 @@ class PITMonthlyReportView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         fiscal_year, period = _parse_period_kwargs(self.request)
-        company = Company.objects.first()
+        company = require_current_company(self.request)
         if company:
             ctx.update(PITMonthlyReportService(company=company).generate(fiscal_year, period))
         ctx.update(
@@ -530,7 +531,7 @@ class SubLedgerView(LoginRequiredMixin, TemplateView):
         tmpl = (self.request.GET.get("template") or "vnd").strip().lower()
         tmpl = "fc" if tmpl == "fc" else "vnd"
 
-        company = getattr(self.request, "current_company", None) or Company.objects.first()
+        company = require_current_company(self.request)
 
         # Build lines grouped by object_code (customer/vendor)
         lines_qs = (
@@ -628,7 +629,7 @@ class BookEntryRegisterView(LoginRequiredMixin, TemplateView):
         except (TypeError, ValueError):
             period = today.month
 
-        company = getattr(self.request, "current_company", None) or Company.objects.first()
+        company = require_current_company(self.request)
 
         vouchers = AccountingVoucher.objects.filter(
             company=company,

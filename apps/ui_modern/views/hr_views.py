@@ -5,6 +5,7 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, ListView
 
 from apps.hr.models import Employee
+from apps.ui_modern.mixins import require_current_company
 
 
 class EmployeeListView(LoginRequiredMixin, ListView):
@@ -16,7 +17,12 @@ class EmployeeListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        qs = Employee.objects.select_related("department", "position").order_by("code")
+        company = require_current_company(self.request)
+        qs = (
+            Employee.objects.filter(company=company)
+            .select_related("department", "position")
+            .order_by("code")
+        )
         search = self.request.GET.get("search")
         if search:
             qs = qs.filter(code__icontains=search) | qs.filter(full_name__icontains=search)
@@ -70,9 +76,5 @@ class EmployeeCreateView(LoginRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form):
-        from apps.core.models import Company
-
-        company = Company.objects.first()
-        if company:
-            form.instance.company = company
+        form.instance.company = require_current_company(self.request)
         return super().form_valid(form)

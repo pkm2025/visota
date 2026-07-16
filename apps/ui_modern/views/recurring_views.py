@@ -5,9 +5,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import ListView, View
 
-from apps.core.models import Company
 from apps.recurring.models import RecurringTemplate
 from apps.recurring.services import RecurringService
+from apps.ui_modern.mixins import require_current_company
 
 
 class RecurringListView(LoginRequiredMixin, ListView):
@@ -34,7 +34,7 @@ class RecurringRunView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, *args, **kwargs):
-        company = Company.objects.first()
+        company = require_current_company(request)
         if not company:
             messages.error(request, "Chưa có công ty.")
             return redirect("ui_modern:recurring_list")

@@ -10,7 +10,7 @@ from django.views import View
 from django.views.generic import DetailView, ListView
 
 from apps.contracts.models import Contract
-from apps.core.models import Company
+from apps.ui_modern.mixins import require_current_company
 
 
 class ContractListView(LoginRequiredMixin, ListView):
@@ -22,7 +22,12 @@ class ContractListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        qs = Contract.objects.select_related("company").order_by("-contract_date", "-id")
+        company = require_current_company(self.request)
+        qs = (
+            Contract.objects.filter(company=company)
+            .select_related("company")
+            .order_by("-contract_date", "-id")
+        )
         search = self.request.GET.get("search")
         if search:
             qs = qs.filter(contract_no__icontains=search) | qs.filter(party_name__icontains=search)
@@ -47,7 +52,8 @@ class ContractDetailView(LoginRequiredMixin, DetailView):
     pk_url_kwarg = "pk"
 
     def get_queryset(self):
-        return Contract.objects.select_related("company", "linked_voucher")
+        company = require_current_company(self.request)
+        return Contract.objects.filter(company=company).select_related("company", "linked_voucher")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -69,6 +75,7 @@ class ContractCreateView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get(self, request, *args, **kwargs):
+        company = require_current_company(request)
         template_code = request.GET.get("template", "")
         selected_template = None
         suggested_type = ""
@@ -76,7 +83,9 @@ class ContractCreateView(LoginRequiredMixin, View):
             from apps.contracts.models import ContractTemplate
 
             try:
-                selected_template = ContractTemplate.objects.get(code=template_code)
+                selected_template = ContractTemplate.objects.get(
+                    code=template_code, company=company
+                )
                 suggested_type = selected_template.contract_type
             except ContractTemplate.DoesNotExist:
                 pass
@@ -91,6 +100,7 @@ class ContractCreateView(LoginRequiredMixin, View):
         return render(request, self.template_name, ctx)
 
     def post(self, request, *args, **kwargs):
+        company = require_current_company(request)
         contract_no = request.POST.get("contract_no", "").strip()
         contract_date_str = request.POST.get("contract_date", "").strip()
         contract_type = request.POST.get("contract_type", Contract.ContractType.OTHER)
@@ -149,11 +159,6 @@ class ContractCreateView(LoginRequiredMixin, View):
                 },
                 status=200,
             )
-
-        company = Company.objects.first()
-        if not company:
-            messages.error(request, "Chưa cấu hình công ty.")
-            return redirect("ui_modern:contract_list")
 
         Contract.objects.create(
             company=company,

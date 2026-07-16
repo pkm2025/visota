@@ -8,9 +8,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect, render
 from django.views import View
 
-from apps.core.models import Company
 from apps.ledger.models import AccountingVoucher, VoucherLine
 from apps.ledger.services import VoucherPostingService
+from apps.ui_modern.mixins import require_current_company
 
 
 class _BaseCashView(LoginRequiredMixin, View):
@@ -83,7 +83,7 @@ class CashReceiptCreateView(_BaseCashView):
                 status=200,
             )
 
-        company = Company.objects.first()
+        company = require_current_company(request)
         if not company:
             messages.error(request, "Chưa cấu hình công ty.")
             return redirect("ui_modern:voucher_list")
@@ -182,7 +182,7 @@ class CashPaymentCreateView(_BaseCashView):
                 status=200,
             )
 
-        company = Company.objects.first()
+        company = require_current_company(request)
         if not company:
             messages.error(request, "Chưa cấu hình công ty.")
             return redirect("ui_modern:voucher_list")

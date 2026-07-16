@@ -9,7 +9,6 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.generic import DetailView, ListView
 
-from apps.core.models import Company
 from apps.ledger.models import AccountingVoucher, VoucherLine
 from apps.ledger.services import VoucherPostingService
 from apps.ledger.services.voucher_posting_service import VoucherNotBalancedError
@@ -18,6 +17,7 @@ from apps.ui_modern.forms import (
     VoucherLineFormSet,
     VoucherTaxLineFormSet,
 )
+from apps.ui_modern.mixins import require_current_company
 
 from ._export_utils import autosize, new_workbook, style_header, xlsx_response
 
@@ -31,7 +31,8 @@ class VoucherListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        qs = AccountingVoucher.objects.select_related("company")
+        company = require_current_company(self.request)
+        qs = AccountingVoucher.objects.filter(company=company).select_related("company")
         ordering = self.request.GET.get("ordering", "-voucher_date")
         valid_fields = [
             "voucher_date",
@@ -68,23 +69,22 @@ class VoucherCreateView(LoginRequiredMixin, View):
     template_name = "modern/ledger/voucher_form.html"
     login_url = "/auth/login/"
 
+    def _company_accounts(self):
+        from apps.master_data.models import ChartOfAccounts
+
+        company = require_current_company(self.request)
+        accounts = list(
+            ChartOfAccounts.objects.filter(company=company, is_active=True, is_posting_account=True)
+            .order_by("account_code")
+            .values_list("account_code", "account_name")[:200]
+        )
+        return company, accounts
+
     def get(self, request, *args, **kwargs):
         header_form = VoucherHeaderForm()
         line_formset = VoucherLineFormSet(prefix="lines")
         tax_formset = VoucherTaxLineFormSet(prefix="taxes")
-        from apps.core.models import Company
-        from apps.master_data.models import ChartOfAccounts
-
-        company = Company.objects.first()
-        accounts = []
-        if company:
-            accounts = list(
-                ChartOfAccounts.objects.filter(
-                    company=company, is_active=True, is_posting_account=True
-                )
-                .order_by("account_code")
-                .values_list("account_code", "account_name")[:200]
-            )
+        _, accounts = self._company_accounts()
         return render(
             request,
             self.template_name,
@@ -109,19 +109,7 @@ class VoucherCreateView(LoginRequiredMixin, View):
             tax_formset = VoucherTaxLineFormSet(prefix="taxes")
             tax_formset_valid = True  # unbound = no tax data submitted
 
-        from apps.core.models import Company
-        from apps.master_data.models import ChartOfAccounts
-
-        company = Company.objects.first()
-        accounts = []
-        if company:
-            accounts = list(
-                ChartOfAccounts.objects.filter(
-                    company=company, is_active=True, is_posting_account=True
-                )
-                .order_by("account_code")
-                .values_list("account_code", "account_name")[:200]
-            )
+        company, accounts = self._company_accounts()
 
         ctx_base = {
             "page_title": "Tạo phiếu kế toán",
@@ -168,14 +156,6 @@ class VoucherCreateView(LoginRequiredMixin, View):
                 }
             )
             return render(request, self.template_name, ctx_base, status=200)
-
-        # Get the company — for now use first company (TODO: request.current_company)
-        from apps.core.models import Company
-
-        company = Company.objects.first()
-        if not company:
-            messages.error(request, "No company configured.")
-            return redirect("ui_modern:voucher_list")
 
         cd = header_form.cleaned_data
         voucher = AccountingVoucher.objects.create(
@@ -259,7 +239,8 @@ class VoucherDetailView(LoginRequiredMixin, DetailView):
     pk_url_kwarg = "pk"
 
     def get_queryset(self):
-        return AccountingVoucher.objects.prefetch_related("lines")
+        company = require_current_company(self.request)
+        return AccountingVoucher.objects.filter(company=company).prefetch_related("lines")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -286,6 +267,7 @@ class VoucherExportView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get(self, request, *args, **kwargs):
+        company = require_current_company(request)
         wb, ws = new_workbook("Phiếu kế toán")
         headers = [
             "Ngày",
@@ -308,7 +290,8 @@ class VoucherExportView(LoginRequiredMixin, View):
 
         status_map = dict(AccountingVoucher.Status.choices)
         qs = (
-            AccountingVoucher.objects.select_related("company")
+            AccountingVoucher.objects.filter(company=company)
+            .select_related("company")
             .prefetch_related("lines")
             .order_by("-voucher_date", "-id")
         )
@@ -368,7 +351,8 @@ class VoucherDeleteView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, pk, *args, **kwargs):
-        voucher = get_object_or_404(AccountingVoucher, pk=pk)
+        company = require_current_company(request)
+        voucher = get_object_or_404(AccountingVoucher, pk=pk, company=company)
         if voucher.status != AccountingVoucher.Status.DRAFT:
             messages.error(
                 request,
@@ -401,10 +385,7 @@ class VoucherGuidedView(LoginRequiredMixin, View):
         return render(request, self.template_name, ctx)
 
     def post(self, request, *args, **kwargs):
-        company = getattr(request, "current_company", None) or Company.objects.first()
-        if not company:
-            messages.error(request, "Chưa có công ty.")
-            return redirect("ui_modern:voucher_list")
+        company = require_current_company(request)
 
         action = request.POST.get("action_type", "")
         amount_str = request.POST.get("amount", "0").strip()

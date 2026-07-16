@@ -9,6 +9,7 @@ from django.views.generic import ListView
 
 from apps.contracts.models import Contract, ContractTemplate
 from apps.contracts.services.contract_print_service import ContractPrintService
+from apps.ui_modern.mixins import require_current_company
 
 
 class ContractTemplateListView(LoginRequiredMixin, ListView):
@@ -17,7 +18,8 @@ class ContractTemplateListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        qs = ContractTemplate.objects.all().order_by("code")
+        company = require_current_company(self.request)
+        qs = ContractTemplate.objects.filter(company=company).order_by("code")
         search = self.request.GET.get("search")
         if search:
             qs = qs.filter(name__icontains=search) | qs.filter(code__icontains=search)
@@ -25,8 +27,11 @@ class ContractTemplateListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        company = require_current_company(self.request)
         ctx["page_title"] = "Mẫu văn bản"
-        ctx["contracts_available"] = Contract.objects.all().order_by("-contract_date")[:20]
+        ctx["contracts_available"] = Contract.objects.filter(company=company).order_by(
+            "-contract_date"
+        )[:20]
         return ctx
 
 
@@ -37,6 +42,7 @@ class ContractTemplateCreateView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get(self, request, *args, **kwargs):
+        company = require_current_company(request)
         ctx = {
             "page_title": "Tạo mẫu văn bản",
             "is_new": True,
@@ -54,7 +60,7 @@ class ContractTemplateCreateView(LoginRequiredMixin, View):
         # Pre-fill if duplicating
         dup_id = request.GET.get("duplicate")
         if dup_id:
-            src = get_object_or_404(ContractTemplate, pk=dup_id)
+            src = get_object_or_404(ContractTemplate, pk=dup_id, company=company)
             ctx["form_data"] = {
                 "code": src.code + "_copy",
                 "name": src.name + " (bản sao)",
@@ -69,6 +75,7 @@ class ContractTemplateCreateView(LoginRequiredMixin, View):
         return render(request, self.template_name, ctx)
 
     def post(self, request, *args, **kwargs):
+        company = require_current_company(request)
         code = request.POST.get("code", "").strip()
         name = request.POST.get("name", "").strip()
         if not code or not name:
@@ -82,7 +89,7 @@ class ContractTemplateCreateView(LoginRequiredMixin, View):
                     "form_data": request.POST,
                 },
             )
-        if ContractTemplate.objects.filter(code=code).exists():
+        if ContractTemplate.objects.filter(company=company, code=code).exists():
             messages.error(request, f"Mã '{code}' đã tồn tại.")
             return render(
                 request,
@@ -100,6 +107,7 @@ class ContractTemplateCreateView(LoginRequiredMixin, View):
         except json.JSONDecodeError:
             fields = []
         tpl = ContractTemplate.objects.create(
+            company=company,
             code=code,
             name=name,
             contract_type=request.POST.get("contract_type", "service"),
@@ -109,6 +117,7 @@ class ContractTemplateCreateView(LoginRequiredMixin, View):
             version=request.POST.get("version", "2026"),
             is_active=request.POST.get("is_active") == "on",
         )
+        _ = tpl  # consumed via query in subsequent request
         messages.success(request, f"Đã tạo mẫu '{name}'.")
         return redirect("ui_modern:contract_template_list")
 
@@ -119,8 +128,12 @@ class ContractTemplateEditView(LoginRequiredMixin, View):
     template_name = "modern/contracts/contract_template_form.html"
     login_url = "/auth/login/"
 
+    def _get_template(self, request, pk):
+        company = require_current_company(request)
+        return get_object_or_404(ContractTemplate, pk=pk, company=company)
+
     def get(self, request, pk, *args, **kwargs):
-        tpl = get_object_or_404(ContractTemplate, pk=pk)
+        tpl = self._get_template(request, pk)
         ctx = {
             "page_title": f"Sửa mẫu: {tpl.name}",
             "is_new": False,
@@ -139,7 +152,7 @@ class ContractTemplateEditView(LoginRequiredMixin, View):
         return render(request, self.template_name, ctx)
 
     def post(self, request, pk, *args, **kwargs):
-        tpl = get_object_or_404(ContractTemplate, pk=pk)
+        tpl = self._get_template(request, pk)
         tpl.name = request.POST.get("name", tpl.name)
         tpl.contract_type = request.POST.get("contract_type", tpl.contract_type)
         tpl.template_html = request.POST.get("template_html", tpl.template_html)
@@ -163,7 +176,8 @@ class ContractTemplateDeleteView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, pk, *args, **kwargs):
-        tpl = get_object_or_404(ContractTemplate, pk=pk)
+        company = require_current_company(request)
+        tpl = get_object_or_404(ContractTemplate, pk=pk, company=company)
         name = tpl.name
         tpl.delete()
         messages.success(request, f"Đã xóa mẫu '{name}'.")
@@ -176,12 +190,13 @@ class ContractTemplatePreviewRawView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, *args, **kwargs):
+        company = require_current_company(request)
         html = request.POST.get("template_html", "")
         contract_id = request.POST.get("contract_id")
         ctx = {}
         if contract_id:
             try:
-                contract = Contract.objects.get(pk=contract_id)
+                contract = Contract.objects.get(pk=contract_id, company=company)
                 service = ContractPrintService()
                 ctx = service._build_context(contract)
             except Contract.DoesNotExist:
@@ -229,8 +244,9 @@ class ContractGenerateView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get(self, request, template_code, contract_id):
-        template = get_object_or_404(ContractTemplate, code=template_code)
-        contract = get_object_or_404(Contract, id=contract_id)
+        company = require_current_company(request)
+        template = get_object_or_404(ContractTemplate, code=template_code, company=company)
+        contract = get_object_or_404(Contract, id=contract_id, company=company)
         service = ContractPrintService()
         pdf_bytes = service.generate_contract_pdf(contract, template_code)
         response = HttpResponse(pdf_bytes, content_type="application/pdf")
@@ -244,8 +260,9 @@ class ContractTemplatePreviewView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get(self, request, template_code, contract_id):
-        template = get_object_or_404(ContractTemplate, code=template_code)
-        contract = get_object_or_404(Contract, id=contract_id)
+        company = require_current_company(request)
+        template = get_object_or_404(ContractTemplate, code=template_code, company=company)
+        contract = get_object_or_404(Contract, id=contract_id, company=company)
         service = ContractPrintService()
         ctx = service._build_context(contract)
         from django.template import engines
@@ -352,6 +369,7 @@ class ContractWizardView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get(self, request, *args, **kwargs):
+        company = require_current_company(request)
         category = request.GET.get("cat", "")
         selected_templates = []
         active_category = None
@@ -361,14 +379,18 @@ class ContractWizardView(LoginRequiredMixin, View):
                 if cat["key"] == category:
                     active_category = cat
                     qs = ContractTemplate.objects.filter(
-                        contract_type__in=cat["types"], is_active=True
+                        company=company,
+                        contract_type__in=cat["types"],
+                        is_active=True,
                     ).order_by("name")
                     if cat.get("code_prefix"):
                         # Filter by code_prefix (for minutes bb_ and decisions qd_)
                         prefix = cat["code_prefix"]
                         if cat["key"] == "minutes" or cat["key"] == "decision":
                             qs = ContractTemplate.objects.filter(
-                                code__startswith=prefix, is_active=True
+                                company=company,
+                                code__startswith=prefix,
+                                is_active=True,
                             ).order_by("name")
                     selected_templates = list(qs)
                     break

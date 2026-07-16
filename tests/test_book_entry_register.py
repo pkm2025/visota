@@ -61,9 +61,12 @@ def setup(db):
 
 @pytest.mark.django_db
 def test_book_entry_register_loads(setup):
-    _, user = setup
+    company, user = setup
     c = Client()
     c.force_login(user)
+    session = c.session
+    session["current_company_id"] = company.id
+    session.save()
     response = c.get("/modern/reports/book-entry-register/?fiscal_year=2026&period=6")
     assert response.status_code == 200
     content = response.content.decode("utf-8")
@@ -74,9 +77,12 @@ def test_book_entry_register_loads(setup):
 
 @pytest.mark.django_db
 def test_book_entry_register_balanced(setup):
-    _, user = setup
+    company, user = setup
     c = Client()
     c.force_login(user)
+    session = c.session
+    session["current_company_id"] = company.id
+    session.save()
     response = c.get("/modern/reports/book-entry-register/?fiscal_year=2026&period=6")
     assert response.status_code == 200
     assert response.context["is_balanced"] is True
@@ -85,11 +91,15 @@ def test_book_entry_register_balanced(setup):
 
 @pytest.mark.django_db
 def test_book_entry_register_empty(db):
+    company = Company.objects.create(code="CTGS_E", name="Empty Co")
     user = User.objects.create_superuser(
         username="ctgsempty", password="Secret123", email="e@test.local"
     )
     c = Client()
     c.force_login(user)
+    session = c.session
+    session["current_company_id"] = company.id
+    session.save()
     response = c.get("/modern/reports/book-entry-register/?fiscal_year=2026&period=3")
     assert response.status_code == 200
     content = response.content.decode("utf-8")

@@ -16,6 +16,7 @@ from apps.assets.models import (
     FixedAsset,
 )
 from apps.assets.services import AssetLifecycleService, DepreciationService
+from apps.ui_modern.mixins import require_current_company
 
 
 class AssetListView(LoginRequiredMixin, ListView):
@@ -27,8 +28,11 @@ class AssetListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        qs = FixedAsset.objects.select_related("category", "using_department").order_by(
-            "asset_code"
+        company = require_current_company(self.request)
+        qs = (
+            FixedAsset.objects.filter(company=company)
+            .select_related("category", "using_department")
+            .order_by("asset_code")
         )
         is_tool = self.request.GET.get("is_tool")
         if is_tool in ("0", "1"):
@@ -60,6 +64,7 @@ class AssetCreateView(LoginRequiredMixin, View):
 
     def post(self, request, *args, **kwargs):
         ctx = self._build_context()
+        company = require_current_company(request)
         required = [
             "asset_code",
             "asset_name",
@@ -75,25 +80,20 @@ class AssetCreateView(LoginRequiredMixin, View):
             return render(request, self.template_name, ctx, status=200)
 
         try:
-            category = AssetCategory.objects.get(pk=request.POST.get("category"))
+            category = AssetCategory.objects.get(pk=request.POST.get("category"), company=company)
         except AssetCategory.DoesNotExist:
             messages.error(request, "Loại tài sản không hợp lệ")
             ctx["post_data"] = request.POST
             return render(request, self.template_name, ctx, status=200)
 
         try:
-            dept = AssetUsingDepartment.objects.get(pk=request.POST.get("using_department"))
+            dept = AssetUsingDepartment.objects.get(
+                pk=request.POST.get("using_department"), company=company
+            )
         except AssetUsingDepartment.DoesNotExist:
             messages.error(request, "Bộ phận sử dụng không hợp lệ")
             ctx["post_data"] = request.POST
             return render(request, self.template_name, ctx, status=200)
-
-        from apps.core.models import Company
-
-        company = Company.objects.first()
-        if not company:
-            messages.error(request, "Chưa có công ty nào được cấu hình.")
-            return redirect("ui_modern:asset_list")
 
         # Pull default GL accounts from selected category / department
         gl_account = request.POST.get("gl_account") or category.default_gl_account
@@ -150,14 +150,13 @@ class AssetCreateView(LoginRequiredMixin, View):
         return redirect("ui_modern:asset_list")
 
     def _build_context(self):
-        from apps.core.models import Company
-
-        company = Company.objects.first()
-        categories_qs = AssetCategory.objects.filter(is_active=True).order_by("code")
-        departments_qs = AssetUsingDepartment.objects.filter(is_active=True).order_by("code")
-        if company:
-            categories_qs = categories_qs.filter(company=company)
-            departments_qs = departments_qs.filter(company=company)
+        company = require_current_company(self.request)
+        categories_qs = AssetCategory.objects.filter(company=company, is_active=True).order_by(
+            "code"
+        )
+        departments_qs = AssetUsingDepartment.objects.filter(
+            company=company, is_active=True
+        ).order_by("code")
         return {
             "page_title": "Thêm tài sản",
             "categories": categories_qs,
@@ -188,7 +187,7 @@ class DepreciationRunView(LoginRequiredMixin, View):
         )
 
     def post(self, request, *args, **kwargs):
-        from apps.core.models import Company
+        company = require_current_company(request)
 
         try:
             year = int(request.POST.get("year"))
@@ -200,11 +199,6 @@ class DepreciationRunView(LoginRequiredMixin, View):
         if not (1 <= month <= 12) or year < 2000:
             messages.error(request, "Năm/tháng không hợp lệ")
             return redirect("ui_modern:depreciation_run")
-
-        company = Company.objects.first()
-        if not company:
-            messages.error(request, "Chưa có công ty nào được cấu hình.")
-            return redirect("ui_modern:asset_list")
 
         result = DepreciationService(company).calculate_period(year, month)
 
@@ -224,7 +218,8 @@ class AssetDisposeView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get(self, request, pk, *args, **kwargs):
-        asset = get_object_or_404(FixedAsset, pk=pk)
+        company = require_current_company(request)
+        asset = get_object_or_404(FixedAsset, pk=pk, company=company)
         return render(
             request,
             self.template_name,
@@ -232,7 +227,8 @@ class AssetDisposeView(LoginRequiredMixin, View):
         )
 
     def post(self, request, pk, *args, **kwargs):
-        asset = get_object_or_404(FixedAsset, pk=pk)
+        company = require_current_company(request)
+        asset = get_object_or_404(FixedAsset, pk=pk, company=company)
         try:
             disposal_value = Decimal(str(request.POST.get("disposal_value") or "0"))
         except Exception:
@@ -262,8 +258,11 @@ class AssetTransferView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get(self, request, pk, *args, **kwargs):
-        asset = get_object_or_404(FixedAsset, pk=pk)
-        departments = AssetUsingDepartment.objects.filter(is_active=True).order_by("code")
+        company = require_current_company(request)
+        asset = get_object_or_404(FixedAsset, pk=pk, company=company)
+        departments = AssetUsingDepartment.objects.filter(company=company, is_active=True).order_by(
+            "code"
+        )
         return render(
             request,
             self.template_name,
@@ -275,14 +274,15 @@ class AssetTransferView(LoginRequiredMixin, View):
         )
 
     def post(self, request, pk, *args, **kwargs):
-        asset = get_object_or_404(FixedAsset, pk=pk)
+        company = require_current_company(request)
+        asset = get_object_or_404(FixedAsset, pk=pk, company=company)
         dept_id = request.POST.get("to_department")
         new_expense = request.POST.get("new_expense_account") or None
         if not dept_id:
             messages.error(request, "Chọn bộ phận nhận.")
             return redirect("ui_modern:asset_transfer", pk=pk)
         try:
-            to_dept = AssetUsingDepartment.objects.get(pk=dept_id)
+            to_dept = AssetUsingDepartment.objects.get(pk=dept_id, company=company)
         except AssetUsingDepartment.DoesNotExist:
             messages.error(request, "Bộ phận không hợp lệ.")
             return redirect("ui_modern:asset_transfer", pk=pk)
@@ -308,9 +308,12 @@ class AssetTransactionListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        return AssetTransaction.objects.select_related(
-            "asset", "from_department", "to_department"
-        ).order_by("-transaction_date", "-id")
+        company = require_current_company(self.request)
+        return (
+            AssetTransaction.objects.filter(asset__company=company)
+            .select_related("asset", "from_department", "to_department")
+            .order_by("-transaction_date", "-id")
+        )
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

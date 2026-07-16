@@ -77,10 +77,15 @@ class Contract(CompanyOwnedModel):
         return f"{self.contract_no} ({self.party_name})"
 
 
-class ContractTemplate(models.Model):
-    """Pre-built contract template with standard clauses."""
+class ContractTemplate(CompanyOwnedModel):
+    """Pre-built contract template with standard clauses.
 
-    code = models.CharField(max_length=50, unique=True)
+    Company-scoped (multi-tenant) via :class:`CompanyOwnedModel`. The
+    ``code`` is unique within a company, not globally — use
+    ``(company, code)`` lookups instead of ``code`` alone.
+    """
+
+    code = models.CharField(max_length=50)
     name = models.CharField(max_length=255)
     contract_type = models.CharField(
         max_length=20
@@ -95,6 +100,7 @@ class ContractTemplate(models.Model):
 
     class Meta:
         db_table = "contract_template"
+        unique_together = [("company", "code")]
         ordering = ["code"]
 
     def __str__(self):

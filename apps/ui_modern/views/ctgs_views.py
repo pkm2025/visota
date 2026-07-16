@@ -19,8 +19,8 @@ from django.db.models import Sum
 from django.shortcuts import redirect
 from django.views.generic import TemplateView
 
-from apps.core.models import Company
 from apps.ledger.models import AccountingVoucher, VoucherLine
+from apps.ui_modern.mixins import require_current_company
 from apps.ui_modern.views.report_views import _common_period_choices, _parse_period_kwargs
 
 
@@ -37,7 +37,7 @@ class CTGSCreateView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         fy, period = _parse_period_kwargs(self.request)
-        company = Company.objects.first()
+        company = require_current_company(self.request)
 
         # Show subsidiary vouchers ready for CTGS creation
         vouchers = (
@@ -89,7 +89,7 @@ class CTGSRegisterView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         fy, period = _parse_period_kwargs(self.request)
-        company = Company.objects.first()
+        company = require_current_company(self.request)
 
         vouchers = AccountingVoucher.objects.filter(
             company=company,
@@ -126,7 +126,7 @@ class CTGSRegisterView(LoginRequiredMixin, TemplateView):
 
     def post(self, request, *args, **kwargs):
         fy, period = _parse_period_kwargs(request)
-        company = Company.objects.first()
+        company = require_current_company(request)
 
         vouchers = AccountingVoucher.objects.filter(
             company=company,
@@ -157,7 +157,7 @@ class CTGSCheckView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         fy, period = _parse_period_kwargs(self.request)
-        company = Company.objects.first()
+        company = require_current_company(self.request)
 
         vouchers = AccountingVoucher.objects.filter(
             company=company,
@@ -217,7 +217,7 @@ class SourceDocScheduleView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         fy, period = _parse_period_kwargs(self.request)
-        company = Company.objects.first()
+        company = require_current_company(self.request)
 
         vouchers = AccountingVoucher.objects.filter(
             company=company,
@@ -267,7 +267,7 @@ class DepartmentMasterView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         fy, period = _parse_period_kwargs(self.request)
-        company = Company.objects.first()
+        company = require_current_company(self.request)
 
         # Aggregate VoucherLine by cost_center_code
         departments = (

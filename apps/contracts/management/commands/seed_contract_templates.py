@@ -812,23 +812,50 @@ TEMPLATES = [
 class Command(BaseCommand):
     help = "Seed 13 pre-built contract templates with full Vietnamese legal text."
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--company-code",
+            default=None,
+            help=(
+                "Company code to scope seeded templates to. "
+                "If omitted, templates are seeded for every existing company."
+            ),
+        )
+
     def handle(self, *args, **options):
-        created_count = 0
-        for tpl_def in TEMPLATES:
-            _, created = ContractTemplate.objects.update_or_create(
-                code=tpl_def["code"],
-                defaults={
-                    "name": tpl_def["name"],
-                    "contract_type": tpl_def["contract_type"],
-                    "template_html": tpl_def["template_html"],
-                    "required_fields": tpl_def["required_fields"],
-                    "legal_basis": tpl_def["legal_basis"],
-                    "version": "2026",
-                    "is_active": True,
-                },
+        from apps.core.models import Company
+
+        if options.get("company_code"):
+            companies = list(Company.objects.filter(code=options["company_code"]))
+        else:
+            companies = list(Company.objects.all())
+        if not companies:
+            self.stdout.write(
+                self.style.WARNING("No companies found. Create a Company before seeding templates.")
             )
-            if created:
-                created_count += 1
+            return
+
+        created_count = 0
+        for company in companies:
+            for tpl_def in TEMPLATES:
+                _, created = ContractTemplate.objects.update_or_create(
+                    company=company,
+                    code=tpl_def["code"],
+                    defaults={
+                        "name": tpl_def["name"],
+                        "contract_type": tpl_def["contract_type"],
+                        "template_html": tpl_def["template_html"],
+                        "required_fields": tpl_def["required_fields"],
+                        "legal_basis": tpl_def["legal_basis"],
+                        "version": "2026",
+                        "is_active": True,
+                    },
+                )
+                if created:
+                    created_count += 1
         self.stdout.write(
-            self.style.SUCCESS(f"Seeded {len(TEMPLATES)} contract templates ({created_count} new).")
+            self.style.SUCCESS(
+                f"Seeded {len(TEMPLATES)} contract templates x {len(companies)} "
+                f"companies ({created_count} new)."
+            )
         )

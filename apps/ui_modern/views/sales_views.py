@@ -11,6 +11,7 @@ from django.views.generic import ListView, TemplateView
 from apps.master_data.models import Customer, Product
 from apps.sales.models import SalesInvoice
 from apps.sales.services import SalesInvoiceService
+from apps.ui_modern.mixins import require_current_company
 
 
 class SalesInvoiceListView(LoginRequiredMixin, ListView):
@@ -20,7 +21,12 @@ class SalesInvoiceListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        return SalesInvoice.objects.select_related("customer").order_by("-invoice_date", "-id")
+        company = require_current_company(self.request)
+        return (
+            SalesInvoice.objects.filter(company=company)
+            .select_related("customer")
+            .order_by("-invoice_date", "-id")
+        )
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -36,18 +42,14 @@ class SalesInvoiceCreateView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        company = require_current_company(self.request)
         ctx["page_title"] = "Tạo hóa đơn bán"
-        ctx["customers"] = Customer.objects.filter(is_active=True).order_by("code")
-        ctx["products"] = Product.objects.filter(is_active=True).order_by("code")
+        ctx["customers"] = Customer.objects.filter(company=company, is_active=True).order_by("code")
+        ctx["products"] = Product.objects.filter(company=company, is_active=True).order_by("code")
         return ctx
 
     def post(self, request, *args, **kwargs):
-        from apps.core.models import Company
-
-        company = Company.objects.first()
-        if not company:
-            messages.error(request, "Chưa có công ty nào được cấu hình.")
-            return redirect("ui_modern:sales_invoice_list")
+        company = require_current_company(request)
 
         customer_id = request.POST.get("customer_id")
         invoice_no = request.POST.get("invoice_no")

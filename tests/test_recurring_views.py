@@ -11,15 +11,27 @@ from apps.recurring.services import RecurringService
 
 @pytest.fixture
 def auth_client(db):
+    from apps.core.models import Company
+    company = Company.objects.create(
+        code='TST', name='Test Co', tax_code='0100000000', accounting_regime='tt133'
+    )
     user = User.objects.create_superuser(username="alice", password="Secret123", email="alice@test.local")
     c = Client()
     c.force_login(user)
+    session = c.session
+    session['current_company_id'] = company.id
+    session.save()
     return c
 
 
 @pytest.fixture
 def setup(db):
-    company = Company.objects.create(code="TCO", name="Test Co")
+    # Use the same company code as auth_client so the session-scoped view
+    # can see the seeded templates.
+    company = Company.objects.get_or_create(
+        code="TST",
+        defaults={"name": "Test Co", "tax_code": "0100000000", "accounting_regime": "tt133"},
+    )[0]
     RecurringService().setup_defaults(company)
     return company
 

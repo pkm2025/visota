@@ -8,7 +8,6 @@ from django.db.models import Sum
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, ListView, TemplateView
 
-from apps.core.models import Company
 from apps.hr.models import (
     Dependent,
     InsuranceContribution,
@@ -16,6 +15,7 @@ from apps.hr.models import (
     LeaveRecord,
 )
 from apps.ui_modern.forms import LaborContractForm, LeaveRequestForm
+from apps.ui_modern.mixins import require_current_company
 
 
 class LaborContractListView(LoginRequiredMixin, ListView):
@@ -27,8 +27,11 @@ class LaborContractListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        return LaborContract.objects.select_related("employee", "department", "company").order_by(
-            "-start_date"
+        company = require_current_company(self.request)
+        return (
+            LaborContract.objects.filter(company=company)
+            .select_related("employee", "department", "company")
+            .order_by("-start_date")
         )
 
     def get_context_data(self, **kwargs):
@@ -53,9 +56,7 @@ class LaborContractCreateView(LoginRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form):
-        company = Company.objects.first()
-        if company:
-            form.instance.company = company
+        form.instance.company = require_current_company(self.request)
         return super().form_valid(form)
 
 
@@ -68,7 +69,12 @@ class DependentListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        return Dependent.objects.select_related("employee").order_by("-valid_from")
+        company = require_current_company(self.request)
+        return (
+            Dependent.objects.filter(employee__company=company)
+            .select_related("employee")
+            .order_by("-valid_from")
+        )
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -111,12 +117,10 @@ class InsuranceDashboardView(LoginRequiredMixin, TemplateView):
             period = today.month
         period_str = f"{fiscal_year:04d}-{period:02d}"
 
-        company = Company.objects.first()
-        contributions_qs = InsuranceContribution.objects.none()
-        if company:
-            contributions_qs = InsuranceContribution.objects.filter(
-                company=company, period=period_str
-            ).select_related("employee")
+        company = require_current_company(self.request)
+        contributions_qs = InsuranceContribution.objects.filter(
+            company=company, period=period_str
+        ).select_related("employee")
 
         totals = contributions_qs.aggregate(
             salary_base=Sum("salary_base"),

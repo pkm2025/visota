@@ -3,8 +3,8 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView
 
-from apps.core.models import Company
 from apps.reporting.services.cash_flow import CashFlowService
+from apps.ui_modern.mixins import require_current_company
 from apps.ui_modern.views.report_views import _common_period_choices, _parse_period_kwargs
 
 
@@ -17,7 +17,7 @@ class CashFlowDirectView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         fy, period = _parse_period_kwargs(self.request)
-        company = Company.objects.first()
+        company = require_current_company(self.request)
         if company:
             ctx.update(CashFlowService(company=company).generate_direct(fy, period))
         ctx.update(
@@ -40,7 +40,7 @@ class CashFlowIndirectView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         fy, period = _parse_period_kwargs(self.request)
-        company = Company.objects.first()
+        company = require_current_company(self.request)
         if company:
             ctx.update(CashFlowService(company=company).generate_indirect(fy, period))
         ctx.update(

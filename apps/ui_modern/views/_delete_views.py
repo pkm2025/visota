@@ -9,8 +9,11 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import models
 from django.http import HttpResponseRedirect
+from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views import View
+
+from ..mixins import require_current_company
 
 
 class MasterDataDeleteView(LoginRequiredMixin, View):
@@ -18,6 +21,10 @@ class MasterDataDeleteView(LoginRequiredMixin, View):
 
     Subclasses must set :attr:`model` and :attr:`redirect_name` (the URL
     name to redirect to after deletion).
+
+    VAL-SEC-003: the lookup is scoped to ``request.current_company`` so
+    a user cannot delete another tenant's master-data record by guessing
+    its primary key.
     """
 
     model = None
@@ -27,10 +34,19 @@ class MasterDataDeleteView(LoginRequiredMixin, View):
     def get_redirect_url(self):
         return reverse(self.redirect_name)
 
-    def post(self, request, pk, *args, **kwargs):
-        from django.shortcuts import get_object_or_404
+    def _scope_kwargs(self, request):
+        """Return filter kwargs that pin the lookup to the current company.
 
-        instance = get_object_or_404(self.model, pk=pk)
+        Falls back to ``{}`` for models that don't expose a ``company`` FK
+        (so this base remains safe to use across master-data models).
+        """
+        company = require_current_company(request)
+        if any(f.name == "company" for f in self.model._meta.get_fields()):
+            return {"company": company}
+        return {}
+
+    def post(self, request, pk, *args, **kwargs):
+        instance = get_object_or_404(self.model, pk=pk, **self._scope_kwargs(request))
         label = f"{getattr(instance, 'code', '')} - {getattr(instance, 'name', '')}".strip(" -")
 
         # Block deletion when related records reference this one.

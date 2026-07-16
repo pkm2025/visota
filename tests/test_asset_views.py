@@ -3,14 +3,23 @@
 import pytest
 from django.test import Client
 
+from apps.core.models import Company
 from apps.identity.models import User
 
 
 @pytest.fixture
 def auth_client(db):
-    user = User.objects.create_superuser(username="alice", password="Secret123", email="alice@test.local")
+    company = Company.objects.create(
+        code="AST", name="Asset Co", tax_code="0100000002", accounting_regime="tt133"
+    )
+    user = User.objects.create_superuser(
+        username="alice", password="Secret123", email="alice@test.local"
+    )
     c = Client()
     c.force_login(user)
+    session = c.session
+    session["current_company_id"] = company.id
+    session.save()
     return c
 
 

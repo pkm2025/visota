@@ -6,8 +6,8 @@ from decimal import Decimal
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView
 
-from apps.core.models import Company
 from apps.costing.services import CostingService
+from apps.ui_modern.mixins import require_current_company
 
 
 class CostReportView(LoginRequiredMixin, TemplateView):
@@ -34,7 +34,7 @@ class CostReportView(LoginRequiredMixin, TemplateView):
         except Exception:
             output_qty = Decimal("0")
 
-        company = getattr(self.request, "current_company", None) or Company.objects.first()
+        company = require_current_company(self.request)
 
         service = CostingService(company)
         if output_qty > 0:

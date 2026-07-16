@@ -3,20 +3,27 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.views import View
 
 from apps.documents.models.attachment import Attachment
 from apps.documents.services.attachment_service import AttachmentService
+from apps.ui_modern.mixins import require_current_company
 
 
 class AttachmentUploadView(LoginRequiredMixin, View):
-    """Universal attachment upload — works for any entity."""
+    """Universal attachment upload — works for any entity.
+
+    VAL-SEC-003 / MEDIUM-02: verifies the target object belongs to the
+    current company before attaching.
+    """
 
     login_url = "/auth/login/"
 
     def post(self, request):
+        company = require_current_company(request)
         content_type_str = request.POST.get("content_type", "")
         object_id = request.POST.get("object_id")
         title = request.POST.get("title", "Untitled")
@@ -47,7 +54,13 @@ class AttachmentUploadView(LoginRequiredMixin, View):
             return redirect(referer)
 
         obj = get_object_or_404(model_class, pk=object_id)
-        company = getattr(obj, "company", None)
+        # Enforce tenant boundary: target object must belong to current company.
+        obj_company = getattr(obj, "company", None)
+        obj_company_id = getattr(obj_company, "id", None)
+        if obj_company is not None and obj_company_id is not None:
+            if obj_company_id != company.id:
+                raise PermissionDenied("Object does not belong to current company.")
+        company = obj_company or company
 
         att = AttachmentService.attach(
             obj=obj,
@@ -69,7 +82,8 @@ class AttachmentDeleteView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, pk):
-        att = get_object_or_404(Attachment, pk=pk)
+        company = require_current_company(request)
+        att = get_object_or_404(Attachment, pk=pk, company=company)
         if att.file:
             att.file.delete(save=False)
         title = att.title
@@ -84,7 +98,8 @@ class AttachmentDownloadView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get(self, request, pk):
-        att = get_object_or_404(Attachment, pk=pk)
+        company = require_current_company(request)
+        att = get_object_or_404(Attachment, pk=pk, company=company)
         if not att.file:
             messages.error(request, "File không tồn tại.")
             return redirect(request.META.get("HTTP_REFERER", "/modern/"))

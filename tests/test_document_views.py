@@ -21,6 +21,9 @@ def auth_client_with_voucher(db):
     VoucherLine.objects.create(voucher=v, line_no=2, account_code='5111', credit_vnd=Decimal('1000'))
     client = Client()
     client.force_login(user)
+    session = client.session
+    session['current_company_id'] = company.id
+    session.save()
     return client, v
 
 
@@ -62,6 +65,8 @@ def test_document_delete(auth_client_with_voucher):
         voucher=voucher, title='Delete me', file=fake,
     )
     doc_id = doc.id
+    # Sanity: confirm doc is in the same company as the session.
+    assert doc.company_id == voucher.company_id
     response = client.post(f'/modern/documents/{doc_id}/delete/')
     assert response.status_code == 302
     from apps.documents.models import VoucherDocument

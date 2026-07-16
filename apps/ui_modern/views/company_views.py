@@ -17,6 +17,7 @@ from apps.core.module_config import (
     MODULE_LABELS,
     ModuleVisibilityService,
 )
+from apps.ui_modern.mixins import require_current_company
 
 
 class CompanyProfileView(LoginRequiredMixin, View):
@@ -26,7 +27,7 @@ class CompanyProfileView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get_company(self, request):
-        return getattr(request, "current_company", None) or Company.objects.first()
+        return require_current_company(request)
 
     def get(self, request, *args, **kwargs):
         company = self.get_company(request)

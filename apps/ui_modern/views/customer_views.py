@@ -7,6 +7,7 @@ from django.views.generic import CreateView, ListView, UpdateView
 
 from apps.master_data.models import Customer
 
+from ..mixins import require_current_company
 from ._delete_views import MasterDataDeleteView
 from ._export_utils import autosize, new_workbook, style_header, xlsx_response
 
@@ -39,7 +40,8 @@ class CustomerListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        return Customer.objects.select_related("company").order_by("code")
+        company = require_current_company(self.request)
+        return Customer.objects.filter(company=company).select_related("company").order_by("code")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -60,10 +62,7 @@ class CustomerCreateView(LoginRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form):
-        # TODO: use request.current_company once tenant middleware wired into views
-        from apps.core.models import Company
-
-        form.instance.company = Company.objects.first()
+        form.instance.company = require_current_company(self.request)
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -76,6 +75,7 @@ class CustomerExportView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get(self, request, *args, **kwargs):
+        company = require_current_company(request)
         wb, ws = new_workbook("Khách hàng")
         headers = [
             "Mã",
@@ -92,7 +92,9 @@ class CustomerExportView(LoginRequiredMixin, View):
         ]
         ws.append(headers)
         style_header(ws, len(headers))
-        for c in Customer.objects.select_related("company").order_by("code"):
+        for c in (
+            Customer.objects.filter(company=company).select_related("company").order_by("code")
+        ):
             ws.append(
                 [
                     c.code,
@@ -117,6 +119,10 @@ class CustomerUpdateView(LoginRequiredMixin, UpdateView):
     template_name = "modern/master_data/customer_form.html"
     fields = _CUSTOMER_FIELDS
     login_url = "/auth/login/"
+
+    def get_queryset(self):
+        company = require_current_company(self.request)
+        return Customer.objects.filter(company=company)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

@@ -19,8 +19,8 @@ from django.db.models import Q
 from django.shortcuts import redirect
 from django.views.generic import TemplateView
 
-from apps.core.models import Company
 from apps.ledger.models import AccountingVoucher, AccountPeriodBalance
+from apps.ui_modern.mixins import require_current_company
 from apps.ui_modern.views.report_views import _common_period_choices, _parse_period_kwargs
 
 
@@ -33,7 +33,7 @@ class YearEndCarryForwardView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         fy, _ = _parse_period_kwargs(self.request)
-        company = Company.objects.first()
+        company = require_current_company(self.request)
 
         balances = AccountPeriodBalance.objects.filter(
             company=company, fiscal_year=fy, period=12
@@ -71,7 +71,7 @@ class YearEndCarryForwardView(LoginRequiredMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         fy, _ = _parse_period_kwargs(request)
         next_year = fy + 1
-        company = Company.objects.first()
+        company = require_current_company(request)
 
         balances = AccountPeriodBalance.objects.filter(company=company, fiscal_year=fy, period=12)
         created = 0
@@ -117,7 +117,7 @@ class PeriodAllocationView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         fy, period = _parse_period_kwargs(self.request)
-        company = Company.objects.first()
+        company = require_current_company(self.request)
 
         balances = (
             AccountPeriodBalance.objects.filter(company=company, fiscal_year=fy, period=period)
@@ -231,7 +231,7 @@ class ClosingEntryDeclarationView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         fy, period = _parse_period_kwargs(self.request)
-        company = Company.objects.first()
+        company = require_current_company(self.request)
 
         rows = []
         for entry in self.CLOSING_ENTRIES:
@@ -268,7 +268,7 @@ class VoucherRenumberView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         fy, period = _parse_period_kwargs(self.request)
-        company = Company.objects.first()
+        company = require_current_company(self.request)
 
         vouchers = (
             AccountingVoucher.objects.filter(company=company, fiscal_year=fy, period=period)
@@ -311,7 +311,7 @@ class VoucherRenumberView(LoginRequiredMixin, TemplateView):
 
     def post(self, request, *args, **kwargs):
         fy, period = _parse_period_kwargs(request)
-        company = Company.objects.first()
+        company = require_current_company(request)
 
         vouchers = AccountingVoucher.objects.filter(
             company=company, fiscal_year=fy, period=period
@@ -346,7 +346,7 @@ class CustomerOpeningBalanceView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         fy, _ = _parse_period_kwargs(self.request)
-        company = Company.objects.first()
+        company = require_current_company(self.request)
 
         # Aggregate TK 131 by object_code at period 0
         balances = AccountPeriodBalance.objects.filter(
@@ -391,7 +391,7 @@ class InvoiceOpeningBalanceView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         fy, _ = _parse_period_kwargs(self.request)
-        company = Company.objects.first()
+        company = require_current_company(self.request)
 
         # Aggregate TK 131/331 by invoice reference at period 0
         balances = (

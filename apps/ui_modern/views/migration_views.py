@@ -8,8 +8,8 @@ from django.shortcuts import redirect, render
 from django.views import View
 from openpyxl import load_workbook
 
-from apps.core.models import Company
 from apps.master_data.models import Customer, Product, Vendor
+from apps.ui_modern.mixins import require_current_company
 
 
 class MigrationUploadView(LoginRequiredMixin, View):
@@ -30,7 +30,7 @@ class MigrationUploadView(LoginRequiredMixin, View):
         return render(request, self.template_name, ctx)
 
     def post(self, request, *args, **kwargs):
-        company = getattr(request, "current_company", None) or Company.objects.first()
+        company = require_current_company(request)
         if not company:
             messages.error(request, "Chưa có công ty.")
             return redirect("ui_modern:dashboard")

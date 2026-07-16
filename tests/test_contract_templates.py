@@ -37,9 +37,10 @@ def contract(company):
     )
 
 
-def test_create_contract_template(db):
+def test_create_contract_template(db, company):
     """A ContractTemplate can be created with required fields."""
     tpl = ContractTemplate.objects.create(
+        company=company,
         code='sale_v1',
         name='Hợp đồng mua bán hàng hóa',
         contract_type='sale',
@@ -58,6 +59,7 @@ def test_create_contract_template(db):
 def test_render_template_with_context(company, contract):
     """Template HTML renders with company + contract context."""
     tpl = ContractTemplate.objects.create(
+        company=company,
         code='sale_v1',
         name='HĐ mua bán',
         contract_type='sale',
@@ -75,6 +77,7 @@ def test_render_template_with_context(company, contract):
 def test_generate_contract_pdf_bytes(company, contract):
     """generate_contract_pdf returns PDF bytes (or HTML fallback)."""
     tpl = ContractTemplate.objects.create(
+        company=company,
         code='sale_v1',
         name='HĐ mua bán',
         contract_type='sale',
@@ -91,6 +94,7 @@ def test_generate_contract_pdf_bytes(company, contract):
 def test_build_context_autofill(company, contract):
     """_build_context auto-fills company, contract, today."""
     ContractTemplate.objects.create(
+        company=company,
         code='sale_v1', name='HĐ mua bán', contract_type='sale', template_html='x',
     )
     service = ContractPrintService()

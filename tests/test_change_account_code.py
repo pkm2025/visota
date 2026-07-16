@@ -190,8 +190,12 @@ def test_post_change_code_redirects_to_list(auth_client, account_1111):
     assert resp.status_code == 302
 
 
-def test_post_change_code_invalid_pk_404(auth_client):
+def test_post_change_code_invalid_pk_404(auth_client, company):
     """A non-existent pk returns 404."""
+    # Set session so the view can resolve the current company.
+    session = auth_client.session
+    session["current_company_id"] = company.id
+    session.save()
     resp = auth_client.post(
         "/modern/chart-of-accounts/99999999/change-code/",
         data={"new_code": "7111"},

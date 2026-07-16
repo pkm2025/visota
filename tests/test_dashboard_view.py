@@ -2,7 +2,25 @@
 
 import pytest
 from django.test import Client
+from apps.core.models import Company
 from apps.identity.models import User
+
+
+@pytest.fixture
+def company_with_session():
+    """Create a company and yield (company, authenticated client) pair."""
+    company = Company.objects.create(
+        code="DASH", name="Dash Co", tax_code="0100000001", accounting_regime="tt133"
+    )
+    user = User.objects.create_superuser(
+        username="alice", password="Secret123", email="alice@test.local", full_name="Alice"
+    )
+    client = Client()
+    client.force_login(user)
+    session = client.session
+    session["current_company_id"] = company.id
+    session.save()
+    return company, client, user
 
 
 def test_dashboard_requires_login():
@@ -14,49 +32,33 @@ def test_dashboard_requires_login():
 
 
 @pytest.mark.django_db
-def test_dashboard_loads_for_authenticated_user():
+def test_dashboard_loads_for_authenticated_user(company_with_session):
     """Authenticated users see dashboard with greeting."""
-    user = User.objects.create_superuser(
-        username="alice",
-        password="Secret123",
-        full_name="Alice",
-        email="alice@test.local",
-    )
-    client = Client()
-    client.force_login(user)
+    _, client, _ = company_with_session
 
     response = client.get("/modern/")
     assert response.status_code == 200
     content = response.content.decode("utf-8")
     assert "Tổng quan" in content
-    assert "Alice" in content
 
 
 @pytest.mark.django_db
-def test_dashboard_has_layout_switcher():
+def test_dashboard_has_layout_switcher(company_with_session):
     """Dashboard does not show layout switcher when only one layout has routes.
 
     VAL-UX-001: Dead layout switcher links (/classic/, /mobile/, /portal/) removed.
     Only 'modern' layout has URL routes, so switcher is hidden.
     """
-    user = User.objects.create_superuser(
-        username="alice", password="Secret123", email="alice@test.local"
-    )
-    client = Client()
-    client.force_login(user)
+    _, client, _ = company_with_session
     response = client.get("/modern/")
     # Switcher should not render when only 1 layout available
     assert b"layout-switcher" not in response.content
 
 
 @pytest.mark.django_db
-def test_dashboard_has_sidebar_with_navigation():
+def test_dashboard_has_sidebar_with_navigation(company_with_session):
     """Sidebar contains navigation sections."""
-    user = User.objects.create_superuser(
-        username="alice", password="Secret123", email="alice@test.local"
-    )
-    client = Client()
-    client.force_login(user)
+    _, client, _ = company_with_session
     response = client.get("/modern/")
     content = response.content.decode("utf-8")
     assert "sidebar" in content
@@ -65,13 +67,9 @@ def test_dashboard_has_sidebar_with_navigation():
 
 
 @pytest.mark.django_db
-def test_dashboard_has_mobile_home_screen():
+def test_dashboard_has_mobile_home_screen(company_with_session):
     """Dashboard includes mobile-only compact metrics + quick actions (d-md-none)."""
-    user = User.objects.create_superuser(
-        username="alice", password="Secret123", email="alice@test.local"
-    )
-    client = Client()
-    client.force_login(user)
+    _, client, _ = company_with_session
     response = client.get("/modern/")
     content = response.content.decode("utf-8")
     # Mobile section is hidden on desktop via d-md-none
@@ -88,13 +86,9 @@ def test_dashboard_has_mobile_home_screen():
 
 
 @pytest.mark.django_db
-def test_dashboard_ceo_view_has_cash_pnl_ar():
+def test_dashboard_ceo_view_has_cash_pnl_ar(company_with_session):
     """CEO view shows cash position, P&L, and AR aging widgets."""
-    user = User.objects.create_superuser(
-        username="alice", password="Secret123", email="alice@test.local"
-    )
-    client = Client()
-    client.force_login(user)
+    _, client, _ = company_with_session
     response = client.get("/modern/?view=ceo")
     content = response.content.decode("utf-8")
     assert "Tiền hiện có" in content

@@ -6,12 +6,12 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404, HttpResponse
 from django.views import View
 
-from apps.core.models import Company
 from apps.einvoice.models import EInvoice
 from apps.einvoice.services.einvoice_pdf_service import (
     EInvoicePDFError,
     EInvoicePDFService,
 )
+from apps.ui_modern.mixins import require_current_company
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class EinvoicePDFView(LoginRequiredMixin, View):
     def get(self, request, pk):
         # ponytail: mirror apps/einvoice/views.py company resolution —
         # request.current_company (session-driven) with first() fallback.
-        company = getattr(request, "current_company", None) or Company.objects.first()
+        company = require_current_company(request)
         try:
             einvoice = EInvoice.objects.get(pk=pk, company=company)
         except EInvoice.DoesNotExist:

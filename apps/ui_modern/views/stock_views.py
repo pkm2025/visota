@@ -9,7 +9,6 @@ from django.db import transaction as db_transaction
 from django.shortcuts import redirect, render
 from django.views.generic import ListView, TemplateView
 
-from apps.core.models import Company
 from apps.inventory.models import (
     StockAdjustment,
     StockAdjustmentLine,
@@ -18,6 +17,7 @@ from apps.inventory.models import (
 )
 from apps.inventory.services import StockDashboardService, StockService
 from apps.master_data.models import Product, Warehouse
+from apps.ui_modern.mixins import require_current_company
 
 
 class StockVoucherListView(LoginRequiredMixin, ListView):
@@ -50,9 +50,8 @@ class StockVoucherCreateView(LoginRequiredMixin, TemplateView):
         return ctx
 
     def post(self, request, *args, **kwargs):
-        from apps.core.models import Company
 
-        company = Company.objects.first()
+        company = require_current_company(request)
         if not company:
             messages.error(request, "Chưa có công ty nào được cấu hình.")
             return redirect("ui_modern:stock_voucher_list")
@@ -120,7 +119,7 @@ class StockDashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        company = Company.objects.first()
+        company = require_current_company(self.request)
         if company:
             summary = StockDashboardService.get_summary(company)
             low_stock = StockDashboardService.get_low_stock_products(company)
@@ -172,7 +171,7 @@ class StockAdjustmentCreateView(LoginRequiredMixin, TemplateView):
         return ctx
 
     def post(self, request, *args, **kwargs):
-        company = Company.objects.first()
+        company = require_current_company(request)
         if not company:
             messages.error(request, "Chưa có công ty nào được cấu hình.")
             return redirect("ui_modern:stock_adjustment_list")
@@ -283,7 +282,7 @@ class StockCardView(LoginRequiredMixin, TemplateView):
         product_id = request.GET.get("product_id")
         warehouse_id = request.GET.get("warehouse_id")
         if product_id:
-            company = Company.objects.first()
+            company = require_current_company(request)
             rows = StockDashboardService.get_stock_card(
                 company, int(product_id), warehouse_id or None
             )

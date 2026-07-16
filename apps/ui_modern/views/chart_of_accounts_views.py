@@ -9,6 +9,7 @@ from django.views.generic import ListView, View
 
 from apps.ledger.models import AccountPeriodBalance, VoucherLine
 from apps.master_data.models import ChartOfAccounts
+from apps.ui_modern.mixins import require_current_company
 
 
 class ChartOfAccountsListView(LoginRequiredMixin, ListView):
@@ -20,7 +21,12 @@ class ChartOfAccountsListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        qs = ChartOfAccounts.objects.select_related("company").order_by("account_code")
+        company = require_current_company(self.request)
+        qs = (
+            ChartOfAccounts.objects.filter(company=company)
+            .select_related("company")
+            .order_by("account_code")
+        )
         account_type = self.request.GET.get("account_type")
         if account_type:
             qs = qs.filter(account_type=account_type)
@@ -33,9 +39,11 @@ class ChartOfAccountsListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        company = require_current_company(self.request)
         ctx["page_title"] = "Hệ thống tài khoản"
         ctx["account_type_choices"] = (
             ChartOfAccounts.objects.values_list("account_type", flat=True)
+            .filter(company=company)
             .distinct()
             .order_by("account_type")
         )
@@ -51,8 +59,9 @@ class ChartOfAccountsChangeCodeView(LoginRequiredMixin, View):
 
     * ``ChartOfAccounts.account_code`` (and ``parent_account_code`` references
       from children)
-    * ``VoucherLine.account_code``
-    * ``AccountPeriodBalance.account_code``
+    * ``VoucherLine.account_code`` — scoped to ``voucher__company`` so other
+      tenants' lines are untouched (VAL-SEC-003 / HIGH-03).
+    * ``AccountPeriodBalance.account_code`` — scoped to ``company``.
 
     URL: /modern/chart-of-accounts/<pk>/change-code/
     """
@@ -60,12 +69,16 @@ class ChartOfAccountsChangeCodeView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
     template_name = "modern/ledger/change_account_code.html"
 
+    def _get_account(self, request: HttpRequest, pk: int) -> ChartOfAccounts:
+        company = require_current_company(request)
+        return get_object_or_404(ChartOfAccounts, pk=pk, company=company)
+
     def get(self, request: HttpRequest, pk: int, *args, **kwargs) -> HttpResponse:
-        account = get_object_or_404(ChartOfAccounts, pk=pk)
+        account = self._get_account(request, pk)
         return self._render_form(request, account, error=None)
 
     def post(self, request: HttpRequest, pk: int, *args, **kwargs) -> HttpResponse:
-        account = get_object_or_404(ChartOfAccounts, pk=pk)
+        account = self._get_account(request, pk)
         new_code = (request.POST.get("new_code") or "").strip()
 
         # ── Validations ───────────────────────────────────────────────
@@ -92,8 +105,12 @@ class ChartOfAccountsChangeCodeView(LoginRequiredMixin, View):
         # ── Cascade update in single transaction ──────────────────────
         old_code = account.account_code
         with transaction.atomic():
-            # 1. Update VoucherLine.account_code
-            VoucherLine.objects.filter(account_code=old_code).update(account_code=new_code)
+            # 1. Update VoucherLine.account_code — scoped to the account's company
+            # so the same code in another tenant's chart is left untouched.
+            VoucherLine.objects.filter(
+                voucher__company_id=account.company_id,
+                account_code=old_code,
+            ).update(account_code=new_code)
             # 2. Update AccountPeriodBalance.account_code (same company scope)
             AccountPeriodBalance.objects.filter(
                 company_id=account.company_id, account_code=old_code

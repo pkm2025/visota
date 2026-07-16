@@ -52,9 +52,13 @@ def test_balance_sheet_balanced(company_with_data):
 
 
 def test_balance_sheet_view_loads(db):
+    company = Company.objects.create(code='TCO', name='Test')
     user = User.objects.create_superuser(username='alice', password='Secret123', email='alice@test.local')
     client = Client()
     client.force_login(user)
+    session = client.session
+    session['current_company_id'] = company.id
+    session.save()
     response = client.get('/modern/reports/balance-sheet/')
     assert response.status_code == 200
     assert 'Báo cáo tình hình tài chính' in response.content.decode('utf-8')

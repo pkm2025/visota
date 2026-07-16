@@ -7,6 +7,7 @@ from django.views import View
 
 from apps.payroll.models import PayrollRun
 from apps.payroll.services import PayrollService
+from apps.ui_modern.mixins import require_current_company
 
 
 class PayrollRunView(LoginRequiredMixin, View):
@@ -21,7 +22,12 @@ class PayrollRunView(LoginRequiredMixin, View):
         from datetime import date
 
         today = date.today()
-        recent_runs = PayrollRun.objects.select_related("company").order_by("-period")[:10]
+        company = require_current_company(request)
+        recent_runs = (
+            PayrollRun.objects.filter(company=company)
+            .select_related("company")
+            .order_by("-period")[:10]
+        )
         return render(
             request,
             self.template_name,
@@ -34,8 +40,7 @@ class PayrollRunView(LoginRequiredMixin, View):
         )
 
     def post(self, request, *args, **kwargs):
-        from apps.core.models import Company
-
+        company = require_current_company(request)
         action = request.POST.get("action", "calculate")
         year = request.POST.get("year")
         month = request.POST.get("month")
@@ -52,11 +57,6 @@ class PayrollRunView(LoginRequiredMixin, View):
             return redirect("ui_modern:payroll_run")
 
         period = f"{year_i:04d}-{month_i:02d}"
-
-        company = Company.objects.first()
-        if not company:
-            messages.error(request, "Chưa có công ty nào được cấu hình.")
-            return redirect("ui_modern:payroll_run")
 
         try:
             run = PayrollService(company).calculate(period, standard_work_days=22)

@@ -27,6 +27,7 @@ from apps.ledger.dnsn_ledger_types import (
     get_required_ledgers,
 )
 from apps.ledger.models import DnsnLedgerBalance, DnsnLedgerEntry
+from apps.ui_modern.mixins import require_current_company
 
 
 def _get_company(request) -> Company:
@@ -34,7 +35,7 @@ def _get_company(request) -> Company:
     company = getattr(request, "current_company", None)
     if company:
         return company
-    return Company.objects.first()
+    return require_current_company(request)
 
 
 class DnsnLedgerListView(LoginRequiredMixin, ListView):

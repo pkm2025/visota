@@ -22,6 +22,7 @@ from django.views.generic import TemplateView
 
 from apps.core.models import Company
 from apps.reporting.services.dnsn_report_service import DnsnReportService
+from apps.ui_modern.mixins import require_current_company
 
 DNSN_REPORTS = [
     {
@@ -46,7 +47,7 @@ def _get_company(request) -> Company:
     company = getattr(request, "current_company", None)
     if company:
         return company
-    return Company.objects.first()
+    return require_current_company(request)
 
 
 def _parse_period(request) -> tuple[int, int]:

@@ -11,7 +11,6 @@ from django.views import View
 from django.views.generic import CreateView, DetailView, ListView
 
 from apps.contracts.models import Contract
-from apps.core.models import Company
 from apps.hr.models import Employee
 from apps.master_data.models import Product
 from apps.projects.models import (
@@ -20,6 +19,7 @@ from apps.projects.models import (
     ProjectResource,
 )
 from apps.projects.services import ProjectService
+from apps.ui_modern.mixins import require_current_company
 
 
 class ProjectListView(LoginRequiredMixin, ListView):
@@ -31,7 +31,12 @@ class ProjectListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        qs = Project.objects.select_related("manager", "contract").order_by("-created_at")
+        company = require_current_company(self.request)
+        qs = (
+            Project.objects.filter(company=company)
+            .select_related("manager", "contract")
+            .order_by("-created_at")
+        )
         search = self.request.GET.get("search", "").strip()
         if search:
             qs = qs.filter(
@@ -76,16 +81,17 @@ class ProjectCreateView(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        company = require_current_company(self.request)
         ctx["page_title"] = "Tạo dự án"
         ctx["page_parent"] = "Dự án"
-        ctx["employees"] = Employee.objects.filter(status="active")
-        ctx["contracts"] = Contract.objects.filter(status="active")
+        ctx["employees"] = Employee.objects.filter(company=company, status="active")
+        ctx["contracts"] = Contract.objects.filter(company=company, status="active")
         ctx["status_choices"] = Project.Status.choices
         ctx["priority_choices"] = Project.Priority.choices
         return ctx
 
     def form_valid(self, form):
-        form.instance.company = Company.objects.first()
+        form.instance.company = require_current_company(self.request)
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -100,11 +106,15 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        return Project.objects.prefetch_related("phases", "resources", "transactions")
+        company = require_current_company(self.request)
+        return Project.objects.filter(company=company).prefetch_related(
+            "phases", "resources", "transactions"
+        )
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         project = self.object
+        company = require_current_company(self.request)
         from apps.documents.services.attachment_service import AttachmentService
 
         ctx["page_title"] = f"{project.code} - {project.name}"
@@ -115,8 +125,8 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         ctx["phases"] = project.phases.all()
         ctx["resources"] = project.resources.all().select_related("employee", "product")
         ctx["transactions"] = project.transactions.all()[:20]
-        ctx["employees"] = Employee.objects.filter(status="active")
-        ctx["products"] = Product.objects.filter(is_active=True)
+        ctx["employees"] = Employee.objects.filter(company=company, status="active")
+        ctx["products"] = Product.objects.filter(company=company, is_active=True)
         ctx["attachments"] = AttachmentService.get_for_object(project)
         ctx["object_type"] = "projects.project"
         ctx["object_id"] = project.pk
@@ -129,7 +139,8 @@ class ProjectAddPhaseView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, pk):
-        project = get_object_or_404(Project, pk=pk)
+        company = require_current_company(request)
+        project = get_object_or_404(Project, pk=pk, company=company)
         name = request.POST.get("name", "").strip()
         if not name:
             return HttpResponseBadRequest("Name is required")
@@ -155,7 +166,8 @@ class ProjectTogglePhaseView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, pk, phase_pk):
-        project = get_object_or_404(Project, pk=pk)
+        company = require_current_company(request)
+        project = get_object_or_404(Project, pk=pk, company=company)
         phase = get_object_or_404(ProjectPhase, project=project, pk=phase_pk)
         new_status = request.POST.get("status", "completed")
         phase.status = new_status
@@ -176,7 +188,8 @@ class ProjectAddResourceView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, pk):
-        project = get_object_or_404(Project, pk=pk)
+        company = require_current_company(request)
+        project = get_object_or_404(Project, pk=pk, company=company)
         resource_type = request.POST.get("resource_type", "human")
         employee_id = request.POST.get("employee") or None
         product_id = request.POST.get("product") or None

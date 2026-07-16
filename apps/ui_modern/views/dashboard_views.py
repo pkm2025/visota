@@ -16,6 +16,7 @@ from apps.ledger.models.dnsn import DnsnLedgerBalance, DnsnLedgerEntry, DnsnVouc
 from apps.ledger.models.voucher import AccountingVoucher, VoucherLine
 from apps.ledger.services.voucher_posting_service import VoucherPostingService
 from apps.sales.models import SalesInvoice
+from apps.ui_modern.mixins import require_current_company
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
@@ -28,7 +29,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         ctx["page_title"] = "Tổng quan"
 
-        company = getattr(self.request, "current_company", None) or Company.objects.first()
+        company = require_current_company(self.request)
         today = date.today()
         view_mode = self.request.GET.get("view", "ceo")
 
@@ -472,7 +473,7 @@ class QuickExpenseView(LoginRequiredMixin, TemplateView):
         return ctx
 
     def post(self, request, *args, **kwargs):
-        company = getattr(request, "current_company", None) or Company.objects.first()
+        company = require_current_company(request)
         if not company:
             messages.error(request, "Chưa có công ty.")
             return redirect("ui_modern:dashboard")

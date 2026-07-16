@@ -95,7 +95,9 @@ def test_contract_wizard_shows_categories(auth_client):
 def test_contract_wizard_filters_by_category(auth_client, setup):
     from apps.contracts.models import ContractTemplate
 
+    company, _ = setup
     ContractTemplate.objects.create(
+        company=company,
         code="TEST_WIZ_LABOR",
         name="HĐLĐ Test",
         contract_type="labor_fixed",
@@ -115,7 +117,9 @@ def test_contract_create_with_template_param(auth_client, setup):
     """Contract create page accepts ?template=CODE and shows template info."""
     from apps.contracts.models import ContractTemplate
 
+    company, _ = setup
     ContractTemplate.objects.create(
+        company=company,
         code="TEST_WIZARD",
         name="Test Wizard Template",
         contract_type="service",

@@ -5,9 +5,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import ListView, TemplateView, View
 
-from apps.core.models import Company
 from apps.input_docs.models import InputInvoice
 from apps.input_docs.services import InvoiceExtractionService
+from apps.ui_modern.mixins import require_current_company
 
 
 class InputInvoiceListView(LoginRequiredMixin, ListView):
@@ -19,8 +19,11 @@ class InputInvoiceListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        return InputInvoice.objects.select_related("purchase_invoice", "processed_by").order_by(
-            "-created_at", "-id"
+        company = require_current_company(self.request)
+        return (
+            InputInvoice.objects.filter(company=company)
+            .select_related("purchase_invoice", "processed_by")
+            .order_by("-created_at", "-id")
         )
 
     def get_context_data(self, **kwargs):
@@ -47,11 +50,7 @@ class InputInvoiceUploadView(LoginRequiredMixin, TemplateView):
         return ctx
 
     def post(self, request, *args, **kwargs):
-        company = Company.objects.first()
-        if not company:
-            messages.error(request, "Chưa có công ty nào được cấu hình.")
-            return redirect("ui_modern:input_invoice_list")
-
+        company = require_current_company(request)
         raw_text = request.POST.get("raw_text", "") or ""
         xml_text = request.POST.get("xml_text", "") or ""
 
@@ -105,7 +104,7 @@ class InputInvoiceProcessView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, pk, *args, **kwargs):
-        company = Company.objects.first()
+        company = require_current_company(request)
         inv = get_object_or_404(InputInvoice, pk=pk, company=company)
 
         product_id = request.POST.get("product_id")

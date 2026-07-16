@@ -7,6 +7,7 @@ from django.views.generic import CreateView, ListView, UpdateView
 
 from apps.master_data.models import Vendor
 
+from ..mixins import require_current_company
 from ._delete_views import MasterDataDeleteView
 from ._export_utils import autosize, new_workbook, style_header, xlsx_response
 
@@ -37,7 +38,8 @@ class VendorListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        return Vendor.objects.select_related("company").order_by("code")
+        company = require_current_company(self.request)
+        return Vendor.objects.filter(company=company).select_related("company").order_by("code")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -51,6 +53,7 @@ class VendorExportView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get(self, request, *args, **kwargs):
+        company = require_current_company(request)
         wb, ws = new_workbook("Nhà cung cấp")
         headers = [
             "Mã",
@@ -67,7 +70,7 @@ class VendorExportView(LoginRequiredMixin, View):
         ]
         ws.append(headers)
         style_header(ws, len(headers))
-        for v in Vendor.objects.select_related("company").order_by("code"):
+        for v in Vendor.objects.filter(company=company).select_related("company").order_by("code"):
             kind = "Nhà thầu" if v.is_contractor else "Hàng hóa"
             ws.append(
                 [
@@ -101,9 +104,7 @@ class VendorCreateView(LoginRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form):
-        from apps.core.models import Company
-
-        form.instance.company = Company.objects.first()
+        form.instance.company = require_current_company(self.request)
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -115,6 +116,10 @@ class VendorUpdateView(LoginRequiredMixin, UpdateView):
     template_name = "modern/master_data/vendor_form.html"
     fields = _VENDOR_FIELDS
     login_url = "/auth/login/"
+
+    def get_queryset(self):
+        company = require_current_company(self.request)
+        return Vendor.objects.filter(company=company)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

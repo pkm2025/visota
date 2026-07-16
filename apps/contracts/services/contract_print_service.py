@@ -30,8 +30,13 @@ class ContractPrintService:
     """Generate contract PDFs from ContractTemplate HTML."""
 
     def generate_contract_pdf(self, contract: Contract, template_code: str) -> bytes:
-        """Render contract data into template, generate PDF via WeasyPrint."""
-        template = ContractTemplate.objects.get(code=template_code)
+        """Render contract data into template, generate PDF via WeasyPrint.
+
+        VAL-SEC-004: ContractTemplate is now company-scoped. The lookup
+        uses ``(company, code)`` so a tenant can only render its own
+        templates; a foreign tenant's template_code is invisible.
+        """
+        template = ContractTemplate.objects.get(company=contract.company, code=template_code)
         context = self._build_context(contract)
         html = render_to_string_from_string(template.template_html, context)
         if not WEASYPRINT_AVAILABLE:

@@ -18,6 +18,7 @@ from django.views import View
 
 from apps.core.models import Company
 from apps.ledger.services.balance_conversion_service import BalanceConversionService
+from apps.ui_modern.mixins import require_current_company
 
 
 def _get_company(request) -> Company:
@@ -25,7 +26,7 @@ def _get_company(request) -> Company:
     company = getattr(request, "current_company", None)
     if company:
         return company
-    return Company.objects.first()
+    return require_current_company(request)
 
 
 def _parse_period(request):

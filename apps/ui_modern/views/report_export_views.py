@@ -38,9 +38,9 @@ from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.views import View
 
-from apps.core.models import Company
 from apps.ledger.models import AccountingVoucher, AccountPeriodBalance, VoucherLine
 from apps.reporting.services import BalanceSheetService, CashFlowService, PnLService
+from apps.ui_modern.mixins import require_current_company
 
 # ---------------------------------------------------------------------------
 # Report metadata
@@ -403,7 +403,7 @@ class ReportExportView(LoginRequiredMixin, View):
             )
 
         fy, period = self._parse_period(request)
-        company = Company.objects.first()
+        company = require_current_company(request)
         report_title, file_code = REPORT_META[report_code]
         headers, rows = self._gather_data(report_code, company, fy, period, request)
 

@@ -10,7 +10,6 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DetailView, ListView
 
-from apps.core.models import Company
 from apps.crm.models import (
     Campaign,
     CRMAccount,
@@ -20,6 +19,7 @@ from apps.crm.models import (
     Ticket,
 )
 from apps.crm.services import OpportunityConverter
+from apps.ui_modern.mixins import require_current_company
 
 # ---------------------------------------------------------------------------
 # Leads
@@ -33,7 +33,12 @@ class LeadListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        qs = CRMLead.objects.select_related("assigned_to").order_by("-created_at")
+        company = require_current_company(self.request)
+        qs = (
+            CRMLead.objects.filter(company=company)
+            .select_related("assigned_to")
+            .order_by("-created_at")
+        )
         search = self.request.GET.get("search", "").strip()
         if search:
             qs = qs.filter(
@@ -87,7 +92,7 @@ class LeadCreateView(LoginRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form):
-        form.instance.company = Company.objects.first()
+        form.instance.company = require_current_company(self.request)
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -123,7 +128,7 @@ class AccountCreateView(LoginRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form):
-        form.instance.company = Company.objects.first()
+        form.instance.company = require_current_company(self.request)
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -142,7 +147,12 @@ class OpportunityListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        qs = Opportunity.objects.select_related("account", "assigned_to").order_by("-created_at")
+        company = require_current_company(self.request)
+        qs = (
+            Opportunity.objects.filter(company=company)
+            .select_related("account", "assigned_to")
+            .order_by("-created_at")
+        )
         search = self.request.GET.get("search", "").strip()
         if search:
             qs = qs.filter(
@@ -183,14 +193,15 @@ class OpportunityCreateView(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        company = require_current_company(self.request)
         ctx["page_title"] = "Thêm cơ hội bán hàng"
         ctx["page_parent"] = "CRM"
         ctx["is_new"] = True
-        ctx["accounts"] = CRMAccount.objects.all().order_by("name")
+        ctx["accounts"] = CRMAccount.objects.filter(company=company).order_by("name")
         return ctx
 
     def form_valid(self, form):
-        form.instance.company = Company.objects.first()
+        form.instance.company = require_current_company(self.request)
         response = super().form_valid(form)
         self._save_lines(self.object)
         return response
@@ -230,6 +241,10 @@ class OpportunityDetailView(LoginRequiredMixin, DetailView):
     context_object_name = "opportunity"
     login_url = "/auth/login/"
 
+    def get_queryset(self):
+        company = require_current_company(self.request)
+        return Opportunity.objects.filter(company=company)
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         from apps.documents.services.attachment_service import AttachmentService
@@ -249,7 +264,8 @@ class OpportunityConvertView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, pk, *args, **kwargs):
-        opportunity = get_object_or_404(Opportunity, pk=pk)
+        company = require_current_company(request)
+        opportunity = get_object_or_404(Opportunity, pk=pk, company=company)
         if opportunity.stage == Opportunity.Stage.WON:
             messages.info(request, "Cơ hội đã được chuyển đổi.")
             return redirect("ui_modern:crm_opportunity_detail", pk=pk)
@@ -258,7 +274,6 @@ class OpportunityConvertView(LoginRequiredMixin, View):
         opportunity.probability = Decimal("100")
         opportunity.save()
 
-        company = opportunity.company or Company.objects.first()
         try:
             results = OpportunityConverter(company=company).convert(opportunity)
         except Exception as exc:  # noqa: BLE001
@@ -289,7 +304,12 @@ class TicketListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        qs = Ticket.objects.select_related("assigned_to").order_by("-created_at")
+        company = require_current_company(self.request)
+        qs = (
+            Ticket.objects.filter(company=company)
+            .select_related("assigned_to")
+            .order_by("-created_at")
+        )
         search = self.request.GET.get("search", "").strip()
         if search:
             qs = qs.filter(
@@ -341,7 +361,7 @@ class TicketCreateView(LoginRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form):
-        form.instance.company = Company.objects.first()
+        form.instance.company = require_current_company(self.request)
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -360,7 +380,8 @@ class CampaignListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        qs = Campaign.objects.order_by("-created_at")
+        company = require_current_company(self.request)
+        qs = Campaign.objects.filter(company=company).order_by("-created_at")
         search = self.request.GET.get("search", "").strip()
         if search:
             qs = qs.filter(Q(code__icontains=search) | Q(name__icontains=search))
@@ -402,7 +423,7 @@ class CampaignCreateView(LoginRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form):
-        form.instance.company = Company.objects.first()
+        form.instance.company = require_current_company(self.request)
         return super().form_valid(form)
 
     def get_success_url(self):

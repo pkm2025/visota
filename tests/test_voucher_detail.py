@@ -8,16 +8,28 @@ from apps.identity.models import User
 
 @pytest.fixture
 def auth_client(db):
+    from apps.core.models import Company
+    company = Company.objects.create(
+        code='TST', name='Test Co', tax_code='0100000000', accounting_regime='tt133'
+    )
     user = User.objects.create_superuser(username='alice', password='Secret123', email='alice@test.local')
     c = Client()
     c.force_login(user)
+    session = c.session
+    session['current_company_id'] = company.id
+    session.save()
     return c
 
 
 @pytest.fixture
 def voucher(db):
     from apps.core.models import Company
-    company = Company.objects.create(code='TCO', name='T')
+    # Reuse the auth_client's company code 'TST' so the session-scoped
+    # detail view (now filtered by company) can still find the voucher.
+    company = Company.objects.get_or_create(
+        code='TST',
+        defaults={'name': 'Test Co', 'tax_code': '0100000000', 'accounting_regime': 'tt133'},
+    )[0]
     v = AccountingVoucher.objects.create(
         company=company, fiscal_year=2026, period=6,
         voucher_no='BC0001', voucher_type='journal',

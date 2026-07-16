@@ -12,13 +12,13 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.views.generic import TemplateView
 
-from apps.core.models import Company
 from apps.ledger.models import AccountingVoucher, VoucherLine
+from apps.ui_modern.mixins import require_current_company
 from apps.ui_modern.views.report_views import _common_period_choices, _parse_period_kwargs
 
 
 def _get_company(request):
-    return getattr(request, "current_company", None) or Company.objects.first()
+    return require_current_company(request)
 
 
 class _BaseSpecializedJournal(LoginRequiredMixin, TemplateView):

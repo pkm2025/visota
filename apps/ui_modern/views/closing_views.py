@@ -7,8 +7,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
 from django.views.generic import TemplateView
 
-from apps.core.models import Company
 from apps.ledger.services import PeriodClosingService
+from apps.ui_modern.mixins import require_current_company
 
 
 class PeriodClosingView(LoginRequiredMixin, TemplateView):
@@ -25,7 +25,7 @@ class PeriodClosingView(LoginRequiredMixin, TemplateView):
         ctx["period_choices"] = list(range(1, 13))
 
         # TT58 BCTC status for display
-        company = getattr(self.request, "current_company", None) or Company.objects.first()
+        company = require_current_company(self.request)
         if company and company.accounting_regime == "tt58":
             from apps.reporting.services.dnsn_report_service import DnsnReportService
 
@@ -35,7 +35,7 @@ class PeriodClosingView(LoginRequiredMixin, TemplateView):
         return ctx
 
     def post(self, request, *args, **kwargs):
-        company = getattr(request, "current_company", None) or Company.objects.first()
+        company = require_current_company(request)
         if not company:
             messages.error(request, "No company")
             return redirect("ui_modern:period_closing")

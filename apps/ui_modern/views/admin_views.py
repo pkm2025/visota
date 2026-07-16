@@ -7,9 +7,9 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.generic import ListView, TemplateView
 
-from apps.core.models import Company
 from apps.identity.models import Permission, Role, UserCompanyRole
 from apps.identity.services import UserService
+from apps.ui_modern.mixins import require_current_company
 
 User = get_user_model()
 
@@ -33,33 +33,26 @@ class MyPermissionsView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        company = getattr(self.request, "current_company", None) or Company.objects.first()
+        company = require_current_company(self.request)
         ctx["page_title"] = "Quyền của tôi"
         ctx["company"] = company
 
-        if company:
-            assignments = UserCompanyRole.objects.filter(
-                user=self.request.user, company=company
-            ).select_related("role")
-            ctx["assignments"] = assignments
-            ctx["roles"] = [a.role for a in assignments]
+        assignments = UserCompanyRole.objects.filter(
+            user=self.request.user, company=company
+        ).select_related("role")
+        ctx["assignments"] = assignments
+        ctx["roles"] = [a.role for a in assignments]
 
-            service = UserService(self.request.user, company)
-            perm_codes = service._get_permissions()
-            ctx["permission_codes"] = sorted(perm_codes)
-            ctx["permissions"] = Permission.objects.filter(code__in=perm_codes).order_by(
-                "module", "code"
-            )
+        service = UserService(self.request.user, company)
+        perm_codes = service._get_permissions()
+        ctx["permission_codes"] = sorted(perm_codes)
+        ctx["permissions"] = Permission.objects.filter(code__in=perm_codes).order_by(
+            "module", "code"
+        )
 
-            all_perms = Permission.objects.all().order_by("module", "code")
-            ctx["all_permissions"] = all_perms
-            ctx["denied_permissions"] = [p for p in all_perms if p.code not in perm_codes]
-        else:
-            ctx["assignments"] = []
-            ctx["permissions"] = []
-            ctx["permission_codes"] = []
-            ctx["all_permissions"] = Permission.objects.all()
-            ctx["denied_permissions"] = []
+        all_perms = Permission.objects.all().order_by("module", "code")
+        ctx["all_permissions"] = all_perms
+        ctx["denied_permissions"] = [p for p in all_perms if p.code not in perm_codes]
 
         ctx["is_superuser"] = self.request.user.is_superuser
         return ctx
@@ -73,7 +66,7 @@ class AdminRoleListView(StaffRequiredMixin, ListView):
     paginate_by = 50
 
     def get_queryset(self):
-        company = getattr(self.request, "current_company", None) or Company.objects.first()
+        company = require_current_company(self.request)
         qs = Role.objects.filter(company=company).prefetch_related("permissions")
         return qs.order_by("code")
 
@@ -84,12 +77,20 @@ class AdminRoleListView(StaffRequiredMixin, ListView):
 
 
 class AdminRoleEditView(StaffRequiredMixin, View):
-    """Edit a single role — toggle permissions."""
+    """Edit a single role — toggle permissions.
+
+    VAL-SEC-003: the role is scoped to ``request.current_company`` to
+    prevent cross-tenant role editing (HIGH-01).
+    """
 
     template_name = "modern/admin/role_edit.html"
 
+    def _get_role(self, request, pk):
+        company = require_current_company(request)
+        return get_object_or_404(Role, pk=pk, company=company)
+
     def get(self, request, pk, *args, **kwargs):
-        role = get_object_or_404(Role, pk=pk)
+        role = self._get_role(request, pk)
         all_perms = Permission.objects.all().order_by("module", "code")
         assigned = set(role.permissions.values_list("code", flat=True))
 
@@ -107,7 +108,7 @@ class AdminRoleEditView(StaffRequiredMixin, View):
         return render(request, self.template_name, ctx)
 
     def post(self, request, pk, *args, **kwargs):
-        role = get_object_or_404(Role, pk=pk)
+        role = self._get_role(request, pk)
         if role.is_system and role.code == "admin":
             messages.error(request, "Vai trò 'admin' không thể sửa (toàn quyền).")
             return redirect("ui_modern:admin_role_edit", pk=pk)
@@ -134,15 +135,19 @@ class AdminUserListView(StaffRequiredMixin, ListView):
     paginate_by = 50
 
     def get_queryset(self):
-        return User.objects.all().order_by("-is_superuser", "username")
+        company = require_current_company(self.request)
+        return (
+            User.objects.filter(company_roles__company=company)
+            .distinct()
+            .order_by("-is_superuser", "username")
+        )
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        company = getattr(self.request, "current_company", None) or Company.objects.first()
+        company = require_current_company(self.request)
         ctx["page_title"] = "Người dùng"
         ctx["company"] = company
-        if company:
-            ctx["available_roles"] = Role.objects.filter(company=company).order_by("code")
+        ctx["available_roles"] = Role.objects.filter(company=company).order_by("code")
         return ctx
 
 
@@ -155,10 +160,7 @@ class AdminUserAssignView(StaffRequiredMixin, View):
             return redirect("ui_modern:admin_user_list")
 
         target_user = get_object_or_404(User, pk=user_id)
-        company = getattr(request, "current_company", None) or Company.objects.first()
-        if not company:
-            messages.error(request, "Chưa cấu hình công ty.")
-            return redirect("ui_modern:admin_user_list")
+        company = require_current_company(request)
 
         role_id = request.POST.get("role_id")
         action = request.POST.get("action", "assign")

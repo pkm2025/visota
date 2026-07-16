@@ -23,8 +23,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse
 from django.views import View
 
-from apps.core.models import Company
 from apps.reporting.services.vat_return import VATReturnService
+from apps.ui_modern.mixins import require_current_company
 
 # TT80/2021 namespace for the HSoKhaiThue root element.
 _TT80_NS = "http://kekhaithue.gdt.gov.vn/TKhaiThue"
@@ -50,7 +50,7 @@ class VATXmlView(LoginRequiredMixin, View):
         except (TypeError, ValueError):
             period = today.month
 
-        company = Company.objects.first()
+        company = require_current_company(request)
         data = VATReturnService(company=company).generate(fiscal_year, period)
         values_by_code: dict[str, Decimal] = data["values_by_code"]
 

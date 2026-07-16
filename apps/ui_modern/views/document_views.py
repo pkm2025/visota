@@ -10,6 +10,7 @@ from django.views import View
 from apps.documents.models import VoucherDocument
 from apps.documents.services import DocumentService, PrintService
 from apps.ledger.models import AccountingVoucher
+from apps.ui_modern.mixins import require_current_company
 
 
 class VoucherPrintView(LoginRequiredMixin, View):
@@ -18,7 +19,8 @@ class VoucherPrintView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get(self, request, pk):
-        voucher = get_object_or_404(AccountingVoucher, pk=pk)
+        company = require_current_company(request)
+        voucher = get_object_or_404(AccountingVoucher, pk=pk, company=company)
         company = voucher.company
 
         service = PrintService(company=company)
@@ -45,9 +47,8 @@ class VoucherUploadView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, pk):
-        voucher = get_object_or_404(AccountingVoucher, pk=pk)
-        company = voucher.company
-
+        company = require_current_company(request)
+        voucher = get_object_or_404(AccountingVoucher, pk=pk, company=company)
         title = request.POST.get("title", f"Scan {voucher.voucher_no}")
         uploaded_file = request.FILES.get("file")
 
@@ -73,7 +74,8 @@ class DocumentDownloadView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get(self, request, pk):
-        doc = get_object_or_404(VoucherDocument, pk=pk)
+        company = require_current_company(request)
+        doc = get_object_or_404(VoucherDocument, pk=pk, company=company)
         if not doc.file:
             messages.error(request, "File không tồn tại.")
             return redirect("ui_modern:voucher_detail", pk=doc.voucher_id)
@@ -90,7 +92,8 @@ class DocumentDeleteView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, pk):
-        doc = get_object_or_404(VoucherDocument, pk=pk)
+        company = require_current_company(request)
+        doc = get_object_or_404(VoucherDocument, pk=pk, company=company)
         voucher_id = doc.voucher_id
         title = doc.title
         if doc.file:
@@ -106,7 +109,8 @@ class VoucherPrintDocxView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get(self, request, pk):
-        voucher = get_object_or_404(AccountingVoucher, pk=pk)
+        company = require_current_company(request)
+        voucher = get_object_or_404(AccountingVoucher, pk=pk, company=company)
         from apps.documents.services.docx_export_service import DocxExportService
 
         service = DocxExportService()
@@ -128,14 +132,17 @@ class ContractExportDocxView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def get(self, request, pk):
+        company = require_current_company(request)
         from apps.contracts.models import Contract, ContractTemplate
         from apps.documents.services.docx_export_service import DocxExportService
 
-        contract = get_object_or_404(Contract, pk=pk)
+        contract = get_object_or_404(Contract, pk=pk, company=company)
 
         # Find matching template by type
         template = ContractTemplate.objects.filter(
-            contract_type=contract.contract_type, is_active=True
+            company=company,
+            contract_type=contract.contract_type,
+            is_active=True,
         ).first()
 
         service = DocxExportService()
@@ -165,14 +172,13 @@ class TrialBalanceDocxView(LoginRequiredMixin, View):
         from datetime import date
         from decimal import Decimal
 
-        from apps.core.models import Company
         from apps.ledger.models import AccountPeriodBalance
 
+        company = require_current_company(request)
         today = date.today()
         fiscal_year = int(request.GET.get("fiscal_year", today.year))
         period = int(request.GET.get("period", today.month))
 
-        company = Company.objects.first()
         balances = list(
             AccountPeriodBalance.objects.filter(
                 company=company, fiscal_year=fiscal_year, period=period
@@ -227,7 +233,8 @@ class VoucherEmailView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, pk):
-        voucher = get_object_or_404(AccountingVoucher, pk=pk)
+        company = require_current_company(request)
+        voucher = get_object_or_404(AccountingVoucher, pk=pk, company=company)
         to_email = request.POST.get("email", "").strip()
         if not to_email:
             messages.error(request, "Vui lòng nhập email người nhận.")
@@ -281,10 +288,11 @@ class ContractEmailView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
 
     def post(self, request, pk):
+        company = require_current_company(request)
         from apps.contracts.models import Contract, ContractTemplate
         from apps.contracts.services.contract_print_service import ContractPrintService
 
-        contract = get_object_or_404(Contract, pk=pk)
+        contract = get_object_or_404(Contract, pk=pk, company=company)
         to_email = request.POST.get("email", "").strip()
         if not to_email:
             messages.error(request, "Vui lòng nhập email người nhận.")
@@ -292,7 +300,9 @@ class ContractEmailView(LoginRequiredMixin, View):
 
         # Generate PDF from template
         template = ContractTemplate.objects.filter(
-            contract_type=contract.contract_type, is_active=True
+            company=company,
+            contract_type=contract.contract_type,
+            is_active=True,
         ).first()
         pdf_bytes = b""
         if template:
