@@ -72,6 +72,7 @@ class CompanyProfileView(LoginRequiredMixin, View):
         "email",
         "fax",
         "website",
+        "industry",
         "legal_representative",
         "representative_position",
         "representative_phone",

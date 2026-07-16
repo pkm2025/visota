@@ -58,6 +58,7 @@ COMPANY_CONFIGS = [
         "sme_size": "small",
         "legal_representative": "Phạm Minh Tuấn",
         "chief_accountant": "Nguyễn Thị Mai",
+        "industry": "Thương mại - Công nghệ",
     },
     {
         "code": "DF-HN",
@@ -70,6 +71,7 @@ COMPANY_CONFIGS = [
         "vat_method": "ty_le_phan_tram",
         "tndn_method": "tinh_thue",
         "legal_representative": "Trần Văn Hùng",
+        "industry": "Thương mại - Điện tử",
     },
     {
         "code": "DF-AB",
@@ -82,6 +84,7 @@ COMPANY_CONFIGS = [
         "vat_method": "ty_le_phan_tram",
         "tndn_method": "ty_le_phan_tram",
         "legal_representative": "Lê Thị Bình",
+        "industry": "Dịch vụ - bán lẻ",
     },
 ]
 
@@ -176,6 +179,7 @@ class Command(BaseCommand):
             "address": cfg["address"],
             "legal_representative": cfg.get("legal_representative", ""),
             "accounting_regime": cfg["accounting_regime"],
+            "industry": cfg.get("industry", ""),
             "is_active": True,
         }
         # TT58-specific fields

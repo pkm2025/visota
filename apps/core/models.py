@@ -100,6 +100,9 @@ class Company(models.Model):
 
     is_active = models.BooleanField(default=True)
 
+    # Industry / business sector (e.g. "Thương mại - Công nghệ")
+    industry = models.CharField(max_length=200, blank=True, default="")
+
     # Business registration
     business_license_no = models.CharField(max_length=50, blank=True, default="")
     business_license_date = models.DateField(null=True, blank=True)
