@@ -31,7 +31,7 @@ def test_insurance_calculation(emp):
     assert ic.bhxh_employee == Decimal("1200000")  # 15M * 8%
     assert ic.bhyt_employee == Decimal("225000")  # 15M * 1.5%
     assert ic.bhtn_employee == Decimal("150000")  # 15M * 1%
-    # DN 21.5%: 17% + 3% + 1% + 0.5%
+    # DN 23.5%: 17% + 3% + 1% + 0.5% + 2% (KPCĐ)
     assert ic.bhxh_employer == Decimal("2550000")  # 15M * 17%
     assert ic.bhyt_employer == Decimal("450000")  # 15M * 3%
     assert ic.bhtn_employer == Decimal("150000")  # 15M * 1%
@@ -61,6 +61,33 @@ def test_insurance_kpcd(emp):
     svc = InsuranceService(company=emp.company)
     ic = svc.calculate_monthly(emp, "2026-06")
     assert ic.kpcd_employer == Decimal("300000")  # 15M * 2%
+
+
+def test_total_employer_includes_kpcd(emp):
+    """VAL-BHXH-001: total_employer includes all 5 employer components (23.5%).
+
+    BHXH 17% + BHYT 3% + BHTN 1% + BHTNLĐBNN 0.5% + KPCĐ 2% = 23.5%.
+    For 15,000,000 VND base: 2,550,000 + 450,000 + 150,000 + 75,000 + 300,000 = 3,525,000.
+    """
+    svc = InsuranceService(company=emp.company)
+    ic = svc.calculate_monthly(emp, "2026-06")
+    # Sum of all 5 individual components
+    expected_total = (
+        ic.bhxh_employer
+        + ic.bhyt_employer
+        + ic.bhtn_employer
+        + ic.bhtnld_employer
+        + ic.kpcd_employer
+    )
+    assert ic.total_employer == expected_total
+    # Exact value: 15,000,000 * 23.5% = 3,525,000
+    assert ic.total_employer == Decimal("3525000")
+    # Verify each component is present and non-zero
+    assert ic.bhxh_employer == Decimal("2550000")  # 17%
+    assert ic.bhyt_employer == Decimal("450000")  # 3%
+    assert ic.bhtn_employer == Decimal("150000")  # 1%
+    assert ic.bhtnld_employer == Decimal("75000")  # 0.5%
+    assert ic.kpcd_employer == Decimal("300000")  # 2%
 
 
 def test_annual_leave_balance(emp):

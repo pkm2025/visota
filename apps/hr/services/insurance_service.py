@@ -12,7 +12,7 @@ RATES = {
     "bhxh_emp": Decimal("0.08"),  # BHXH 8% (hưu + ốm + thai sản + TNLĐ-BNN)
     "bhyt_emp": Decimal("0.015"),  # BHYT 1.5%
     "bhtn_emp": Decimal("0.01"),  # BHTN 1%
-    # Employer portion — 21.5% total
+    # Employer portion — 23.5% total (incl. KPCĐ 2%)
     "bhxh_er": Decimal("0.17"),  # 14% hưu trí + 3% ốm/thai
     "bhyt_er": Decimal("0.03"),  # BHYT 3%
     "bhtn_er": Decimal("0.01"),  # BHTN 1%
@@ -62,7 +62,7 @@ class InsuranceService:
         bhtn_er = _round(capped * RATES["bhtn_er"])
         bhtnld_er = _round(capped * RATES["bhtnld_er"])
         kpcd_er = _round(capped * RATES["kpcd_er"])
-        total_er = bhxh_er + bhyt_er + bhtn_er + bhtnld_er
+        total_er = bhxh_er + bhyt_er + bhtn_er + bhtnld_er + kpcd_er
 
         ic, _ = InsuranceContribution.objects.update_or_create(
             employee=employee,
