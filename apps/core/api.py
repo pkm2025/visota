@@ -279,6 +279,7 @@ def list_sales_invoices(request, fiscal_year: int | None = None):
     "/sales/invoices/{invoice_id}",
     response=SalesInvoiceDetailSchema,
     tags=["Sales"],
+    auth=get_current_user,
 )
 def get_sales_invoice(request, invoice_id: int):
     company = get_current_company(request)

@@ -8,6 +8,7 @@ import json
 from datetime import datetime
 from decimal import Decimal
 from io import BytesIO
+from xml.etree.ElementTree import Element, SubElement, tostring
 
 from django.core.files.base import ContentFile
 from django.template.loader import render_to_string
@@ -282,47 +283,50 @@ class EInvoiceService:
 
     @staticmethod
     def _build_xml(einvoice, sales_invoice):
-        """Build XML per ND 254/2026 + TT 91/2026 schema (simplified)."""
-        lines_xml = []
+        """Build XML per ND 254/2026 + TT 91/2026 schema (simplified).
+
+        Uses xml.etree.ElementTree so all user-controlled values (buyer name,
+        address, line descriptions, etc.) are auto-escaped, preventing XML
+        injection. Never use f-strings or %-formatting for XML bodies.
+        """
+        invoice_el = Element("Invoice")
+
+        SubElement(invoice_el, "TransactionID").text = str(einvoice.transaction_id)
+        SubElement(invoice_el, "FormSymbol").text = str(einvoice.form_symbol or "")
+        SubElement(invoice_el, "Pattern").text = str(einvoice.pattern or "")
+        SubElement(invoice_el, "Serial").text = str(einvoice.serial or "")
+        SubElement(invoice_el, "InvoiceDate").text = timezone.now().isoformat()
+
+        seller_el = SubElement(invoice_el, "Seller")
+        SubElement(seller_el, "Name").text = str(einvoice.seller_name or "")
+        SubElement(seller_el, "TaxCode").text = str(einvoice.seller_tax_code or "")
+        SubElement(seller_el, "Address").text = str(einvoice.seller_address or "")
+
+        buyer_el = SubElement(invoice_el, "Buyer")
+        SubElement(buyer_el, "Name").text = str(einvoice.buyer_name or "")
+        SubElement(buyer_el, "TaxCode").text = str(einvoice.buyer_tax_code or "")
+        SubElement(buyer_el, "Address").text = str(einvoice.buyer_address or "")
+
+        items_el = SubElement(invoice_el, "Items")
         for idx, line in enumerate(sales_invoice.lines.all(), 1):
-            lines_xml.append(f"""
-        <Item>
-            <LineNumber>{idx}</LineNumber>
-            <ItemName>{line.description}</ItemName>
-            <Unit>{line.unit_id}</Unit>
-            <Quantity>{line.quantity}</Quantity>
-            <Price>{line.unit_price}</Price>
-            <Amount>{line.amount_before_vat}</Amount>
-            <VATRate>{float(line.vat_rate) * 100}</VATRate>
-            <VATAmount>{line.vat_amount}</VATAmount>
-        </Item>""")
-        return f"""<?xml version="1.0" encoding="UTF-8"?>
-<Invoice>
-    <TransactionID>{einvoice.transaction_id}</TransactionID>
-    <FormSymbol>{einvoice.form_symbol}</FormSymbol>
-    <Pattern>{einvoice.pattern}</Pattern>
-    <Serial>{einvoice.serial}</Serial>
-    <InvoiceDate>{timezone.now().isoformat()}</InvoiceDate>
-    <Seller>
-        <Name>{einvoice.seller_name}</Name>
-        <TaxCode>{einvoice.seller_tax_code}</TaxCode>
-        <Address>{einvoice.seller_address}</Address>
-    </Seller>
-    <Buyer>
-        <Name>{einvoice.buyer_name}</Name>
-        <TaxCode>{einvoice.buyer_tax_code}</TaxCode>
-        <Address>{einvoice.buyer_address}</Address>
-    </Buyer>
-    <Items>
-        {"".join(lines_xml)}
-    </Items>
-    <Summary>
-        <Subtotal>{einvoice.subtotal}</Subtotal>
-        <VATAmount>{einvoice.vat_amount}</VATAmount>
-        <TotalAmount>{einvoice.total_amount}</TotalAmount>
-        <TotalInWords>{einvoice.total_in_words}</TotalInWords>
-    </Summary>
-</Invoice>"""
+            item_el = SubElement(items_el, "Item")
+            SubElement(item_el, "LineNumber").text = str(idx)
+            SubElement(item_el, "ItemName").text = str(line.description or "")
+            SubElement(item_el, "Unit").text = str(line.unit_id or "")
+            SubElement(item_el, "Quantity").text = str(line.quantity)
+            SubElement(item_el, "Price").text = str(line.unit_price)
+            SubElement(item_el, "Amount").text = str(line.amount_before_vat)
+            SubElement(item_el, "VATRate").text = str(float(line.vat_rate) * 100)
+            SubElement(item_el, "VATAmount").text = str(line.vat_amount)
+
+        summary_el = SubElement(invoice_el, "Summary")
+        SubElement(summary_el, "Subtotal").text = str(einvoice.subtotal)
+        SubElement(summary_el, "VATAmount").text = str(einvoice.vat_amount)
+        SubElement(summary_el, "TotalAmount").text = str(einvoice.total_amount)
+        SubElement(summary_el, "TotalInWords").text = str(einvoice.total_in_words or "")
+
+        xml_body = tostring(invoice_el, encoding="unicode")
+        return f'<?xml version="1.0" encoding="UTF-8"?>\n{xml_body}'
 
     @staticmethod
     def _build_json(einvoice, sales_invoice):
@@ -405,33 +409,28 @@ class EInvoiceReportService:
             submitted_at=timezone.now(),
             status="submitted",
         )
-        # Generate XML
-        lines = "\n".join(
-            f"""
-        <Invoice>
-            <InvoiceNo>{e.invoice_no}</InvoiceNo>
-            <Pattern>{e.pattern}</Pattern>
-            <Serial>{e.serial}</Serial>
-            <IssueDate>{e.issue_date.isoformat()}</IssueDate>
-            <BuyerName>{e.buyer_name}</BuyerName>
-            <BuyerTaxCode>{e.buyer_tax_code}</BuyerTaxCode>
-            <TotalAmount>{e.total_amount}</TotalAmount>
-            <VATAmount>{e.vat_amount}</VATAmount>
-            <Status>{e.status}</Status>
-        </Invoice>"""
-            for e in qs
-        )
-        xml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<BC01>
-    <ReportPeriod>{month:02d}/{year}</ReportPeriod>
-    <Company>
-        <Name>{company.name}</Name>
-        <TaxCode>{company.tax_code}</TaxCode>
-    </Company>
-    <Invoices>{lines}
-    </Invoices>
-    <Total><Count>{qs.count()}</Count><Amount>{batch.total_amount}</Amount></Total>
-</BC01>"""
+        # Generate XML using ElementTree so all values are auto-escaped.
+        bc01_el = Element("BC01")
+        SubElement(bc01_el, "ReportPeriod").text = f"{month:02d}/{year}"
+        company_el = SubElement(bc01_el, "Company")
+        SubElement(company_el, "Name").text = str(company.name or "")
+        SubElement(company_el, "TaxCode").text = str(company.tax_code or "")
+        invoices_el = SubElement(bc01_el, "Invoices")
+        for e in qs:
+            inv_el = SubElement(invoices_el, "Invoice")
+            SubElement(inv_el, "InvoiceNo").text = str(e.invoice_no or "")
+            SubElement(inv_el, "Pattern").text = str(e.pattern or "")
+            SubElement(inv_el, "Serial").text = str(e.serial or "")
+            SubElement(inv_el, "IssueDate").text = e.issue_date.isoformat() if e.issue_date else ""
+            SubElement(inv_el, "BuyerName").text = str(e.buyer_name or "")
+            SubElement(inv_el, "BuyerTaxCode").text = str(e.buyer_tax_code or "")
+            SubElement(inv_el, "TotalAmount").text = str(e.total_amount)
+            SubElement(inv_el, "VATAmount").text = str(e.vat_amount)
+            SubElement(inv_el, "Status").text = str(e.status or "")
+        total_el = SubElement(bc01_el, "Total")
+        SubElement(total_el, "Count").text = str(qs.count())
+        SubElement(total_el, "Amount").text = str(batch.total_amount)
+        xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + tostring(bc01_el, encoding="unicode")
         batch.xml_file.save(f"BC01_{year}{month:02d}.xml", ContentFile(xml.encode("utf-8")))
         batch.save()
         return batch
