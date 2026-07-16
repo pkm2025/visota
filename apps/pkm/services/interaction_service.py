@@ -149,7 +149,7 @@ def _worker_is_active() -> bool:
 
 
 def _enqueue_async(
-    user: User,
+    user: User | None,
     company: Company,
     interaction_type: str,
     module: str,
@@ -167,7 +167,7 @@ def _enqueue_async(
 
     return async_task(
         "apps.pkm.services.interaction_service._create_sync",
-        user.id,
+        user.id if user else None,
         company.id,
         interaction_type,
         module,
@@ -178,7 +178,7 @@ def _enqueue_async(
 
 
 def _create_sync(
-    user_id: int,
+    user_id: int | None,
     company_id: int,
     interaction_type: str,
     module: str,
@@ -199,7 +199,7 @@ def _create_sync(
         from apps.identity.models import User
 
         return UserInteractionLog.objects.create(
-            user=User.objects.get(pk=user_id),
+            user=User.objects.get(pk=user_id) if user_id else None,
             company=Company.objects.get(pk=company_id),
             interaction_type=interaction_type,
             module=module,
@@ -225,7 +225,7 @@ def _create_sync(
 
 
 def log_interaction(
-    user: User,
+    user: User | None,
     company: Company,
     interaction_type: str,
     module: str,
@@ -246,7 +246,9 @@ def log_interaction(
          or note creation).
 
     Args:
-        user: The user performing the interaction.
+        user: The user performing the interaction (may be ``None`` for
+            system/automated events where no user is available, e.g. business
+            events emitted from the service layer).
         company: The user's current company (multi-tenant scope).
         interaction_type: One of ``UserInteractionLog.InteractionType`` values
             (e.g. ``"page_view"``, ``"search"``, ``"note_create"``).
@@ -263,6 +265,7 @@ def log_interaction(
     etype = entity_type or ""
     eid = str(entity_id) if entity_id else ""
     meta = metadata if metadata is not None else {}
+    uid = user.id if user else None
 
     # Try the non-blocking async path first
     if _django_q_available():
@@ -273,7 +276,7 @@ def log_interaction(
             logger.warning(
                 "log_interaction: async enqueue failed, falling back to sync "
                 "(user=%s, type=%s, module=%s)",
-                getattr(user, "id", user),
+                uid,
                 interaction_type,
                 module,
                 exc_info=True,
@@ -283,7 +286,7 @@ def log_interaction(
     # Synchronous fallback - never raise to the caller
     try:
         return _create_sync(
-            user_id=user.id,
+            user_id=uid,
             company_id=company.id,
             interaction_type=interaction_type,
             module=module,
@@ -294,7 +297,7 @@ def log_interaction(
     except Exception:
         logger.exception(
             "log_interaction: synchronous create failed (user=%s, type=%s, module=%s)",
-            getattr(user, "id", user),
+            uid,
             interaction_type,
             module,
         )

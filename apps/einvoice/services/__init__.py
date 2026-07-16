@@ -176,6 +176,35 @@ class EInvoiceService:
         return ei
 
     @classmethod
+    def issue(cls, sales_invoice, issued_by=None):
+        """Issue an e-invoice from a sales invoice (alias for issue_from_sales_invoice).
+
+        Logs a business event (non-blocking) after successful issue.
+        """
+        ei = cls.issue_from_sales_invoice(sales_invoice, issued_by=issued_by)
+
+        # Log business event (non-blocking)
+        try:
+            from apps.pkm.services.interaction_service import log_interaction
+
+            log_interaction(
+                user=None,
+                company=sales_invoice.company,
+                interaction_type="einvoice_issue",
+                module="einvoice",
+                entity_type="einvoice",
+                entity_id=str(ei.pk),
+                metadata={
+                    "invoice_no": ei.invoice_no or "",
+                    "total_amount": str(ei.total_amount),
+                },
+            )
+        except Exception:
+            pass  # interaction logging must never block e-invoice issue
+
+        return ei
+
+    @classmethod
     def publish(cls, einvoice, invoice_no=None):
         """Mark as issued. For manual mode just assigns a number; for API mode calls provider."""
         config = cls.get_config(einvoice.company)

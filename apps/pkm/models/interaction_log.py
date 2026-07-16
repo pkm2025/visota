@@ -24,14 +24,20 @@ class UserInteractionLog(CompanyOwnedModel):
         NOTE_CREATE = "note_create", "Note Create"
         DOCUMENT_CREATE = "document_create", "Document Create"
         VOUCHER_CREATE = "voucher_create", "Voucher Create"
+        INVOICE_CREATE = "invoice_create", "Invoice Create"
+        DNSN_VOUCHER_CREATE = "dnsn_voucher_create", "DNSN Voucher Create"
+        PERIOD_CLOSE = "period_close", "Period Close"
+        EINVOICE_ISSUE = "einvoice_issue", "E-Invoice Issue"
 
     user = models.ForeignKey(
         "identity.User",
         on_delete=models.CASCADE,
         related_name="pkm_interaction_logs",
+        null=True,
+        blank=True,
     )
     interaction_type = models.CharField(
-        max_length=20,
+        max_length=30,
         choices=InteractionType.choices,
     )
     module = models.CharField(
@@ -68,4 +74,5 @@ class UserInteractionLog(CompanyOwnedModel):
         ordering = ["-created_at"]
 
     def __str__(self) -> str:
-        return f"{self.user.username} - {self.interaction_type} ({self.module})"
+        username = self.user.username if self.user_id else "system"
+        return f"{username} - {self.interaction_type} ({self.module})"

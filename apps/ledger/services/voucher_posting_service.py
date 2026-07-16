@@ -52,6 +52,22 @@ class VoucherPostingService:
         # Recompute running balances for affected account codes
         self._recompute_running_balances(voucher)
 
+        # Log business event (non-blocking)
+        try:
+            from apps.pkm.services.interaction_service import log_interaction
+
+            log_interaction(
+                user=None,
+                company=voucher.company,
+                interaction_type="voucher_create",
+                module="ledger",
+                entity_type="voucher",
+                entity_id=voucher.voucher_no,
+                metadata={"amount": str(voucher.total_vnd)},
+            )
+        except Exception:
+            pass  # interaction logging must never block posting
+
         # Fire-and-forget notification to all superusers (KTT alerts)
         try:
             from apps.notifications.services import NotificationService

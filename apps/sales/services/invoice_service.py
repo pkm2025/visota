@@ -109,6 +109,28 @@ class SalesInvoiceService:
 
         Delegates to TT58 (DNSN) or standard TT133/TT200 posting.
         """
+        result = self._post_dispatch(invoice)
+
+        # Log business event (non-blocking)
+        try:
+            from apps.pkm.services.interaction_service import log_interaction
+
+            log_interaction(
+                user=None,
+                company=self.company,
+                interaction_type="invoice_create",
+                module="sales",
+                entity_type="sales_invoice",
+                entity_id=invoice.invoice_no,
+                metadata={"total_amount": str(invoice.total_amount)},
+            )
+        except Exception:
+            pass  # interaction logging must never block posting
+
+        return result
+
+    def _post_dispatch(self, invoice: SalesInvoice) -> AccountingVoucher | DnsnVoucher:
+        """Dispatch to TT58 (DNSN) or standard TT133/TT200 posting."""
         if self.is_tt58:
             return self._post_tt58(invoice)
         return self._post_standard(invoice)

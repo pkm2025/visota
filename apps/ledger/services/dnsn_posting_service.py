@@ -82,6 +82,22 @@ class DnsnPostingService:
         for ledger_type in affected_types:
             self._recompute_running_balances(voucher.company, ledger_type)
 
+        # Log business event (non-blocking)
+        try:
+            from apps.pkm.services.interaction_service import log_interaction
+
+            log_interaction(
+                user=None,
+                company=voucher.company,
+                interaction_type="dnsn_voucher_create",
+                module="ledger",
+                entity_type="dnsn_voucher",
+                entity_id=voucher.voucher_no,
+                metadata={"total_amount": str(voucher.total_amount)},
+            )
+        except Exception:
+            pass  # interaction logging must never block posting
+
     @transaction.atomic
     def unpost(self, voucher: DnsnVoucher) -> None:
         """Unpost a DNSN voucher: remove entries and reverse balances.

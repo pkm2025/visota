@@ -173,6 +173,26 @@ class PeriodClosingService:
         # Post voucher
         VoucherPostingService().post(voucher)
 
+        # Log business event (non-blocking)
+        try:
+            from apps.pkm.services.interaction_service import log_interaction
+
+            log_interaction(
+                user=None,
+                company=self.company,
+                interaction_type="period_close",
+                module="ledger",
+                entity_type="period",
+                entity_id=f"{fiscal_year}-{period:02d}",
+                metadata={
+                    "fiscal_year": fiscal_year,
+                    "period": period,
+                    "profit": str(profit),
+                },
+            )
+        except Exception:
+            pass  # interaction logging must never block period close
+
         return {
             "skipped": False,
             "voucher_id": voucher.id,
