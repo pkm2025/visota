@@ -84,9 +84,13 @@ def test_vat_return_payable(setup):
 def test_vat_return_view_loads(db):
     from django.test import Client
     from apps.identity.models import User
+    company = Company.objects.create(code='TCO', name='Test')
     user = User.objects.create_superuser(username='alice', password='Secret123', email='alice@test.local')
     c = Client()
     c.force_login(user)
+    session = c.session
+    session['current_company_id'] = company.id
+    session.save()
     response = c.get('/modern/reports/vat-return/')
     assert response.status_code == 200
     assert 'GTGT' in response.content.decode('utf-8')

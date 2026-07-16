@@ -73,9 +73,13 @@ def test_pnl_operating_profit(company_with_pnl_data):
 def test_pnl_view_loads(db):
     from django.test import Client
     from apps.identity.models import User
+    company = Company.objects.create(code='TCO', name='Test')
     user = User.objects.create_superuser(username='alice', password='Secret123', email='alice@test.local')
     c = Client()
     c.force_login(user)
+    session = c.session
+    session['current_company_id'] = company.id
+    session.save()
     response = c.get('/modern/reports/pnl/')
     assert response.status_code == 200
     assert 'Kết quả' in response.content.decode('utf-8')

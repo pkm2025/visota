@@ -487,56 +487,60 @@ class TestCashFlowServiceWithConfig:
 
 
 class TestReportViews:
-    def _login_client(self):
+    def _login_client(self, company=None):
         user = User.objects.create_superuser(
             username="tester", password="Secret123", email="tester@test.local"
         )
         client = Client()
         client.force_login(user)
+        if company:
+            session = client.session
+            session["current_company_id"] = company.id
+            session.save()
         return client
 
-    def test_balance_sheet_view_with_config(self, seeded, posted_vouchers):
+    def test_balance_sheet_view_with_config(self, seeded, posted_vouchers, company):
         """VAL-M1-023: B01-DN view renders config lines."""
-        client = self._login_client()
+        client = self._login_client(company)
         response = client.get("/modern/reports/balance-sheet/?fiscal_year=2026&period=6")
         assert response.status_code == 200
         html = response.content.decode("utf-8")
         # Should contain config line labels
         assert "TÀI SẢN" in html or "NỢ PHẢI TRẢ" in html
 
-    def test_pnl_view_with_config(self, seeded, posted_vouchers):
+    def test_pnl_view_with_config(self, seeded, posted_vouchers, company):
         """VAL-M1-024: B02-DN view renders config lines."""
-        client = self._login_client()
+        client = self._login_client(company)
         response = client.get("/modern/reports/pnl/?fiscal_year=2026&period=6")
         assert response.status_code == 200
 
-    def test_cash_flow_direct_view_with_config(self, seeded, posted_vouchers):
+    def test_cash_flow_direct_view_with_config(self, seeded, posted_vouchers, company):
         """VAL-M1-025: direct cash flow view renders config lines."""
-        client = self._login_client()
+        client = self._login_client(company)
         response = client.get("/modern/reports/cash-flow/direct/?fiscal_year=2026&period=6")
         assert response.status_code == 200
 
-    def test_cash_flow_indirect_view_with_config(self, seeded, posted_vouchers):
+    def test_cash_flow_indirect_view_with_config(self, seeded, posted_vouchers, company):
         """VAL-M1-026: indirect cash flow view renders config lines."""
-        client = self._login_client()
+        client = self._login_client(company)
         response = client.get("/modern/reports/cash-flow/indirect/?fiscal_year=2026&period=6")
         assert response.status_code == 200
 
-    def test_balance_sheet_empty_period_no_crash(self, seeded, db):
+    def test_balance_sheet_empty_period_no_crash(self, seeded, company, db):
         """VAL-M1-036: empty period renders without 500."""
-        client = self._login_client()
+        client = self._login_client(company)
         response = client.get("/modern/reports/balance-sheet/?fiscal_year=2099&period=12")
         assert response.status_code == 200
 
-    def test_pnl_empty_period_no_crash(self, seeded, db):
+    def test_pnl_empty_period_no_crash(self, seeded, company, db):
         """VAL-M1-036: P&L empty period renders without 500."""
-        client = self._login_client()
+        client = self._login_client(company)
         response = client.get("/modern/reports/pnl/?fiscal_year=2099&period=12")
         assert response.status_code == 200
 
-    def test_cash_flow_empty_period_no_crash(self, seeded, db):
+    def test_cash_flow_empty_period_no_crash(self, seeded, company, db):
         """VAL-M1-036: cash flow empty period renders without 500."""
-        client = self._login_client()
+        client = self._login_client(company)
         response = client.get("/modern/reports/cash-flow/direct/?fiscal_year=2099&period=12")
         assert response.status_code == 200
 

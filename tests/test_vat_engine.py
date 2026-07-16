@@ -503,11 +503,15 @@ def test_vat_return_view_renders_tt80_layout(vat_config):
 
     from apps.identity.models import User
 
+    company = Company.objects.create(code="VCO", name="VAT Co")
     user = User.objects.create_superuser(
         username="alice2", password="Secret123", email="alice2@test.local"
     )
     c = Client()
     c.force_login(user)
+    session = c.session
+    session["current_company_id"] = company.id
+    session.save()
     resp = c.get("/modern/reports/vat-return/?fiscal_year=2026&period=6")
     assert resp.status_code == 200
     body = resp.content.decode("utf-8")
@@ -526,11 +530,15 @@ def test_vat_return_view_recalculate_button_present(vat_config):
 
     from apps.identity.models import User
 
+    company = Company.objects.create(code="VCO2", name="VAT Co 2")
     user = User.objects.create_superuser(
         username="alice3", password="Secret123", email="alice3@test.local"
     )
     c = Client()
     c.force_login(user)
+    session = c.session
+    session["current_company_id"] = company.id
+    session.save()
     resp = c.get("/modern/reports/vat-return/?recalculate=1")
     assert resp.status_code == 200
 
@@ -542,11 +550,15 @@ def test_vat_return_view_empty_period_returns_200(vat_config):
 
     from apps.identity.models import User
 
+    company = Company.objects.create(code="VCO3", name="VAT Co 3")
     user = User.objects.create_superuser(
         username="alice4", password="Secret123", email="alice4@test.local"
     )
     c = Client()
     c.force_login(user)
+    session = c.session
+    session["current_company_id"] = company.id
+    session.save()
     resp = c.get("/modern/reports/vat-return/?fiscal_year=2099&period=12")
     assert resp.status_code == 200
     body = resp.content.decode("utf-8")

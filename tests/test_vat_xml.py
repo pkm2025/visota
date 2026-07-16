@@ -61,8 +61,8 @@ def vat_config(db):
 
 
 @pytest.fixture
-def auth_client(db):
-    """Django test client logged in as a superuser."""
+def auth_client(company):
+    """Django test client logged in as a superuser, bound to ``company``."""
     from django.test import Client
 
     from apps.identity.models import User
@@ -72,6 +72,9 @@ def auth_client(db):
     )
     c = Client()
     c.force_login(user)
+    session = c.session
+    session["current_company_id"] = company.id
+    session.save()
     return c
 
 

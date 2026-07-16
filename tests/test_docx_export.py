@@ -32,6 +32,9 @@ def setup(db):
     )
     client = Client()
     client.force_login(user)
+    session = client.session
+    session["current_company_id"] = company.id
+    session.save()
     return client, v
 
 
@@ -47,9 +50,13 @@ def test_voucher_docx_export(setup):
 
 
 def test_trial_balance_docx_export(db):
+    company = Company.objects.create(code="TCO4", name="TB Co")
     user = User.objects.create_superuser(username="alice", password="Secret123", email="alice@test.local")
     client = Client()
     client.force_login(user)
+    session = client.session
+    session["current_company_id"] = company.id
+    session.save()
     response = client.get("/modern/reports/trial-balance/docx/")
     assert response.status_code == 200
     assert response.content[:2] == b"PK"
@@ -74,6 +81,9 @@ def test_contract_docx_export(db):
     )
     client = Client()
     client.force_login(user)
+    session = client.session
+    session["current_company_id"] = company.id
+    session.save()
     response = client.get(f"/modern/contracts/{contract.id}/export-docx/")
     assert response.status_code == 200
     assert response.content[:2] == b"PK"
