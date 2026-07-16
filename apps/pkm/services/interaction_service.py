@@ -108,6 +108,46 @@ MODULE_LABELS_VN: dict[str, str] = {
     "approvals": "Phê duyệt",
 }
 
+#: Vietnamese labels for Company.AccountingRegime choice values.
+#: Used by :func:`_format_company_context` to render the regime in a
+#: human-readable Vietnamese form (e.g. "TT58/2026").
+REGIME_LABELS_VN: dict[str, str] = {
+    "tt133": "TT133/2016",
+    "tt200": "TT200/2014",
+    "tt58": "TT58/2026",
+    "q48": "QĐ48/2006",
+}
+
+#: Vietnamese labels for Company.EntityType choice values.
+ENTITY_TYPE_LABELS_VN: dict[str, str] = {
+    "doanh_nghiep_sieu_nho": "Doanh nghiệp siêu nhỏ",
+    "ho_kinh_doanh": "Hộ kinh doanh",
+    "ca_nhan_kinh_doanh": "Cá nhân kinh doanh",
+}
+
+#: Vietnamese labels for Company.VatMethod choice values.
+VAT_METHOD_LABELS_VN: dict[str, str] = {
+    "khau_tru": "Khấu trừ",
+    "ty_le_phan_tram": "Tỷ lệ %",
+}
+
+#: Vietnamese labels for Company.TndnMethod choice values.
+TNDN_METHOD_LABELS_VN: dict[str, str] = {
+    "tinh_thue": "Tính thuế",
+    "ty_le_phan_tram": "Tỷ lệ %",
+}
+
+#: Vietnamese descriptions for each TT58 tax method group (1-4).
+#: Only shown for TT58 companies (regime='tt58'). The key is the
+#: ``Company.tax_method_group`` integer (1-4); the value is a short
+#: Vietnamese clause describing the VAT + TNDN method combination.
+TAX_GROUP_DESCRIPTIONS_VN: dict[int, str] = {
+    1: "GTGT theo tỷ lệ %, TNDN theo tỷ lệ %",
+    2: "GTGT theo tỷ lệ %, TNDN tính thuế",
+    3: "GTGT khấu trừ, TNDN theo tỷ lệ %",
+    4: "GTGT khấu trừ, TNDN tính thuế",
+}
+
 #: Legacy English module-page labels (kept for backwards compatibility).
 MODULE_PAGE_LABELS: dict[str, str] = {
     "ledger": "ledger pages",
@@ -556,6 +596,72 @@ def _get_user_role_vn(user: User, company: Company) -> str | None:
         return None
 
 
+def _format_company_context(user: User, company: Company) -> str:  # noqa: ARG001
+    """Build a Vietnamese natural-language description of the company's
+    business context (entity type, accounting regime, tax method group,
+    VAT/TNDN methods, industry).
+
+    The text is designed to be prepended to the activity summary inside
+    :func:`get_context_summary` so the Q&A LLM can personalise its answers
+    based on the user's accounting regime and tax configuration.
+
+    Behaviour is non-blocking: any unexpected error returns an empty string
+    so the caller never breaks.
+
+    Args:
+        user: The user requesting the context (unused for now, kept for
+            signature symmetry with :func:`_format_project_context`).
+        company: The company whose context to render.
+
+    Returns:
+        A Vietnamese string such as:
+        ``"Công ty thuộc loại hình Doanh nghiệp siêu nhỏ, áp dụng TT58/2026
+        (Nhóm 2: GTGT theo tỷ lệ %, TNDN tính thuế). Phương pháp GTGT: Tỷ lệ %.
+        Phương pháp TNDN: Tính thuế. Ngành: Thương mại - Công nghệ."``
+        Returns ``""`` when the company context cannot be assembled.
+    """
+    try:
+        regime_code = getattr(company, "accounting_regime", "") or ""
+        entity_code = getattr(company, "entity_type", "") or ""
+        vat_code = getattr(company, "vat_method", "") or ""
+        tndn_code = getattr(company, "tndn_method", "") or ""
+        industry = (getattr(company, "industry", "") or "").strip()
+
+        regime_label = REGIME_LABELS_VN.get(regime_code, regime_code.upper() or "—")
+        entity_label = ENTITY_TYPE_LABELS_VN.get(entity_code, entity_code)
+
+        parts: list[str] = []
+        parts.append(f"Công ty thuộc loại hình {entity_label}")
+        parts.append(f"áp dụng chế độ kế toán {regime_label}")
+
+        # TT58-specific tax method group description.
+        if regime_code == "tt58":
+            try:
+                group_no = int(company.tax_method_group)
+            except Exception:
+                group_no = 0
+            group_desc = TAX_GROUP_DESCRIPTIONS_VN.get(group_no)
+            if group_desc:
+                parts.append(f"Nhóm {group_no}: {group_desc}")
+
+        vat_label = VAT_METHOD_LABELS_VN.get(vat_code, vat_code)
+        tndn_label = TNDN_METHOD_LABELS_VN.get(tndn_code, tndn_code)
+        parts.append(f"Phương pháp GTGT: {vat_label}")
+        parts.append(f"Phương pháp TNDN: {tndn_label}")
+
+        if industry:
+            parts.append(f"Ngành: {industry}")
+
+        return ", ".join(parts) + "."
+    except Exception:
+        logger.debug(
+            "_format_company_context: không thể dựng bối cảnh công ty (company=%s) — bỏ qua.",
+            getattr(company, "id", company),
+            exc_info=True,
+        )
+        return ""
+
+
 def get_context_summary(
     user: User,
     company: Company,
@@ -610,6 +716,13 @@ def get_context_summary(
 
     # --- Assemble the summary ------------------------------------------------
     lines: list[str] = []
+
+    # Company context (non-blocking). Prepended before the activity summary so
+    # the Q&A LLM knows the user's accounting regime, entity type, tax method
+    # group, and industry. Empty string is treated as "no context".
+    company_context = _format_company_context(user, company)
+    if company_context:
+        lines.append(company_context)
 
     # Role hint (non-blocking — may be None). Included even when there is no
     # recent interaction activity so the LLM still knows the user's role.
