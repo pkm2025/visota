@@ -129,7 +129,12 @@ class PayrollService:
 
         for idx, emp in enumerate(employees, start=1):
             # Prorated base salary by work days (simplified — assume full month)
-            gross = emp.base_salary + emp.allowance
+            # Non-taxable allowances (meal, pension) are part of gross income per
+            # ND 253/2026 + TT 87/2026, then excluded from PIT taxable below.
+            # Previously these were excluded from taxable but never added to gross,
+            # which meant the employee never received them in net pay (a
+            # "double-deduct" of income that wasn't in gross).
+            gross = emp.base_salary + emp.allowance + emp.meal_allowance + emp.pension_allowance
 
             # Delegate to InsuranceService — handles cap via TaxRateConfig (ND 161/2026).
             # Insurance base is base_salary only (allowance treated as non-insurance pay

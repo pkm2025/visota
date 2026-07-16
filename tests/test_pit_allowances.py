@@ -122,10 +122,14 @@ class TestMealAllowanceNonTaxable:
         return _make
 
     def test_meal_allowance_reduces_taxable_income(self, company, make_emp):
-        """Employee with meal allowance has lower PIT than without."""
-        # Without meal allowance
+        """Employee with non-taxable meal allowance has PIT neutral to base salary.
+
+        Per ND 253/2026 + TT 87/2026, meal allowance up to the cap is non-taxable:
+        it is added to gross then excluded from taxable income. Compared to an
+        employee with the same base salary and no meal allowance, PIT is equal
+        (the allowance is PIT-neutral), but net pay is higher by the allowance.
+        """
         emp_no_meal = make_emp(salary=Decimal("30000000"), meal=Decimal("0"))
-        # With meal allowance within cap
         emp_with_meal = make_emp(salary=Decimal("30000000"), meal=Decimal("1000000"))
 
         svc = PayrollService(company=company)
@@ -134,14 +138,23 @@ class TestMealAllowanceNonTaxable:
         line_no_meal = run.lines.get(employee=emp_no_meal)
         line_with_meal = run.lines.get(employee=emp_with_meal)
 
-        # PIT should be lower with meal allowance excluded from taxable income
-        assert line_with_meal.pit < line_no_meal.pit, (
-            f"PIT with meal allowance ({line_with_meal.pit}) should be less than "
-            f"without ({line_no_meal.pit})"
+        # PIT is identical: the allowance is added to gross then excluded, so it
+        # does not change taxable income relative to the no-allowance baseline.
+        assert line_with_meal.pit == line_no_meal.pit, (
+            f"PIT with non-taxable meal allowance ({line_with_meal.pit}) should equal "
+            f"without ({line_no_meal.pit}) — the allowance is PIT-neutral"
+        )
+        # And the allowance flows fully to net pay.
+        assert line_with_meal.net_salary - line_no_meal.net_salary == Decimal("1000000"), (
+            "Non-taxable meal allowance must reach net pay"
         )
 
     def test_meal_allowance_capped_at_1_2m(self, company, make_emp):
-        """Meal allowance above 1.2M cap: only 1.2M excluded from taxable."""
+        """Meal allowance above 1.2M cap: only 1.2M is non-taxable; excess is taxable.
+
+        An employee with 2M meal allowance pays more PIT than one with 1.2M,
+        because the extra 800K (above the 1.2M cap) is taxable.
+        """
         emp_meal_cap = make_emp(salary=Decimal("30000000"), meal=Decimal("1200000"))
         emp_meal_above = make_emp(salary=Decimal("30000000"), meal=Decimal("2000000"))
 
@@ -151,28 +164,42 @@ class TestMealAllowanceNonTaxable:
         line_cap = run.lines.get(employee=emp_meal_cap)
         line_above = run.lines.get(employee=emp_meal_above)
 
-        # Both should have the same PIT because only up to 1.2M is excluded
-        assert line_cap.pit == line_above.pit, (
-            f"PIT with 1.2M meal ({line_cap.pit}) should equal PIT with 2M meal "
-            f"({line_above.pit}) since cap is 1.2M"
+        # PIT with 2M meal > PIT with 1.2M meal because the excess 800K is taxable.
+        assert line_above.pit > line_cap.pit, (
+            f"PIT with 2M meal ({line_above.pit}) should exceed PIT with 1.2M meal "
+            f"({line_cap.pit}) — only 1.2M is non-taxable"
         )
 
     def test_meal_allowance_exact_cap_excluded(self, company, make_emp):
-        """Verify exact PIT reduction when 1.2M meal allowance is excluded."""
-        emp_no_meal = make_emp(salary=Decimal("30000000"), meal=Decimal("0"))
-        emp_1_2m_meal = make_emp(salary=Decimal("30000000"), meal=Decimal("1200000"))
+        """Verify the non-taxable portion is correctly capped at 1.2M.
+
+        Compare an employee with 1.2M meal allowance (fully non-taxable) against
+        an employee with the same total gross achieved via taxable allowance.
+        The employee with non-taxable meal allowance pays less PIT.
+        """
+        # Employee A: 30M base + 1.2M non-taxable meal = 31.2M gross,
+        #             taxable excludes the 1.2M meal.
+        emp_meal = make_emp(salary=Decimal("30000000"), meal=Decimal("1200000"))
+        # Employee B: 31.2M gross achieved with no meal allowance but higher
+        #             base salary — the entire 31.2M minus standard deductions
+        #             is taxable. We bump base by 1.2M to match gross.
+        emp_taxable = make_emp(salary=Decimal("31200000"), meal=Decimal("0"))
 
         svc = PayrollService(company=company)
         run = svc.calculate("2026-07")
 
-        line_no = run.lines.get(employee=emp_no_meal)
-        line_1_2 = run.lines.get(employee=emp_1_2m_meal)
+        line_meal = run.lines.get(employee=emp_meal)
+        line_taxable = run.lines.get(employee=emp_taxable)
 
-        # Difference in taxable income = 1,200,000
-        # At 20% bracket (for 30M salary), 1.2M exclusion saves 1.2M * 20% = 240,000
-        pit_diff = line_no.pit - line_1_2.pit
-        assert pit_diff > 0, "Excluding meal allowance should reduce PIT"
-        # The exact savings depends on bracket; just verify it's positive
+        # Both have the same gross (31.2M) but the meal-allowance employee has
+        # 1.2M less taxable income, so their PIT must be lower.
+        assert line_meal.gross_salary == line_taxable.gross_salary, (
+            "Gross must match for the comparison to be meaningful"
+        )
+        assert line_meal.pit < line_taxable.pit, (
+            f"Employee with non-taxable meal allowance ({line_meal.pit}) should pay "
+            f"less PIT than one with the same gross as taxable salary ({line_taxable.pit})"
+        )
 
 
 # --- VAL-PIT-005: Pension/insurance allowance is non-taxable up to 3M/month ---
@@ -218,7 +245,13 @@ class TestPensionAllowanceNonTaxable:
         return _make
 
     def test_pension_allowance_reduces_taxable_income(self, company, make_emp):
-        """Employee with pension allowance has lower PIT than without."""
+        """Employee with non-taxable pension allowance has PIT neutral to base salary.
+
+        Per ND 253/2026 + TT 87/2026, pension allowance up to the cap is
+        non-taxable: added to gross then excluded from taxable income. PIT is
+        equal to an employee with the same base salary and no pension allowance,
+        but net pay is higher by the allowance amount.
+        """
         emp_no_pension = make_emp(salary=Decimal("30000000"), pension=Decimal("0"))
         emp_with_pension = make_emp(salary=Decimal("30000000"), pension=Decimal("2000000"))
 
@@ -228,13 +261,20 @@ class TestPensionAllowanceNonTaxable:
         line_no = run.lines.get(employee=emp_no_pension)
         line_with = run.lines.get(employee=emp_with_pension)
 
-        assert line_with.pit < line_no.pit, (
-            f"PIT with pension allowance ({line_with.pit}) should be less than "
-            f"without ({line_no.pit})"
+        assert line_with.pit == line_no.pit, (
+            f"PIT with non-taxable pension allowance ({line_with.pit}) should equal "
+            f"without ({line_no.pit}) — the allowance is PIT-neutral"
+        )
+        assert line_with.net_salary - line_no.net_salary == Decimal("2000000"), (
+            "Non-taxable pension allowance must reach net pay"
         )
 
     def test_pension_allowance_capped_at_3m(self, company, make_emp):
-        """Pension allowance above 3M cap: only 3M excluded from taxable."""
+        """Pension allowance above 3M cap: only 3M non-taxable; excess is taxable.
+
+        An employee with 5M pension pays more PIT than one with 3M, because the
+        extra 2M above the cap is taxable.
+        """
         emp_3m = make_emp(salary=Decimal("30000000"), pension=Decimal("3000000"))
         emp_5m = make_emp(salary=Decimal("30000000"), pension=Decimal("5000000"))
 
@@ -244,13 +284,18 @@ class TestPensionAllowanceNonTaxable:
         line_3m = run.lines.get(employee=emp_3m)
         line_5m = run.lines.get(employee=emp_5m)
 
-        assert line_3m.pit == line_5m.pit, (
-            f"PIT with 3M pension ({line_3m.pit}) should equal PIT with 5M pension "
-            f"({line_5m.pit}) since cap is 3M"
+        assert line_5m.pit > line_3m.pit, (
+            f"PIT with 5M pension ({line_5m.pit}) should exceed PIT with 3M pension "
+            f"({line_3m.pit}) — only 3M is non-taxable"
         )
 
     def test_combined_meal_and_pension_exclusion(self, company, make_emp):
-        """Both meal (1.2M) and pension (3M) excluded simultaneously."""
+        """Both meal (1.2M) and pension (3M) non-taxable simultaneously.
+
+        Both allowances are PIT-neutral relative to the no-allowance baseline
+        (each is added to gross then excluded from taxable), and both flow
+        fully to net pay (total 4.2M).
+        """
         emp_no_allowance = make_emp(
             salary=Decimal("30000000"),
             meal=Decimal("0"),
@@ -268,8 +313,15 @@ class TestPensionAllowanceNonTaxable:
         line_no = run.lines.get(employee=emp_no_allowance)
         line_both = run.lines.get(employee=emp_both)
 
-        # Total exclusion = 1.2M + 3M = 4.2M from taxable income
-        assert line_both.pit < line_no.pit, "PIT with both allowances should be significantly lower"
+        # PIT is identical: both allowances are non-taxable (within caps).
+        assert line_both.pit == line_no.pit, (
+            f"PIT with both non-taxable allowances ({line_both.pit}) should equal "
+            f"without ({line_no.pit}) — both are PIT-neutral"
+        )
+        # And the combined 4.2M of allowances reaches net pay.
+        assert line_both.net_salary - line_no.net_salary == Decimal("4200000"), (
+            "Both non-taxable allowances must reach net pay (1.2M + 3M = 4.2M)"
+        )
 
 
 # --- Seed verification ---
