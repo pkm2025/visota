@@ -53,6 +53,13 @@ class PKMDocument(CompanyOwnedModel):
         default="",
         help_text="Error details if processing failed",
     )
+    is_system = models.BooleanField(
+        default=False,
+        help_text=(
+            "If True, this document is a system-seeded regulation or reference "
+            "shared across tenants (e.g. TT58, PIT rates, TT133 overview)."
+        ),
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -65,6 +72,7 @@ class PKMDocument(CompanyOwnedModel):
             models.Index(fields=["user", "company"]),
             models.Index(fields=["user", "company", "status"]),
             models.Index(fields=["checksum"]),
+            models.Index(fields=["is_system"]),
         ]
         ordering = ["-created_at"]
 
