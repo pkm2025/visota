@@ -24,8 +24,9 @@ Coverage:
     - A user with a non-matching role (e.g. ``viewer``) does NOT see
       templates seeded for ``accountant``.
     - A user with no role gets zero role suggestions.
-    - Multi-tenant isolation: templates seeded in company A are not visible
-      to a user in company B.
+    - Multi-tenant isolation: each company has its own set of role
+      templates (seeded for ALL companies since the multi-company fix).
+      A user in company B sees company B's templates (not company A's).
 """
 
 from __future__ import annotations
@@ -423,12 +424,16 @@ def test_dashboard_ui_no_role_suggestions_for_user_without_role(company, superus
 
 @pytest.mark.django_db
 def test_templates_isolated_per_company(company, superuser):
-    """Templates seeded in company A are invisible to a user in company B."""
-    other_company = Company.objects.create(code="TPL_OTHER", name="Other Co")
-    _run_command()  # seeds into `company` (the first company)
+    """Each company gets its own templates (multi-company seeding).
 
-    # Accountant in the OTHER company should see zero suggestions because
-    # the templates live in `company`.
+    With the multi-company seed fix, ``seed_pkm_templates`` now loops over
+    ALL companies, so an accountant in ``other_company`` sees the templates
+    seeded for ``other_company`` (not the ones in ``company``).
+    """
+    other_company = Company.objects.create(code="TPL_OTHER", name="Other Co")
+    _run_command()  # seeds templates for BOTH companies now
+
+    # Accountant in the OTHER company should see templates in OTHER company.
     other_acc = _make_user_with_role(other_company, "tpl_other_acc", "accountant")
     c = _client_for(other_acc, other_company)
 
@@ -436,7 +441,23 @@ def test_templates_isolated_per_company(company, superuser):
     assert response.status_code == 200
     data = response.json()
     assert "accountant" in data["user_role_codes"]
-    assert data["role_suggestions_count"] == 0
+    # 2 accountant templates seeded in other_company.
+    assert data["role_suggestions_count"] == 2
+
+    # The templates attached to other_company are distinct rows from those
+    # attached to company (per-company copies, not shared rows).
+    company_note_ids = set(
+        KnowledgeNote.objects.filter(
+            company=company, title__startswith=TEMPLATE_TITLE_PREFIX
+        ).values_list("id", flat=True)
+    )
+    other_note_ids = set(
+        KnowledgeNote.objects.filter(
+            company=other_company, title__startswith=TEMPLATE_TITLE_PREFIX
+        ).values_list("id", flat=True)
+    )
+    assert company_note_ids and other_note_ids
+    assert company_note_ids.isdisjoint(other_note_ids)
 
 
 # ---------------------------------------------------------------------------

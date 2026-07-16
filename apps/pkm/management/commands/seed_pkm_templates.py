@@ -1,4 +1,4 @@
-"""Seed role-based note templates into the PKM corpus.
+"""Seed role-based note templates into the PKM corpus for ALL companies.
 
 Creates shared, pinned ``KnowledgeNote`` records (``is_pinned=True``) with
 ``role_context`` matching the role codes used by Visota:
@@ -8,17 +8,26 @@ Creates shared, pinned ``KnowledgeNote`` records (``is_pinned=True``) with
   * ``hr_officer``  — quy trình tính lương, kê khai BHXH
   * ``viewer``      — cách đọc báo cáo tài chính
 
-Each template is owned by the first superuser (or the first user overall)
-and attached to the first ``Company`` (or a sentinel ``SYSTEM`` company
-created on the fly). Templates are **shared** — every user whose
-``UserCompanyRole.role__code`` matches the note's ``role_context`` sees
-them in the PKM dashboard's role-based suggestions, regardless of who
-owns the note.
+Multi-company seeding
+---------------------
+Templates are seeded for **every** ``Company`` in the database (not just the
+first one), so each tenant gets its own copy of the role templates. This
+closes the multi-company gap where only the first company received
+templates. When no companies exist, a sentinel ``SYSTEM`` company is
+created on the fly so the command is still usable on a fresh database.
 
-Idempotency: templates are keyed by a stable ``slug`` stored in the title
-prefix (e.g. ``"[mẫu] tpl:accountant-ghi-so-cuoi-thang — ..."``). Re-running
-the command updates the body of existing templates instead of creating
-duplicates.
+Each template is owned by the first superuser (or the first user overall)
+within that company's scope. Templates are **shared** — every user whose
+``UserCompanyRole.role__code`` matches the note's ``role_context`` sees
+them in the PKM dashboard's role-based suggestions, regardless of who owns
+the note.
+
+Idempotency
+-----------
+Templates are keyed by the stable ``slug`` embedded in the title prefix
+(e.g. ``"[mẫu] tpl:accountant-ghi-so-cuoi-thang — ..."``) **per company**.
+Re-running the command updates the body of existing templates instead of
+creating duplicates. The natural key is ``(company, role_context, title)``.
 """
 
 from __future__ import annotations
@@ -75,12 +84,11 @@ def _resolve_owner() -> User:
     return user
 
 
-def _resolve_company() -> Company:
-    """Return the company that shared templates are attached to.
+def _ensure_company_exists() -> Company:
+    """Return the first company, creating a sentinel SYSTEM company if none exist.
 
-    ``KnowledgeNote.company`` is NOT nullable, so shared templates are
-    attached to the first existing company. If no company exists yet, a
-    sentinel ``SYSTEM`` company is created.
+    ``KnowledgeNote.company`` is NOT nullable, so on a fresh database we
+    create a sentinel ``SYSTEM`` company to host the shared templates.
     """
     company = Company.objects.order_by("id").first()
     if company is not None:
@@ -96,20 +104,59 @@ class Command(BaseCommand):
     help = (
         "Seed role-based note templates (accountant, sales, hr_officer, viewer) "
         "as shared, pinned KnowledgeNote records with role_context matching "
-        "Visota role codes. Idempotent."
+        "Visota role codes. Seeds templates for ALL companies. Idempotent "
+        "per (company, role_context, title)."
     )
 
     def handle(self, *args, **options):
         owner = _resolve_owner()
-        company = _resolve_company()
 
-        created_notes = 0
-        updated_notes = 0
+        # Ensure at least one company exists (creates SYSTEM sentinel if needed).
+        _ensure_company_exists()
+
+        companies = list(Company.objects.order_by("id"))
+        total_created = 0
+        total_updated = 0
+
+        per_company_reports: list[str] = []
+
+        for company in companies:
+            created, updated = self._seed_for_company(owner, company)
+            total_created += created
+            total_updated += updated
+            per_company_reports.append(
+                f"  company='{company.code}': {created} new, {updated} updated"
+            )
+
+        roles = sorted({role for role, *_ in ROLE_TEMPLATES})
+        per_template_count = len(ROLE_TEMPLATES)
+        summary = (
+            f"Seeded {per_template_count} role template(s) per company "
+            f"({total_created} new, {total_updated} updated) across "
+            f"{len(companies)} company(ies) for roles {roles}."
+        )
+
+        for line in per_company_reports:
+            self.stdout.write(line)
+        self.stdout.write(self.style.SUCCESS(summary))
+        return summary
+
+    # ------------------------------------------------------------------
+    # Per-company seeding helper
+    # ------------------------------------------------------------------
+
+    def _seed_for_company(self, owner: User, company: Company) -> tuple[int, int]:
+        """Seed all role templates for a single company.
+
+        Returns ``(created_count, updated_count)``. Idempotent per
+        ``(company, title)`` via the slug marker in the title.
+        """
+        created = 0
+        updated = 0
 
         for role_code, slug, title, body in ROLE_TEMPLATES:
             full_title = _template_title(slug, title)
 
-            # Idempotent lookup: find an existing template note by slug marker.
             existing = next(
                 (
                     note
@@ -132,8 +179,10 @@ class Command(BaseCommand):
                     role_context=role_code,
                     is_pinned=True,
                 )
-                created_notes += 1
-                self.stdout.write(f"  + Created template ({role_code}): {full_title}")
+                created += 1
+                self.stdout.write(
+                    f"  + Created template ({role_code}) company='{company.code}': {full_title}"
+                )
             else:
                 existing.content = body
                 existing.role_context = role_code
@@ -146,14 +195,9 @@ class Command(BaseCommand):
                         "updated_at",
                     ]
                 )
-                updated_notes += 1
-                self.stdout.write(f"  ~ Updated template ({role_code}): {full_title}")
+                updated += 1
+                self.stdout.write(
+                    f"  ~ Updated template ({role_code}) company='{company.code}': {full_title}"
+                )
 
-        roles = sorted({role for role, *_ in ROLE_TEMPLATES})
-        summary = (
-            f"Seeded {len(ROLE_TEMPLATES)} role template(s) "
-            f"({created_notes} new, {updated_notes} updated) for roles "
-            f"{roles} owned by user='{owner.username}' company='{company.code}'."
-        )
-        self.stdout.write(self.style.SUCCESS(summary))
-        return summary
+        return created, updated

@@ -58,6 +58,7 @@ from apps.pkm.models import (
     UserLLMConfig,
 )
 from apps.pkm.services import encryption_service, llm_service, qa_service, rag_pipeline
+from apps.pkm.services.export_service import export_user_pkm_data
 from apps.pkm.services.interaction_service import log_interaction
 from apps.pkm.services.llm_service import (
     LLMAuthError,
@@ -1019,3 +1020,76 @@ def get_pkm_stats(request: HttpRequest) -> dict[str, Any]:
         "role_suggestions_count": role_suggestions_qs.count(),
         "user_role_codes": user_role_codes,
     }
+
+
+# ===========================================================================
+# Export / Backup
+# ===========================================================================
+
+
+class ExportNoteSchema(Schema):
+    """A note in the export payload."""
+
+    id: int
+    title: str
+    content: str
+    tags: list[str] = []
+    role_context: str = ""
+    is_pinned: bool = False
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class ExportWikiPageSchema(Schema):
+    """A wiki page in the export payload."""
+
+    id: int
+    title: str
+    content: str
+    page_type: str = "summary"
+    tags: list[str] = []
+    is_ai_generated: bool = False
+    is_system: bool = False
+    last_ingest_at: datetime | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class ExportResponseSchema(Schema):
+    """Response for the export endpoint.
+
+    Contains all notes (title, content, tags) and wiki pages for the
+    authenticated user in the current company.
+    """
+
+    user: dict[str, Any]
+    company: dict[str, Any]
+    exported_at: str
+    notes: list[ExportNoteSchema] = []
+    wiki_pages: list[ExportWikiPageSchema] = []
+
+
+@router.get("/export/", response=ExportResponseSchema, auth=get_current_user)
+def export_pkm_data(
+    request: HttpRequest,
+    include_notes: bool = True,
+    include_wiki: bool = True,
+) -> dict[str, Any]:
+    """Export the authenticated user's PKM data as JSON.
+
+    Returns all notes (with title, content, tags) and wiki pages scoped to
+    the current user and company. Used for backup / data portability.
+
+    Query params:
+        include_notes: If False, omit notes from the payload (default True).
+        include_wiki: If False, omit wiki pages from the payload (default True).
+
+    Fulfils VAL-EXPORT-001: export produces JSON with notes and wiki.
+    """
+    company = get_current_company(request)
+    return export_user_pkm_data(
+        user=request.user,
+        company=company,
+        include_notes=include_notes,
+        include_wiki=include_wiki,
+    )
