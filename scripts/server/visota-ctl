@@ -214,7 +214,7 @@ _dcentra(){ local d="$1";title "DEPLOY CENTRA($d)";local cd="/opt/centra";mkdir 
 [ -d .git ]&&{ info "Update...";git pull origin main;}||{ info "Clone...";git clone git@github-centra:pkm2025/Centra.git .||{ err "Clone fail — add pubkey /root/.ssh/id_ed25519_centra.pub vào repo Centra (Settings → Deploy keys)";return 1;};}
 if [ ! -f ".env" ]; then
   info "Gen .env...";local s dp ap;s=$(openssl rand -hex 32);dp=$(openssl rand -hex 16);ap=$(openssl rand -base64 12)
-  printf 'DJANGO_SETTINGS_MODULE=config.settings.prod\nSECRET_KEY=%s\nDB_ROOT_PASSWORD=%s\nDB_NAME=centra\nDB_USER=centra\nDB_PASSWORD=%s\nALLOWED_HOSTS=%s,www.%s,localhost\nCSRF_TRUSTED_ORIGINS=https://%s,https://www.%s\nGUNICORN_WORKERS=4\n' "$s" "$dp" "$dp" "$d" "$d" "$d" "$d" "$d">.env;chmod 600 .env
+  printf 'DJANGO_SETTINGS_MODULE=config.settings.prod\nSECRET_KEY=%s\nDB_ROOT_PASSWORD=%s\nDB_NAME=centra\nDB_USER=centra\nDB_PASSWORD=%s\nSUPERUSER_EMAIL=admin@%s\nSUPERUSER_PASSWORD=%s\nALLOWED_HOSTS=%s,www.%s,localhost\nCSRF_TRUSTED_ORIGINS=https://%s,https://www.%s\nGUNICORN_WORKERS=4\n' "$s" "$dp" "$dp" "$d" "$ap" "$d" "$d" "$d" "$d">.env;chmod 600 .env
   echo "";echo -e "${GREEN}${BOLD}═══ LOGIN ═══${NC}";echo -e "  URL:${CYAN}https://$d/${NC}  Admin:${CYAN}admin${NC}  Pass:${YELLOW}$ap${NC}";echo -e "${RED}Lưu lại!${NC}";echo ""
 fi
 _wcc "$d";info "Build(3-5m)...";dk up -d --build --force-recreate
