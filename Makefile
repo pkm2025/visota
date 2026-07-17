@@ -12,6 +12,7 @@ install: ## Install dependencies
 dev: ## Run dev server (with seed)
 	uv run python manage.py migrate
 	uv run python manage.py seed_demo
+	uv run python manage.py ensure_tt133_charts
 	uv run python manage.py runserver
 
 qcluster: ## Start django-q2 cluster
@@ -44,6 +45,7 @@ superuser: ## Create superuser
 
 seed: ## Seed demo data
 	uv run python manage.py seed_demo
+	uv run python manage.py ensure_tt133_charts
 
 clean: ## Clean caches
 	find . -type d -name __pycache__ -exec rm -rf {} +

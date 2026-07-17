@@ -30,6 +30,9 @@ python manage.py createcachetable 2>/dev/null || true
 echo "Seeding permissions..."
 python manage.py seed_permissions 2>/dev/null || true
 
+echo "Ensuring TT133 chart of accounts for all companies..."
+python manage.py ensure_tt133_charts 2>/dev/null || true
+
 # Collect static (WhiteNoise — compressed)
 echo "Collecting static files (WhiteNoise compressed)..."
 python manage.py collectstatic --noinput --clear

@@ -142,6 +142,15 @@ class Command(BaseCommand):
         # Ensure module permissions exist before assigning them to roles.
         perm_map = self._ensure_module_permissions()
 
+        # Ensure TT133 chart of accounts is loaded for all TT133 companies
+        # before transactions reference account codes (111, 131, 511, 632...).
+        try:
+            from django.core.management import call_command
+
+            call_command("ensure_tt133_charts", verbosity=0)
+        except Exception as exc:
+            self.stdout.write(self.style.WARNING(f"ensure_tt133_charts: {exc}"))
+
         for cfg in COMPANY_CONFIGS:
             company = self._seed_company(cfg)
             users = self._seed_users(company, cfg["prefix"])

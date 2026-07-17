@@ -318,13 +318,19 @@ class SignupView(View):
         # Set session
         request.session["current_company_id"] = company.id
 
-        # Auto-seed chart of accounts
+        # Auto-seed TT133 chart of accounts (required for voucher entry).
+        # Was previously silent-failed due to missing --company-code argument.
         try:
             from django.core.management import call_command
 
-            call_command("load_tt133", verbosity=0)
-        except Exception:
-            pass
+            call_command("load_tt133", company_code=company.code, verbosity=0)
+        except Exception as exc:
+            # Log to stderr so ops can see the failure (was silently swallowed
+            # before, leaving new companies without any accounts).
+            import logging
+
+            logger = logging.getLogger("apps.public")
+            logger.exception("load_tt133 failed for company %s: %s", company.code, exc)
 
         # Login
         login(request, user, backend="django.contrib.auth.backends.ModelBackend")
