@@ -52,6 +52,7 @@ from .views import (
     CashReceiptJournalView,
     ChartOfAccountsChangeCodeView,
     ChartOfAccountsListView,
+    ChartOfAccountsSeedView,
     ClosingEntryDeclarationView,
     CompanyProfileView,
     ContactListAdminView,
@@ -896,6 +897,11 @@ urlpatterns = [
         "chart-of-accounts/<int:pk>/change-code/",
         login_required(ChartOfAccountsChangeCodeView.as_view()),
         name="chart_of_accounts_change_code",
+    ),
+    path(
+        "chart-of-accounts/seed/",
+        login_required(ChartOfAccountsSeedView.as_view()),
+        name="chart_of_accounts_seed",
     ),
     path(
         "labor-contracts/new/",

@@ -1,6 +1,6 @@
 # T1 — Tổng quan Kiến trúc
 
-> Kiến trúc kỹ thuật PMKetoan ERP.
+> Kiến trúc kỹ thuật Visota ERP.
 
 ## 1. Sơ đồ tổng thể
 

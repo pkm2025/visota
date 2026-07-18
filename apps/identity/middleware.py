@@ -89,7 +89,21 @@ class ModulePermissionMiddleware:
         if not getattr(request, "current_company", None):
             from apps.core.models import Company
 
-            company = Company.objects.first()
+            # Prefer a company the user actually has a role in (fixes the
+            # post-rebrand owner-reset symptom in feedback #3, where the
+            # session was cleared and Company.objects.first() returned a
+            # company the user had no role in -> redirect to /no-access/).
+            company = None
+            if not user.is_superuser:
+                company = (
+                    Company.objects.filter(
+                        is_active=True, usercompanyrole__user=user
+                    )
+                    .order_by("usercompanyrole__is_default", "id")
+                    .first()
+                )
+            if not company:
+                company = Company.objects.first()
             if company:
                 request.current_company = company
 

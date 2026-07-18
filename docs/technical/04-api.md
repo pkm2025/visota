@@ -4,7 +4,7 @@
 
 ## Tổng quan
 
-PMKetoan hiện chưa có REST API công khai đầy đủ — django-ninja đã config nhưng
+Visota ERP hiện chưa có REST API công khai đầy đủ — django-ninja đã config nhưng
 chưa xây endpoints. Tài liệu này mô tả **API contract planned** và hướng dẫn
 contributing.
 
@@ -272,7 +272,7 @@ for cust in resp.json()["results"]:
 ### Tích hợp bank API
 
 ```python
-# When bank sends payment notification, sync to PMKetoan
+# When bank sends payment notification, sync to Visota ERP
 @app.route('/webhook/bank', methods=['POST'])
 def bank_webhook():
     txn = request.json

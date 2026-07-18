@@ -86,12 +86,12 @@ Nếu BC01 kỳ chưa nộp → VAT đầu ra sai.
 Đăng nhập **thuedientu.gdt.gov.vn**:
 
 1. Chọn tờ khai 01/GTGT kỳ
-2. Nhập số liệu từ PMKetoan:
+2. Nhập số liệu từ Visota ERP:
    - Doanh thu theo VAT rate
    - VAT đầu ra
    - VAT đầu vào
    - VAT phải nộp
-3. Upload BC thuế đầu vào + đầu ra (Excel từ PMKetoan)
+3. Upload BC thuế đầu vào + đầu ra (Excel từ Visota ERP)
 4. Ký số (USB token hoặc SIM số)
 5. Submit → nhận Mã CQT
 
@@ -160,7 +160,7 @@ Không sửa kỳ trước (đã khóa). Cách:
 
 Nếu VAT đầu vào của CCDC > 20M → kê khai theo 12KK (kỳ >= 200M).
 
-Hiện PMKetoan chưa auto split — làm thủ công.
+Hiện Visota ERP chưa auto split — làm thủ công.
 
 ## Tỷ giá áp dụng VAT
 
@@ -189,7 +189,7 @@ Trễ phạt:
 - [ ] Tất cả HĐ mua post + có HĐ hợp lệ
 - [ ] HĐĐT đã phát hành
 - [ ] BC01 đã nộp
-- [ ] Tờ khai 01/GTGT tạo từ PMKetoan
+- [ ] Tờ khai 01/GTGT tạo từ Visota ERP
 - [ ] Verify số liệu match BCĐTK
 - [ ] Submit thuedientu.gdt.gov.vn
 - [ ] Thanh toán KBNN

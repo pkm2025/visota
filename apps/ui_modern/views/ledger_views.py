@@ -347,7 +347,14 @@ class VoucherExportView(LoginRequiredMixin, View):
 
 
 class VoucherDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
-    """Delete a DRAFT voucher and reverse its ledger entries."""
+    """Delete a voucher and reverse its ledger entries.
+
+    Supports both DRAFT and POSTED vouchers. For POSTED vouchers we first
+    unpost (reverse ledger entries) then delete. Any unpost failure is
+    surfaced to the user instead of being silently swallowed — this was
+    the root cause of feedback #4 (POST returned 302 but the voucher
+    remained because unpost() raised and was caught with bare except).
+    """
 
     login_url = "/auth/login/"
     required_permission = "ledger.access"
@@ -355,17 +362,28 @@ class VoucherDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
     def post(self, request, pk, *args, **kwargs):
         company = require_current_company(request)
         voucher = get_object_or_404(AccountingVoucher, pk=pk, company=company)
-        if voucher.status != AccountingVoucher.Status.DRAFT:
+        if voucher.status == AccountingVoucher.Status.LOCKED:
             messages.error(
                 request,
-                f"Không thể xóa phiếu {voucher.voucher_no}: chỉ xóa được phiếu ở trạng thái Lưu tạm.",
+                f"Không thể xóa phiếu {voucher.voucher_no}: phiếu đã khóa.",
             )
             return redirect("ui_modern:voucher_detail", pk=pk)
-        try:
-            # Reverse any posted ledger entries first (best-effort).
-            VoucherPostingService().unpost(voucher)
-        except Exception:
-            pass
+        if voucher.status != AccountingVoucher.Status.DRAFT:
+            # Posted (SUBSIDIARY / LEDGER): unpost first, surface failures.
+            try:
+                VoucherPostingService().unpost(voucher)
+            except Exception as exc:  # noqa: BLE001 — surface, don't crash
+                import logging
+
+                logging.getLogger("apps.ui_modern").exception(
+                    "unpost failed for voucher %s: %s", voucher.voucher_no, exc
+                )
+                messages.error(
+                    request,
+                    f"Không thể bỏ ghi sổ phiếu {voucher.voucher_no}. "
+                    f"Vui lòng kiểm tra kỳ kế toán hoặc liên hệ quản trị viên.",
+                )
+                return redirect("ui_modern:voucher_detail", pk=pk)
         voucher_no = voucher.voucher_no
         voucher.delete()
         messages.success(request, f"Đã xóa phiếu {voucher_no}")

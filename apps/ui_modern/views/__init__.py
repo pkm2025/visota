@@ -67,7 +67,11 @@ from .attachment_views import (
     AttachmentUploadView,
 )
 from .auth_views import VisotaLoginView, VisotaLogoutView
-from .chart_of_accounts_views import ChartOfAccountsChangeCodeView, ChartOfAccountsListView
+from .chart_of_accounts_views import (
+    ChartOfAccountsChangeCodeView,
+    ChartOfAccountsListView,
+    ChartOfAccountsSeedView,
+)
 from .closing_views import PeriodClosingView
 from .company_views import CompanyProfileView
 from .contract_template_views import (
@@ -258,6 +262,7 @@ __all__ = [
     "DnsnConversionResultView",
     "ChartOfAccountsListView",
     "ChartOfAccountsChangeCodeView",
+    "ChartOfAccountsSeedView",
     "VisotaLoginView",
     "VisotaLogoutView",
     "CompanyProfileView",

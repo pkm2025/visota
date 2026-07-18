@@ -1,4 +1,4 @@
-# Pre-Deploy Test Plan — Visota (PMKetoan)
+# Pre-Deploy Test Plan — Visota ERP
 
 > Full browser + unit test before go-live. **Fail = block deploy.**
 

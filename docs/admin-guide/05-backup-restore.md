@@ -177,7 +177,7 @@ AGE_HOURS=$(( (NOW - LAST_TIME) / 3600 ))
 if [ $AGE_HOURS -gt 26 ]; then
   echo "ALERT: Last backup is $AGE_HOURS hours old"
   # Send to Slack/PagerDuty
-  curl -X POST $SLACK_WEBHOOK -d "{\"text\":\"PMKetoan backup ALERT: $AGE_HOURS hours old\"}"
+  curl -X POST $SLACK_WEBHOOK -d "{\"text\":\"Visota ERP backup ALERT: $AGE_HOURS hours old\"}"
   exit 1
 fi
 echo "OK: last backup $AGE_HOURS hours ago"

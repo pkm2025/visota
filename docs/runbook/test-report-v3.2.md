@@ -1,4 +1,4 @@
-# Báo cáo kiểm thử toàn diện — PMKetoan (Visota)
+# Báo cáo kiểm thử toàn diện — Visota ERP
 
 > **Phiên bản:** v3.2.0
 > **Ngày test:** 03/07/2026
@@ -308,4 +308,4 @@
 | Tuân thủ TT133/200 | ✅ |
 | Minh chứng ảnh chụp | 71 screenshots + HTML report |
 
-**Hệ thống PMKetoan đã sẵn sàng go-live.**
+**Hệ thống Visota ERP đã sẵn sàng go-live.**

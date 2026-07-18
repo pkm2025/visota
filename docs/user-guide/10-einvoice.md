@@ -4,7 +4,7 @@
 
 ## 1. Tổng quan
 
-HĐĐT bắt buộc từ **01/07/2022** theo TT78/2021/TT-BTC. PMKetoan hỗ trợ:
+HĐĐT bắt buộc từ **01/07/2022** theo TT78/2021/TT-BTC. Visota ERP hỗ trợ:
 
 | Provider | Loại | Trạng thái |
 |----------|------|------------|

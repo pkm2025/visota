@@ -4,7 +4,7 @@
 
 ## 1. Kiến trúc phân quyền
 
-PMKetoan dùng mô hình **RBAC 4 lớp**:
+Visota ERP dùng mô hình **RBAC 4 lớp**:
 
 ```
 User (Người dùng)

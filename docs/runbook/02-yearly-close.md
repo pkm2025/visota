@@ -251,7 +251,7 @@ nên có internal audit.
 A: Không. Tiếng Việt theo mẫu chuẩn.
 
 **Q: Kỳ 13 (sau cutoff) là gì?**
-A: Một số công ty dùng kỳ 13 cho điều chỉnh cuối năm. PMKetoan không dùng —
+A: Một số công ty dùng kỳ 13 cho điều chỉnh cuối năm. Visota ERP không dùng —
 chỉ 12 kỳ/năm.
 
 ---

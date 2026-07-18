@@ -319,18 +319,21 @@ class SignupView(View):
         request.session["current_company_id"] = company.id
 
         # Auto-seed TT133 chart of accounts (required for voucher entry).
-        # Was previously silent-failed due to missing --company-code argument.
+        # Previously the exception was silently swallowed, leaving new companies
+        # without any accounts and causing confusion (#1/#2 in feedback).
+        # We now surface the failure to the user and log loudly for ops.
         try:
-            from django.core.management import call_command
-
             call_command("load_tt133", company_code=company.code, verbosity=0)
         except Exception as exc:
-            # Log to stderr so ops can see the failure (was silently swallowed
-            # before, leaving new companies without any accounts).
             import logging
 
             logger = logging.getLogger("apps.public")
             logger.exception("load_tt133 failed for company %s: %s", company.code, exc)
+            messages.warning(
+                request,
+                "Hệ thống tài khoản TT133 chưa được khởi tạo tự động. "
+                "Vui lòng bấm 'Khởi tạo HTTK mẫu' tại trang Hệ thống tài khoản.",
+            )
 
         # Login
         login(request, user, backend="django.contrib.auth.backends.ModelBackend")

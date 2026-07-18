@@ -78,7 +78,15 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-4">Không có tài khoản nào.</td>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                <div class="mb-2">Không có tài khoản nào.</div>
+                                <form method="post" action="{% url 'ui_modern:chart_of_accounts_seed' %}" onsubmit="return confirm('Khởi tạo Hệ thống tài khoản TT133/2016?')" style="display:inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="bi bi-magic"></i> Khởi tạo HTTK mẫu
+                                    </button>
+                                </form>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>

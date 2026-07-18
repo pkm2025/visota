@@ -131,7 +131,7 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_HOST_USER=noreply@pkm.vn
 EMAIL_HOST_PASSWORD=app-specific-password
-DEFAULT_FROM_EMAIL="PMKetoan <noreply@pkm.vn>"
+DEFAULT_FROM_EMAIL="Visota ERP <noreply@visota.net>"
 AXES_FAILURE_LIMIT=5
 AXES_COOLOFF_TIME=1  # 1 hour
 SENTRY_DSN=https://xxx@sentry.io/123
@@ -167,7 +167,7 @@ python manage.py check --deploy
 
 ```ini
 [Unit]
-Description=PMKetoan Gunicorn
+Description=Visota ERP Gunicorn
 After=network.target mariadb.service
 
 [Service]
@@ -204,7 +204,7 @@ sudo systemctl status pmketoan
 
 ```ini
 [Unit]
-Description=PMKetoan django-q2 worker
+Description=Visota ERP django-q2 worker
 After=network.target mariadb.service
 
 [Service]

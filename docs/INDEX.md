@@ -1,6 +1,6 @@
-# PMKetoan — Hệ thống tài liệu vận hành
+# Visota ERP — Hệ thống tài liệu vận hành
 
-> **Bộ tài liệu vận hành** cho PMKetoan ERP — hướng dẫn sử dụng, quản trị,
+> **Bộ tài liệu vận hành** cho Visota ERP — hướng dẫn sử dụng, quản trị,
 > kỹ thuật, và quy trình vận hành thực tế.
 
 ## 📚 Mục lục

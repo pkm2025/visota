@@ -2,6 +2,7 @@
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.management import call_command
 from django.db import transaction
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -156,3 +157,44 @@ class ChartOfAccountsChangeCodeView(LoginRequiredMixin, PermissionRequiredMixin,
                 "error": error,
             },
         )
+
+
+class ChartOfAccountsSeedView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """POST: seed the standard chart of accounts for the current company's
+    accounting regime (TT133 by default). Used by the 'Khởi tạo HTTK mẫu'
+    button on the COA list empty-state.
+
+    Idempotent: ``load_tt133`` skips codes that already exist, so re-running
+    is safe. Surfaces failure via ``messages.error`` instead of swallowing.
+    """
+
+    login_url = "/auth/login/"
+    required_permission = "master_data.access"
+
+    def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        company = require_current_company(request)
+        regime = (company.accounting_regime or "tt133").lower()
+        if regime != "tt133":
+            messages.error(
+                request,
+                f"Khởi tạo mẫu chưa hỗ trợ chế độ '{regime}'. Chỉ hỗ trợ TT133/2016.",
+            )
+            return redirect("ui_modern:chart_of_accounts_list")
+        try:
+            call_command("load_tt133", company_code=company.code, verbosity=0)
+        except Exception as exc:  # noqa: BLE001 — surface, don't crash
+            import logging
+
+            logging.getLogger("apps.ui_modern").exception(
+                "load_tt133 failed via UI for company %s: %s", company.code, exc
+            )
+            messages.error(
+                request,
+                "Không thể khởi tạo HTTK mẫu. Vui lòng liên hệ quản trị viên.",
+            )
+            return redirect("ui_modern:chart_of_accounts_list")
+        messages.success(request, "Đã khởi tạo Hệ thống tài khoản TT133/2016.")
+        return redirect("ui_modern:chart_of_accounts_list")
+
+    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        return redirect("ui_modern:chart_of_accounts_list")
