@@ -58,7 +58,7 @@ echo -e "  ${CYAN}1${NC}) 🧮 Visota ERP     ${DIM}kế toán+CRM+HĐĐT${NC}"
 echo -e "  ${CYAN}2${NC}) 📈 Metabase       ${DIM}Analytics${NC}"
 echo -e "  ${CYAN}3${NC}) 🔗 n8n            ${DIM}Workflow${NC}"
 echo -e "  ${CYAN}4${NC}) 🪣 MinIO          ${DIM}S3 storage (PDF/backup)${NC}"
-echo -e "  ${CYAN}5${NC}) 🌐 Centra         ${DIM}qua Cloudflare (DNS-01)${NC}"
+echo -e "  ${CYAN}5${NC}) 🌐 Centra         ${DIM}qua Caddy → Traefik${NC}"
 echo "";echo -e "  ${YELLOW}0${NC}) ← Quay lại\n";read -rp "${BOLD}[0-5]:${NC} " c
 case "$c" in 1)read -p "Domain(visota.net):" d;_dv "${d:-visota.net}";pause;;2)read -p "Domain:" d;_dm "${d:-analytics.visota.net}";pause;;3)read -p "Domain:" d;_dn "${d:-flow.visota.net}";pause;;4)read -p "Domain(s3.visota.net):" d;_dminio "${d:-s3.visota.net}";pause;;5)read -p "Domain(centra.vn):" d;_dcentra "${d:-centra.vn}";pause;;0)break;;esac;done;}
 
@@ -207,59 +207,30 @@ networks: {web: {external: true}, visota-net: {driver: bridge}}
 VEOF
 }
 
-# Centra — centra.vn qua CaddyPMplus (TLS terminate ở Caddy, forward HTTP :1307).
-# Repo pkm2025/Centra.git (key riêng github-centra), DB_NAME=centra, port gunicorn 1307.
-# Không dùng Traefik/DNS-01/CF token. Cần mở firewall rich-rule cho IP máy Caddy (xem runbook §3).
+# Centra — centra.vn qua Caddy → Traefik :80 → centra-app:8000
+# Repo pkm2025/Centra.git (key riêng github-centra). Django project nằm trong centra/centra/
+# (lồng 1 cấp). Repo có sẵn Dockerfile + docker-compose.prod.yml (nginx+mariadb+minio+app+worker).
+# Override docker-compose.traefik.yml (file hạ tầng riêng, KHÔNG thuộc repo): tắt nginx (đụng
+# Traefik), tắt minio (dùng MinIO visota-ctl qua network `web`), thêm Traefik labels.
+# Cần .env ở centra/centra/.env (DJANGO_SECRET_KEY, DB_*, MINIO_*, SECURE_SSL_REDIRECT=False,
+# STATICFILES_STORAGE=CompressedStaticFilesStorage).
 _dcentra(){ local d="$1";title "DEPLOY CENTRA($d)";local cd="/opt/centra";mkdir -p "$cd";cd "$cd"
-if [ -d .git ]; then info "Update...";git pull origin main||{ err "Pull fail — xử lý local changes (git status/git stash/git checkout -- .) rồi retry";return 1;};else info "Clone...";git clone git@github-centra:pkm2025/Centra.git .||{ err "Clone fail — add pubkey /root/.ssh/id_ed25519_centra.pub vào repo Centra (Settings → Deploy keys)";return 1;};fi
+if [ -d .git ]; then info "Update...";git pull origin main||{ err "Pull fail — xử lý local changes (cd /opt/centra && git status/git stash/git checkout -- .) rồi retry";return 1;};else info "Clone...";git clone git@github-centra:pkm2025/Centra.git .||{ err "Clone fail — add pubkey /root/.ssh/id_ed25519_centra.pub vào repo Centra (Settings → Deploy keys)";return 1;};fi
+# Django project ở centra/centra/ (lồng 1 cấp), compose + .env ở đó
+local app="/opt/centra/centra";cd "$app"
 if [ ! -f ".env" ]; then
-  info "Gen .env...";local s dp ap;s=$(openssl rand -hex 32);dp=$(openssl rand -hex 16);ap=$(openssl rand -base64 12)
-  printf 'DJANGO_SETTINGS_MODULE=config.settings.prod\nSECRET_KEY=%s\nDB_ROOT_PASSWORD=%s\nDB_NAME=centra\nDB_USER=centra\nDB_PASSWORD=%s\nSUPERUSER_EMAIL=admin@%s\nSUPERUSER_PASSWORD=%s\nALLOWED_HOSTS=%s,www.%s,localhost\nCSRF_TRUSTED_ORIGINS=https://%s,https://www.%s\nGUNICORN_WORKERS=4\n' "$s" "$dp" "$dp" "$d" "$ap" "$d" "$d" "$d" "$d">.env;chmod 600 .env
-  echo "";echo -e "${GREEN}${BOLD}═══ LOGIN ═══${NC}";echo -e "  URL:${CYAN}https://$d/${NC}  Admin:${CYAN}admin${NC}  Pass:${YELLOW}$ap${NC}";echo -e "${RED}Lưu lại!${NC}";echo ""
+  err "Thiếu $app/.env — tạo thủ công theo template (DJANGO_SECRET_KEY, DB_*, MINIO_* credentials visota-ctl, SECURE_SSL_REDIRECT=False, STATICFILES_STORAGE=whitenoise.storage.CompressedStaticFilesStorage). Xem docs/runbook/deploy-centra-vn.md"
+  return 1
 fi
-_wcc "$d";info "Build(3-5m)...";dk up -d --build --force-recreate||{ err "Build fail — kiểm tra Dockerfile/entrypoint.sh/requirements trong /opt/centra";return 1;};ok "https://$d/ (Caddy → Traefik :80 → centra-web:1307)";_ensure_autostart;}
+if [ ! -f "docker-compose.traefik.yml" ]; then
+  err "Thiếu $app/docker-compose.traefik.yml (override hạ tầng Caddy→Traefik). Tạo file này trước khi deploy — xem docs/runbook/deploy-centra-vn.md"
+  return 1
+fi
+info "Build(3-8m, multi-stage Tailwind+Python)...";podman compose --env-file .env -f docker-compose.prod.yml -f docker-compose.traefik.yml up -d --build --force-recreate||{ err "Build/up fail — xem log: podman compose ... logs";return 1;}
+ok "https://$d/ (Caddy → Traefik :80 → centra-app:8000)";_ensure_autostart;}
 
-# Write Centra compose — Caddy → Traefik :80 → centra-web:1307 (pattern như pkm)
-_wcc(){ local d="$1";cat>/opt/centra/docker-compose.yml<<CEOF
-services:
-  web:
-    build: .
-    container_name: centra-web
-    restart: unless-stopped
-    env_file: .env
-    environment: {DJANGO_SETTINGS_MODULE: config.settings.prod, DB_HOST: db, DB_PORT: 3306, CENTRA_ROLE: web}
-    volumes: [static_files:/app/staticfiles, media_files:/app/media]
-    depends_on: {db: {condition: service_healthy}}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=web"
-      - "traefik.http.routers.centra.rule=Host(\`$d\`) || Host(\`www.$d\`)"
-      - "traefik.http.routers.centra.entrypoints=web"
-      - "traefik.http.services.centra.loadbalancer.server.port=1307"
-    networks: [web, centra-net]
-  worker:
-    build: .
-    container_name: centra-worker
-    restart: unless-stopped
-    command: python manage.py qcluster
-    env_file: .env
-    environment: {DJANGO_SETTINGS_MODULE: config.settings.prod, DB_HOST: db, DB_PORT: 3306, CENTRA_ROLE: worker}
-    volumes: [media_files:/app/media]
-    depends_on: {db: {condition: service_healthy}}
-    healthcheck: {test: ["NONE"]}
-    networks: [centra-net]
-  db:
-    image: docker.io/library/mariadb:11.8
-    container_name: centra-db
-    restart: unless-stopped
-    environment: {MYSQL_ROOT_PASSWORD: "\${DB_ROOT_PASSWORD}", MYSQL_DATABASE: "\${DB_NAME:-centra}", MYSQL_USER: "\${DB_USER:-centra}", MYSQL_PASSWORD: "\${DB_PASSWORD}"}
-    volumes: [db_data:/var/lib/mysql]
-    healthcheck: {test: ["CMD","mariadb-admin","ping","-h","localhost"], interval: 10s, timeout: 5s, retries: 5}
-    networks: [centra-net]
-volumes: {db_data: , static_files: , media_files: }
-networks: {web: {external: true}, centra-net: {driver: bridge}}
-CEOF
-}
+# _wcc đã xóa — compose do repo Centra cung cấp (docker-compose.prod.yml) + override hạ tầng
+# (docker-compose.traefik.yml). Không sinh compose inline nữa.
 
 _dm(){ local d="$1";title "METABASE($d)";mkdir -p /opt/metabase;cd /opt/metabase
 cat>docker-compose.yml<<'MEOF'
