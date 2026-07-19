@@ -26,7 +26,8 @@ from typing import TYPE_CHECKING
 
 from django.db.models import Q, Sum
 
-from apps.ledger.models import AccountPeriodBalance, VoucherLine
+from apps.ledger.models import VoucherLine
+from apps.ledger.services import YtdBalanceService
 from apps.reporting.models import FinancialReportLine
 
 if TYPE_CHECKING:
@@ -66,6 +67,21 @@ def _expand_pattern(pattern: str) -> Q:
         else:
             q |= Q(account_code__startswith=part)
     return q
+
+
+def _pattern_matches(pattern: str, account_code: str) -> bool:
+    """Pure-Python equivalent of ``_expand_pattern`` for YTD-row aggregation.
+
+    A comma-separated list of prefixes; trailing ``*`` is optional and
+    behaves identically (prefix match).
+    """
+    if not pattern:
+        return False
+    for part in pattern.split(","):
+        part = part.strip().rstrip("*")
+        if part and account_code.startswith(part):
+            return True
+    return False
 
 
 # ----- formula parsing ---------------------------------------------------
@@ -118,46 +134,54 @@ class ReportEngine:
         self.period = period
         self._balance_cache: dict[str, tuple[Decimal, Decimal]] = {}
         self._offset_cache: dict[str, Decimal] = {}
+        self._ytd_service = YtdBalanceService(
+            company=company, fiscal_year=fiscal_year, period=period
+        )
+        self._ytd_rows_cache: list | None = None
+
+    def _get_ytd_rows(self) -> list:
+        """Lazily fetch YTD rows once and cache them for pattern aggregation."""
+        if self._ytd_rows_cache is None:
+            self._ytd_rows_cache = self._ytd_service.fetch()
+        return self._ytd_rows_cache
 
     # -- account-pattern aggregation -------------------------------------
 
     def _aggregate_pattern(self, pattern: str, field_prefix: str) -> Decimal:
-        """Sum debit or credit columns for accounts matching ``pattern``."""
-        key = f"{field_prefix}:{pattern}"
+        """Sum YTD period debit or credit columns for accounts matching ``pattern``.
+
+        Uses ``YtdBalanceService`` so income-statement reports accumulate
+        movements from period 1 to N (fix for the BCTC non-YTD bug).
+        """
+        key = f"ytd_period_{field_prefix}:{pattern}"
         if key in self._balance_cache:
             d, c = self._balance_cache[key]
             return d if field_prefix == "debit" else c
 
-        qs = AccountPeriodBalance.objects.filter(
-            fiscal_year=self.fiscal_year,
-            period=self.period,
-        ).filter(_expand_pattern(pattern))
-        if self.company is not None:
-            qs = qs.filter(company=self.company)
-
-        agg = qs.aggregate(d=Sum("period_debit"), c=Sum("period_credit"))
-        d = agg["d"] or Decimal("0")
-        c = agg["c"] or Decimal("0")
+        d = Decimal("0")
+        c = Decimal("0")
+        for row in self._get_ytd_rows():
+            code = row.account_code
+            if _pattern_matches(pattern, code):
+                d += row.period_debit_ytd
+                c += row.period_credit_ytd
         self._balance_cache[key] = (d, c)
         return d if field_prefix == "debit" else c
 
     def _aggregate_closing(self, pattern: str, field_prefix: str) -> Decimal:
-        """Sum closing debit or credit columns for accounts matching ``pattern``."""
-        key = f"closing_{field_prefix}:{pattern}"
+        """Sum YTD closing debit or credit columns for accounts matching ``pattern``."""
+        key = f"ytd_closing_{field_prefix}:{pattern}"
         if key in self._balance_cache:
             d, c = self._balance_cache[key]
             return d if field_prefix == "debit" else c
 
-        qs = AccountPeriodBalance.objects.filter(
-            fiscal_year=self.fiscal_year,
-            period=self.period,
-        ).filter(_expand_pattern(pattern))
-        if self.company is not None:
-            qs = qs.filter(company=self.company)
-
-        agg = qs.aggregate(d=Sum("closing_debit"), c=Sum("closing_credit"))
-        d = agg["d"] or Decimal("0")
-        c = agg["c"] or Decimal("0")
+        d = Decimal("0")
+        c = Decimal("0")
+        for row in self._get_ytd_rows():
+            code = row.account_code
+            if _pattern_matches(pattern, code):
+                d += row.closing_debit
+                c += row.closing_credit
         self._balance_cache[key] = (d, c)
         return d if field_prefix == "debit" else c
 

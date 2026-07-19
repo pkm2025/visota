@@ -11,7 +11,6 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from apps.ledger.models import AccountPeriodBalance
 from apps.reporting.models import FinancialReportLine
 from apps.reporting.services.formula_parser import ReportEngine, ReportLine
 
@@ -151,24 +150,23 @@ class BalanceSheetService:
     # -- legacy fallback -------------------------------------------------
 
     def _generate_legacy(self, fiscal_year: int, period: int) -> dict:
-        balances = AccountPeriodBalance.objects.filter(
-            fiscal_year=fiscal_year,
-            period=period,
-        ).select_related("company")
-        if self.company is not None:
-            balances = balances.filter(company=self.company)
+        from apps.ledger.services import YtdBalanceService
+
+        rows = YtdBalanceService(
+            company=self.company, fiscal_year=fiscal_year, period=period
+        ).fetch()
 
         asset_rows: list[dict] = []
         liability_rows: list[dict] = []
         equity_rows: list[dict] = []
 
-        for b in balances.order_by("account_code"):
-            closing = max(b.closing_debit or 0, b.closing_credit or 0)
+        for r in rows:
+            closing = max(r.closing_debit, r.closing_credit)
             if closing == 0:
                 continue
 
-            first_digit = b.account_code[0] if b.account_code else "0"
-            row = {"account_code": b.account_code, "amount": closing}
+            first_digit = r.account_code[0] if r.account_code else "0"
+            row = {"account_code": r.account_code, "amount": closing}
 
             if first_digit in ("1", "2"):
                 asset_rows.append(row)

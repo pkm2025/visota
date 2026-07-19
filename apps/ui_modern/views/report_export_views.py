@@ -38,7 +38,7 @@ from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.views import View
 
-from apps.ledger.models import AccountingVoucher, AccountPeriodBalance, VoucherLine
+from apps.ledger.models import AccountingVoucher, VoucherLine
 from apps.reporting.services import BalanceSheetService, CashFlowService, PnLService
 from apps.ui_modern.mixins import require_current_company
 
@@ -155,30 +155,24 @@ def _data_s03b(company, fy: int, period: int, request) -> tuple[list[str], list[
 
 def _data_s06(company, fy: int, period: int) -> tuple[list[str], list[list[str]]]:
     """Trial Balance (S06-DN)."""
+    from apps.ledger.services import YtdBalanceService
+
     headers = ["TK", "Tên TK", "Nợ ĐK", "Có ĐK", "PS Nợ", "PS Có", "Nợ CK", "Có CK"]
-    balances = AccountPeriodBalance.objects.filter(
-        fiscal_year=fy, period=period, company=company
-    ).order_by("account_code")
     rows: list[list[str]] = []
-    for b in balances:
-        od = b.opening_debit or 0
-        oc = b.opening_credit or 0
-        pd_ = b.period_debit or 0
-        pc = b.period_credit or 0
-        cd_ = b.closing_debit or 0
-        cc = b.closing_credit or 0
-        if od == 0 and oc == 0 and pd_ == 0 and pc == 0:
+    ytd_rows = YtdBalanceService(company=company, fiscal_year=fy, period=period).fetch()
+    for r in ytd_rows:
+        if not r.has_activity():
             continue
         rows.append(
             [
-                b.account_code,
+                r.account_code,
                 "",
-                _vnd(od),
-                _vnd(oc),
-                _vnd(pd_),
-                _vnd(pc),
-                _vnd(cd_),
-                _vnd(cc),
+                _vnd(r.opening_debit),
+                _vnd(r.opening_credit),
+                _vnd(r.period_debit),
+                _vnd(r.period_credit),
+                _vnd(r.closing_debit),
+                _vnd(r.closing_credit),
             ]
         )
     return headers, rows

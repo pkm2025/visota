@@ -7,7 +7,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Sum
 from django.views.generic import TemplateView
 
-from apps.ledger.models import AccountingVoucher, AccountPeriodBalance, VoucherLine
+from apps.ledger.models import AccountingVoucher, VoucherLine
+from apps.ledger.services import YtdBalanceService
 from apps.reporting.services import (
     BalanceSheetService,
     PnLService,
@@ -23,7 +24,12 @@ from apps.ui_modern.mixins import require_current_company
 
 
 class TrialBalanceView(LoginRequiredMixin, TemplateView):
-    """Bảng cân đối tài khoản (S06-DN)."""
+    """Bảng cân đối tài khoản (S06-DN).
+
+    Computes YTD opening / period / closing using ``YtdBalanceService``
+    so that selecting period N shows cumulative year-to-date balances
+    (period-0 opening + movements of periods 1..N).
+    """
 
     template_name = "modern/reporting/trial_balance.html"
     login_url = "/auth/login/"
@@ -40,15 +46,8 @@ class TrialBalanceView(LoginRequiredMixin, TemplateView):
         except (TypeError, ValueError):
             period = today.month
 
-        balances = (
-            AccountPeriodBalance.objects.filter(
-                company=require_current_company(self.request),
-                fiscal_year=fiscal_year,
-                period=period,
-            )
-            .select_related("company")
-            .order_by("account_code")
-        )
+        company = require_current_company(self.request)
+        rows = YtdBalanceService(company=company, fiscal_year=fiscal_year, period=period).fetch()
 
         total_opening_d = Decimal("0")
         total_opening_c = Decimal("0")
@@ -57,31 +56,24 @@ class TrialBalanceView(LoginRequiredMixin, TemplateView):
         total_closing_d = Decimal("0")
         total_closing_c = Decimal("0")
 
-        rows = []
-        for b in balances:
-            od = b.opening_debit or 0
-            oc = b.opening_credit or 0
-            pd_ = b.period_debit or 0
-            pc = b.period_credit or 0
-            cd_ = b.closing_debit or 0
-            cc = b.closing_credit or 0
-            if od == 0 and oc == 0 and pd_ == 0 and pc == 0:
+        active_rows = []
+        for r in rows:
+            if not r.has_activity():
                 continue
-
-            rows.append(b)
-            total_opening_d += od
-            total_opening_c += oc
-            total_period_d += pd_
-            total_period_c += pc
-            total_closing_d += cd_
-            total_closing_c += cc
+            active_rows.append(r)
+            total_opening_d += r.opening_debit
+            total_opening_c += r.opening_credit
+            total_period_d += r.period_debit
+            total_period_c += r.period_credit
+            total_closing_d += r.closing_debit
+            total_closing_c += r.closing_credit
 
         ctx.update(
             {
                 "page_title": "Bảng cân đối tài khoản",
                 "fiscal_year": fiscal_year,
                 "period": period,
-                "balances": rows,
+                "balances": active_rows,
                 "total_opening_debit": total_opening_d,
                 "total_opening_credit": total_opening_c,
                 "total_period_debit": total_period_d,

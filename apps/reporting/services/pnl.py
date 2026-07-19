@@ -11,7 +11,6 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from apps.ledger.models import AccountPeriodBalance
 from apps.reporting.models import FinancialReportLine
 from apps.reporting.services.formula_parser import ReportEngine, ReportLine
 
@@ -79,12 +78,11 @@ class PnLService:
     # -- legacy fallback -------------------------------------------------
 
     def _generate_legacy(self, fiscal_year: int, period: int) -> dict:
-        balances = AccountPeriodBalance.objects.filter(
-            fiscal_year=fiscal_year,
-            period=period,
-        )
-        if self.company is not None:
-            balances = balances.filter(company=self.company)
+        from apps.ledger.services import YtdBalanceService
+
+        rows = YtdBalanceService(
+            company=self.company, fiscal_year=fiscal_year, period=period
+        ).fetch()
 
         revenue = Decimal("0")
         cogs = Decimal("0")
@@ -96,10 +94,11 @@ class PnLService:
         other_expense = Decimal("0")
         pit_expense = Decimal("0")
 
-        for b in balances:
-            code = b.account_code or ""
-            period_d = b.period_debit or 0
-            period_c = b.period_credit or 0
+        for r in rows:
+            code = r.account_code or ""
+            # YTD period movements (Jan..N): revenue/expenses accumulate.
+            period_d = r.period_debit_ytd
+            period_c = r.period_credit_ytd
 
             if code.startswith("515"):
                 financial_income += period_c - period_d
