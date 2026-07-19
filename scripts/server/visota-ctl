@@ -164,7 +164,7 @@ TEOF
 _dv(){ local d="$1";title "DEPLOY VISOTA($d)";mkdir -p "$APP_DIR";cd "$APP_DIR";if [ -d .git ]; then info "Update...";git pull origin main||{ err "Pull fail — xử lý local changes (git status/git stash/git checkout -- .) rồi retry";return 1;};else info "Clone...";git clone git@github.com:pkm2025/visota.git .||{ err "Clone fail — chạy 'visota-ctl install' trước để setup deploy key";return 1;};fi
 [ ! -f ".env" ]&&{ info "Gen .env...";local s dp ap;s=$(openssl rand -hex 32);dp=$(openssl rand -hex 16);ap=$(openssl rand -base64 12)
 printf 'DJANGO_SETTINGS_MODULE=config.settings.prod\nSECRET_KEY=%s\nDB_ROOT_PASSWORD=%s\nDB_NAME=visota\nDB_USER=visota\nDB_PASSWORD=%s\nSUPERUSER_EMAIL=admin@%s\nSUPERUSER_PASSWORD=%s\nALLOWED_HOSTS=%s,www.%s,localhost\nGUNICORN_WORKERS=4\n' "$s" "$dp" "$dp" "$d" "$ap" "$d" "$d">.env
-echo "";echo -e "${GREEN}${BOLD}═══ LOGIN ═══${NC}";echo -e "  URL:${CYAN}https://$d/${NC}  Admin:${CYAN}admin${NC}  Pass:${YELLOW}$ap${NC}";echo -e "${RED}Lưu lại!${NC}";echo "";};_wvc "$d";info "Build(3-5m)...";dk up -d --build --force-recreate;ok "https://$d/";_ensure_autostart;}
+echo "";echo -e "${GREEN}${BOLD}═══ LOGIN ═══${NC}";echo -e "  URL:${CYAN}https://$d/${NC}  Admin:${CYAN}admin${NC}  Pass:${YELLOW}$ap${NC}";echo -e "${RED}Lưu lại!${NC}";echo "";};_wvc "$d";info "Build(3-5m)...";dk up -d --build --force-recreate||{ err "Build fail — kiểm tra Dockerfile/entrypoint.sh/requirements trong $APP_DIR";return 1;};ok "https://$d/";_ensure_autostart;}
 
 _wvc(){ local d="$1";cat>"$APP_DIR/docker-compose.yml"<<VEOF
 services:
@@ -217,8 +217,7 @@ if [ ! -f ".env" ]; then
   printf 'DJANGO_SETTINGS_MODULE=config.settings.prod\nSECRET_KEY=%s\nDB_ROOT_PASSWORD=%s\nDB_NAME=centra\nDB_USER=centra\nDB_PASSWORD=%s\nSUPERUSER_EMAIL=admin@%s\nSUPERUSER_PASSWORD=%s\nALLOWED_HOSTS=%s,www.%s,localhost\nCSRF_TRUSTED_ORIGINS=https://%s,https://www.%s\nGUNICORN_WORKERS=4\n' "$s" "$dp" "$dp" "$d" "$ap" "$d" "$d" "$d" "$d">.env;chmod 600 .env
   echo "";echo -e "${GREEN}${BOLD}═══ LOGIN ═══${NC}";echo -e "  URL:${CYAN}https://$d/${NC}  Admin:${CYAN}admin${NC}  Pass:${YELLOW}$ap${NC}";echo -e "${RED}Lưu lại!${NC}";echo ""
 fi
-_wcc "$d";info "Build(3-5m)...";dk up -d --build --force-recreate
-ok "https://$d/ (Caddy → Traefik :80 → centra-web:1307)";_ensure_autostart;}
+_wcc "$d";info "Build(3-5m)...";dk up -d --build --force-recreate||{ err "Build fail — kiểm tra Dockerfile/entrypoint.sh/requirements trong /opt/centra";return 1;};ok "https://$d/ (Caddy → Traefik :80 → centra-web:1307)";_ensure_autostart;}
 
 # Write Centra compose — Caddy → Traefik :80 → centra-web:1307 (pattern như pkm)
 _wcc(){ local d="$1";cat>/opt/centra/docker-compose.yml<<CEOF
