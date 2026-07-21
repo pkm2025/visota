@@ -79,7 +79,6 @@ class SalesInvoiceCreateView(LoginRequiredMixin, PermissionRequiredMixin, Templa
                     "product_id": int(pid),
                     "quantity": qty,
                     "unit_price": price,
-                    "vat_rate": Decimal("0.10"),
                 }
             )
 
