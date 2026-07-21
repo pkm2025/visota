@@ -153,6 +153,7 @@ from .views import (
     PayrollRunView,
     PeriodAllocationView,
     PeriodClosingView,
+    PeriodReopenView,
     PITMonthlyReportView,
     PKMDashboardView,
     PKMSearchView,
@@ -170,6 +171,7 @@ from .views import (
     ProjectListView,
     ProjectTogglePhaseView,
     PurchaseInvoiceCreateView,
+    PurchaseInvoiceDeleteView,
     PurchaseInvoiceListView,
     PurchaseJournalView,
     QAChatView,
@@ -180,6 +182,7 @@ from .views import (
     SalaryFundReportView,
     SalesDetailView,
     SalesInvoiceCreateView,
+    SalesInvoiceDeleteView,
     SalesInvoiceListView,
     SalesJournalView,
     SearchClickView,
@@ -796,6 +799,11 @@ urlpatterns = [
         login_required(SalesInvoiceCreateView.as_view()),
         name="sales_invoice_create",
     ),
+    path(
+        "sales-invoices/<int:pk>/delete/",
+        login_required(SalesInvoiceDeleteView.as_view()),
+        name="sales_invoice_delete",
+    ),
     # Purchase invoices
     path(
         "purchase-invoices/",
@@ -806,6 +814,11 @@ urlpatterns = [
         "purchase-invoices/new/",
         login_required(PurchaseInvoiceCreateView.as_view()),
         name="purchase_invoice_create",
+    ),
+    path(
+        "purchase-invoices/<int:pk>/delete/",
+        login_required(PurchaseInvoiceDeleteView.as_view()),
+        name="purchase_invoice_delete",
     ),
     # Stock vouchers
     path(
@@ -937,6 +950,11 @@ urlpatterns = [
         "closing/",
         login_required(PeriodClosingView.as_view()),
         name="period_closing",
+    ),
+    path(
+        "reopen-period/",
+        login_required(PeriodReopenView.as_view()),
+        name="period_reopen",
     ),
     # Treasury — phiếu thu / phiếu chi
     path(

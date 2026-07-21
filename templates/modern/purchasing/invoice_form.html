@@ -75,9 +75,19 @@
                     <i class="bi bi-plus"></i> Thêm dòng
                 </button>
 
+                <div class="mt-3 form-check">
+                    <input type="checkbox" class="form-check-input" name="auto_post" value="1" id="auto_post" checked>
+                    <label class="form-check-label" for="auto_post">
+                        Tự động hạch toán (N156/C331/N1331)
+                        <small class="text-muted d-block">
+                            Bỏ tick nếu cần TK khác (vd: 242, 642, 3388) — tạo phiếu kế toán thủ công sau.
+                        </small>
+                    </label>
+                </div>
+
                 <div class="mt-4 d-flex gap-2">
                     <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save"></i> Lưu và ghi sổ
+                        <i class="bi bi-save"></i> Lưu
                     </button>
                     <a href="{% url 'ui_modern:purchase_invoice_list' %}" class="btn btn-outline-secondary">Hủy</a>
                 </div>

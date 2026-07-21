@@ -34,6 +34,7 @@
                             <th class="text-end">VAT</th>
                             <th class="text-end">Tổng cộng</th>
                             <th>TT thanh toán</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -51,10 +52,18 @@
                                 {% elif inv.payment_status == 1 %}<span class="badge bg-info">TT một phần</span>
                                 {% else %}<span class="badge bg-success">Đã TT</span>{% endif %}
                             </td>
+                            <td>
+                                <form method="post" action="{% url 'ui_modern:purchase_invoice_delete' inv.pk %}" onsubmit="return confirm('Xóa phiếu nhập {{ inv.invoice_no }}? Hệ thống sẽ bỏ ghi sổ và xóa phiếu kế toán liên quan.')" style="display:inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Xóa phiếu nhập">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">
+                            <td colspan="9" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox display-6 d-block mb-2"></i>
                                 Chưa có phiếu nhập mua nào. Bấm "Tạo phiếu nhập" để tạo.
                             </td>

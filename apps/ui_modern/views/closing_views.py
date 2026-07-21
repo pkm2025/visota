@@ -7,7 +7,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
 from django.views.generic import TemplateView
 
-from apps.ledger.services import PeriodClosingService
+from apps.ledger.models import AccountingVoucher
+from apps.ledger.services import PeriodClosingService, VoucherPostingService
 from apps.ui_modern.mixins import PermissionRequiredMixin, require_current_company
 
 
@@ -70,3 +71,99 @@ class PeriodClosingView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVie
                 f"Lãi/Lỗ={result['profit']:,.0f}",
             )
         return redirect("ui_modern:period_closing")
+
+
+class PeriodReopenView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    """Mở khóa kỳ/năm — xóa voucher kết chuyển (KC) để mở lại kỳ.
+
+    Finds and deletes the closing voucher (source='closing') for the
+    selected period. This reverses the KC entries (unposts the voucher,
+    which reverts 5xx→911, 6xx→911, 911→421 transfers) then deletes it.
+    After reopening, users can post new vouchers to that period and
+    re-run closing when done.
+    """
+
+    template_name = "modern/ledger/reopen_period.html"
+    login_url = "/auth/login/"
+    required_permission = "ledger.access"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = "Mở khóa kỳ/năm"
+        ctx["year_choices"] = [2024, 2025, 2026, 2027]
+        ctx["period_choices"] = list(range(1, 13))
+        company = require_current_company(self.request)
+
+        # Show currently closed periods (periods with KC vouchers)
+        closed_periods = []
+        if company:
+            kc_vouchers = AccountingVoucher.objects.filter(
+                company=company,
+                source="closing",
+                status__gte=AccountingVoucher.Status.LEDGER,
+            ).order_by("-fiscal_year", "-period")
+            for v in kc_vouchers:
+                closed_periods.append(
+                    {
+                        "id": v.id,
+                        "voucher_no": v.voucher_no,
+                        "fiscal_year": v.fiscal_year,
+                        "period": v.period,
+                        "description": v.description,
+                    }
+                )
+        ctx["closed_periods"] = closed_periods
+        return ctx
+
+    def post(self, request, *args, **kwargs):
+        company = require_current_company(request)
+        if not company:
+            messages.error(request, "No company")
+            return redirect("ui_modern:period_reopen")
+
+        fiscal_year = int(request.POST.get("fiscal_year"))
+        period = int(request.POST.get("period"))
+
+        # Find the KC voucher for this period
+        kc_voucher = AccountingVoucher.objects.filter(
+            company=company,
+            source="closing",
+            fiscal_year=fiscal_year,
+            period=period,
+        ).first()
+
+        if not kc_voucher:
+            messages.info(
+                request,
+                f"Kỳ {period}/{fiscal_year} chưa kết chuyển (không có voucher KC). "
+                "Không cần mở khóa.",
+            )
+            return redirect("ui_modern:period_reopen")
+
+        voucher_no = kc_voucher.voucher_no
+
+        # Unpost (reverses 5xx→911, 6xx→911, 911→421 entries)
+        try:
+            if kc_voucher.is_posted:
+                VoucherPostingService().unpost(kc_voucher)
+        except Exception as exc:  # noqa: BLE001 — surface, don't crash
+            import logging
+
+            logging.getLogger("apps.ui_modern").exception(
+                "unpost failed for KC voucher %s: %s", voucher_no, exc
+            )
+            messages.error(
+                request,
+                f"Không thể bỏ ghi sổ voucher KC {voucher_no}. Lỗi: {exc}",
+            )
+            return redirect("ui_modern:period_reopen")
+
+        # Delete the KC voucher
+        kc_voucher.delete()
+        messages.success(
+            request,
+            f"Đã mở khóa kỳ {period}/{fiscal_year} (xóa voucher {voucher_no}). "
+            "Giờ có thể nhập/sửa chứng từ trong kỳ này. "
+            "Khi xong, chạy lại kết chuyển để đóng kỳ.",
+        )
+        return redirect("ui_modern:period_reopen")

@@ -72,7 +72,7 @@ from .chart_of_accounts_views import (
     ChartOfAccountsListView,
     ChartOfAccountsSeedView,
 )
-from .closing_views import PeriodClosingView
+from .closing_views import PeriodClosingView, PeriodReopenView
 from .company_views import CompanyProfileView
 from .contract_template_views import (
     ContractGenerateView,
@@ -202,6 +202,7 @@ from .project_views import (
 )
 from .purchase_views import (
     PurchaseInvoiceCreateView,
+    PurchaseInvoiceDeleteView,
     PurchaseInvoiceListView,
 )
 from .recurring_views import RecurringListView, RecurringRunView
@@ -221,6 +222,7 @@ from .report_views import (
 )
 from .sales_views import (
     SalesInvoiceCreateView,
+    SalesInvoiceDeleteView,
     SalesInvoiceListView,
 )
 from .search_views import GlobalSearchView, SearchClickView
@@ -270,6 +272,7 @@ __all__ = [
     "MigrationUploadView",
     "MigrationTemplateView",
     "PeriodClosingView",
+    "PeriodReopenView",
     "MyPermissionsView",
     "AdminRoleListView",
     "AdminRoleEditView",
@@ -364,10 +367,12 @@ __all__ = [
     "ProductDeleteView",
     "SalesInvoiceListView",
     "SalesInvoiceCreateView",
+    "SalesInvoiceDeleteView",
     "GlobalSearchView",
     "SearchClickView",
     "PurchaseInvoiceListView",
     "PurchaseInvoiceCreateView",
+    "PurchaseInvoiceDeleteView",
     "StockVoucherListView",
     "StockVoucherCreateView",
     "StockDashboardView",

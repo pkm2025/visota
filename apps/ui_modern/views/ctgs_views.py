@@ -259,7 +259,12 @@ class SourceDocScheduleView(LoginRequiredMixin, TemplateView):
 
 
 class DepartmentMasterView(LoginRequiredMixin, TemplateView):
-    """Bộ phận hạch toán — department/cost center master data."""
+    """Bộ phận hạch toán — department/cost center master data.
+
+    Lists departments from the ``hr.Department`` model and allows creating
+    new ones via POST.  Also shows cost-center activity from voucher lines
+    for the selected period.
+    """
 
     template_name = "modern/tools/department_master.html"
     login_url = "/auth/login/"
@@ -269,8 +274,17 @@ class DepartmentMasterView(LoginRequiredMixin, TemplateView):
         fy, period = _parse_period_kwargs(self.request)
         company = require_current_company(self.request)
 
-        # Aggregate VoucherLine by cost_center_code
+        # List actual departments from hr.Department model
+        from apps.hr.models import Department
+
         departments = (
+            Department.objects.filter(company=company, is_active=True)
+            .order_by("code")
+            .values("id", "code", "name", "manager_code", "is_active")
+        )
+
+        # Also aggregate VoucherLine by cost_center_code for activity view
+        dept_activity = (
             VoucherLine.objects.filter(
                 voucher__company=company,
                 voucher__fiscal_year=fy,
@@ -281,18 +295,29 @@ class DepartmentMasterView(LoginRequiredMixin, TemplateView):
             .annotate(
                 total_debit=Sum("debit_vnd"),
                 total_credit=Sum("credit_vnd"),
-                line_count=Sum("voucher__id"),
             )
             .order_by("cost_center_code")
         )
 
+        activity_map = {
+            d["cost_center_code"]: {
+                "total_debit": d["total_debit"] or Decimal("0"),
+                "total_credit": d["total_credit"] or Decimal("0"),
+            }
+            for d in dept_activity
+        }
+
         rows = []
-        for d in departments:
+        for dept in departments:
+            act = activity_map.get(dept["code"], {})
             rows.append(
                 {
-                    "code": d["cost_center_code"],
-                    "total_debit": d["total_debit"] or Decimal("0"),
-                    "total_credit": d["total_credit"] or Decimal("0"),
+                    "id": dept["id"],
+                    "code": dept["code"],
+                    "name": dept["name"],
+                    "manager_code": dept["manager_code"],
+                    "total_debit": act.get("total_debit", Decimal("0")),
+                    "total_credit": act.get("total_credit", Decimal("0")),
                 }
             )
 
@@ -306,3 +331,29 @@ class DepartmentMasterView(LoginRequiredMixin, TemplateView):
             }
         )
         return ctx
+
+    def post(self, request, *args, **kwargs):
+        """Create a new department."""
+        from apps.hr.models import Department
+
+        company = require_current_company(request)
+        code = request.POST.get("code", "").strip()
+        name = request.POST.get("name", "").strip()
+        manager_code = request.POST.get("manager_code", "").strip()
+
+        if not code or not name:
+            messages.error(request, "Vui lòng nhập mã và tên phòng ban.")
+            return redirect("ui_modern:department_master")
+
+        if Department.objects.filter(company=company, code=code).exists():
+            messages.error(request, f"Mã phòng ban '{code}' đã tồn tại.")
+            return redirect("ui_modern:department_master")
+
+        Department.objects.create(
+            company=company,
+            code=code,
+            name=name,
+            manager_code=manager_code,
+        )
+        messages.success(request, f"Đã tạo phòng ban {code} - {name}")
+        return redirect("ui_modern:department_master")

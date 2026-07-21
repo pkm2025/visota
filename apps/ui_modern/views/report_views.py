@@ -81,7 +81,7 @@ class TrialBalanceView(LoginRequiredMixin, TemplateView):
                 "total_closing_debit": total_closing_d,
                 "total_closing_credit": total_closing_c,
                 "is_balanced": total_closing_d == total_closing_c,
-                "period_choices": list(range(1, 13)),
+                "period_choices": [(0, "Cả năm")] + [(p, f"Tháng {p}") for p in range(1, 13)],
                 "year_choices": [2024, 2025, 2026, 2027],
             }
         )
@@ -116,7 +116,7 @@ class BalanceSheetView(LoginRequiredMixin, TemplateView):
                 "page_title": "Báo cáo tình hình tài chính (B01-DN)",
                 "fiscal_year": fiscal_year,
                 "period": period,
-                "period_choices": list(range(1, 13)),
+                "period_choices": [(0, "Cả năm")] + [(p, f"Tháng {p}") for p in range(1, 13)],
                 "year_choices": [2024, 2025, 2026, 2027],
             }
         )
@@ -151,7 +151,7 @@ class PnLView(LoginRequiredMixin, TemplateView):
                 "page_title": "Kết quả hoạt động kinh doanh (B02-DN)",
                 "fiscal_year": fiscal_year,
                 "period": period,
-                "period_choices": list(range(1, 13)),
+                "period_choices": [(0, "Cả năm")] + [(p, f"Tháng {p}") for p in range(1, 13)],
                 "year_choices": [2024, 2025, 2026, 2027],
             }
         )
@@ -187,7 +187,7 @@ class VATReturnView(LoginRequiredMixin, TemplateView):
                 "page_title": "Tờ khai thuế GTGT (01/GTGT)",
                 "fiscal_year": fiscal_year,
                 "period": period,
-                "period_choices": list(range(1, 13)),
+                "period_choices": [(0, "Cả năm")] + [(p, f"Tháng {p}") for p in range(1, 13)],
                 "year_choices": [2024, 2025, 2026, 2027],
             }
         )
@@ -267,7 +267,7 @@ class GeneralJournalView(LoginRequiredMixin, TemplateView):
                 "rows": rows,
                 "vouchers": vouchers,
                 "total_amount": total_amount,
-                "period_choices": list(range(1, 13)),
+                "period_choices": [(0, "Cả năm")] + [(p, f"Tháng {p}") for p in range(1, 13)],
                 "year_choices": [2024, 2025, 2026, 2027],
             }
         )
@@ -358,7 +358,7 @@ class GeneralLedgerView(LoginRequiredMixin, TemplateView):
                 "rows": rows,
                 "total_debit": total_debit,
                 "total_credit": total_credit,
-                "period_choices": list(range(1, 13)),
+                "period_choices": [(0, "Cả năm")] + [(p, f"Tháng {p}") for p in range(1, 13)],
                 "year_choices": [2024, 2025, 2026, 2027],
             }
         )
@@ -400,8 +400,22 @@ def _parse_period_kwargs(request):
 
 
 def _common_period_choices():
+    """Period choices for report dropdowns (monthly only)."""
     return {
         "period_choices": list(range(1, 13)),
+        "year_choices": [2024, 2025, 2026, 2027],
+    }
+
+
+def _financial_period_choices():
+    """Period choices for financial reports — includes 'Cả năm' (value 0).
+
+    Used by trial balance, balance sheet, P&L, and cash flow reports where
+    YTD/full-year aggregation makes sense.  ``period=0`` signals the
+    ``YtdBalanceService`` to aggregate periods 1..12.
+    """
+    return {
+        "period_choices": [(0, "Cả năm")] + [(p, f"Tháng {p}") for p in range(1, 13)],
         "year_choices": [2024, 2025, 2026, 2027],
     }
 

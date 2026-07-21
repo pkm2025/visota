@@ -31,28 +31,70 @@
         </form>
     </div>
 
-    <div class="card">
-        <div class="card-body p-0">
-            <table class="table table-sm table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Mã bộ phận</th>
-                        <th class="text-end">Phát sinh Nợ</th>
-                        <th class="text-end">Phát sinh Có</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for r in rows %}
-                    <tr>
-                        <td class="font-mono">{{ r.code }}</td>
-                        <td class="text-end font-mono">{{ r.total_debit|vnd }}</td>
-                        <td class="text-end font-mono">{{ r.total_credit|vnd }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="3" class="text-center text-muted py-4">Không có dữ liệu.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Thêm phòng ban</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-2">
+                            <label class="form-label">Mã phòng ban</label>
+                            <input type="text" name="code" class="form-control form-control-sm" required maxlength="50">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Tên phòng ban</label>
+                            <input type="text" name="name" class="form-control form-control-sm" required maxlength="255">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Mã quản lý (tùy chọn)</label>
+                            <input type="text" name="manager_code" class="form-control form-control-sm" maxlength="50">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm w-100">
+                            <i class="bi bi-save"></i> Lưu
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-list"></i> Danh sách phòng ban</h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Mã</th>
+                                <th>Tên phòng ban</th>
+                                <th>Quản lý</th>
+                                <th class="text-end">PS Nợ</th>
+                                <th class="text-end">PS Có</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in rows %}
+                            <tr>
+                                <td class="font-mono">{{ r.code }}</td>
+                                <td>{{ r.name }}</td>
+                                <td><small class="text-muted">{{ r.manager_code|default:"-" }}</small></td>
+                                <td class="text-end font-mono">{{ r.total_debit|vnd }}</td>
+                                <td class="text-end font-mono">{{ r.total_credit|vnd }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox d-block mb-2" style="font-size:32px;"></i>
+                                Chưa có phòng ban nào. Thêm mới ở form bên trái.
+                            </td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>

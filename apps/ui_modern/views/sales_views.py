@@ -5,7 +5,8 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
+from django.views import View
 from django.views.generic import ListView, TemplateView
 
 from apps.master_data.models import Customer, Product
@@ -102,4 +103,50 @@ class SalesInvoiceCreateView(LoginRequiredMixin, PermissionRequiredMixin, Templa
             return redirect("ui_modern:sales_invoice_create")
 
         messages.success(request, f"Đã tạo hóa đơn {invoice.invoice_no}")
+        return redirect("ui_modern:sales_invoice_list")
+
+
+class SalesInvoiceDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """Delete a sales invoice and reverse its ledger entries.
+
+    Unposts the linked accounting/DNSN voucher (reversing ledger entries),
+    deletes the voucher, then deletes the invoice. Any unpost failure is
+    surfaced to the user.
+    """
+
+    login_url = "/auth/login/"
+    required_permission = "sales.access"
+
+    def post(self, request, pk, *args, **kwargs):
+        company = require_current_company(request)
+        invoice = get_object_or_404(SalesInvoice, pk=pk, company=company)
+        service = SalesInvoiceService(company=company)
+        invoice_no = invoice.invoice_no
+
+        try:
+            service.unpost(invoice)
+        except Exception as exc:  # noqa: BLE001 — surface, don't crash
+            import logging
+
+            logging.getLogger("apps.ui_modern").exception(
+                "unpost failed for sales invoice %s: %s", invoice_no, exc
+            )
+            messages.error(
+                request,
+                f"Không thể bỏ ghi sổ hóa đơn {invoice_no}. "
+                f"Vui lòng kiểm tra kỳ kế toán hoặc liên hệ quản trị viên.",
+            )
+            return redirect("ui_modern:sales_invoice_list")
+
+        # Delete linked vouchers (unpost already reversed ledger entries)
+        if invoice.gl_voucher_id:
+            invoice.gl_voucher.delete()
+        if invoice.dnsn_voucher_id:
+            invoice.dnsn_voucher.delete()
+
+        invoice.delete()
+        messages.success(request, f"Đã xóa hóa đơn {invoice_no}")
+        return redirect("ui_modern:sales_invoice_list")
+
+    def get(self, request, pk, *args, **kwargs):
         return redirect("ui_modern:sales_invoice_list")

@@ -88,7 +88,9 @@ class YtdBalanceService:
     def __init__(self, company: Company | None, fiscal_year: int, period: int):
         self.company = company
         self.fiscal_year = fiscal_year
-        self.period = max(0, period)
+        # period=0 means "full year" (aggregate periods 1..12).
+        self.period = period if period > 0 else 12
+        self.is_full_year = period <= 0
 
     # -- public API ------------------------------------------------------
 
@@ -98,7 +100,15 @@ class YtdBalanceService:
         Combines period-0 opening rows (balance-sheet accounts only) with
         monthly movement rows for periods 1..N.  One ``YtdRow`` per
         (account_code, object_type, object_code).
+
+        When ``period`` was passed as 0 (or negative), the service
+        aggregates the full fiscal year (periods 1..12) — used by the
+        "Cả năm" dropdown option in reports.
         """
+        # period=0 originally meant "period-0 opening only".  We now
+        # treat it as full-year (periods 1..12), so self.period is set
+        # to 12 in __init__.  The _fetch_period_zero_only path is only
+        # reached if an explicit very-negative period is passed (edge case).
         if self.period <= 0:
             return self._fetch_period_zero_only()
 

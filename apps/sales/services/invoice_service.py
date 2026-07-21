@@ -99,7 +99,10 @@ class SalesInvoiceService:
         invoice.total_amount = subtotal + vat_total
         invoice.save()
 
-        if data.get("post", True):
+        # auto_post (default True): auto-generate accounting voucher with
+        # standard bút toán (N131/C5111/C33311).  Set False to skip
+        # auto-posting when custom TK mapping is needed.
+        if data.get("post", True) and data.get("auto_post", True):
             self._post(invoice)
 
         return invoice
