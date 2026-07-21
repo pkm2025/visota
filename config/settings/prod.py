@@ -20,7 +20,7 @@ SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # ===== Static + Media =====
-# WhiteNoise serves static files directly from Gunicorn — no Nginx needed
+# WhiteNoise serves static files directly from Uvicorn — no Nginx needed
 STATIC_ROOT = os.environ.get('STATIC_ROOT', '/app/staticfiles/')
 MEDIA_ROOT = os.environ.get('MEDIA_ROOT', '/app/media/')
 # Base URL for WeasyPrint to resolve relative image URLs (logos, stamps) when rendering PDFs.
@@ -106,6 +106,9 @@ LOGGING = {
         'django': {'handlers': ['console'], 'level': 'INFO', 'propagate': True},
         'apps': {'handlers': ['console'], 'level': 'INFO', 'propagate': True},
         'gunicorn': {'handlers': ['console'], 'level': 'INFO', 'propagate': True},
+        'uvicorn': {'handlers': ['console'], 'level': 'INFO', 'propagate': True},
+        'uvicorn.error': {'handlers': ['console'], 'level': 'INFO', 'propagate': True},
+        'uvicorn.access': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
     },
 }
 

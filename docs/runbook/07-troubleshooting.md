@@ -59,8 +59,8 @@ sudo systemctl status mariadb
 # 2. App log
 sudo tail -100 /var/log/pmketoan/app.log | grep -A20 ERROR
 
-# 3. Gunicorn log
-sudo tail -100 /var/log/pmketoan/gunicorn.error.log
+# 3. Uvicorn log (journald if systemd)
+sudo journalctl -u pmketoan -n 200
 
 # 4. Reproduce
 curl -v https://erp.pkm.vn/<broken-path>

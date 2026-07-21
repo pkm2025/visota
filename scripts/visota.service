@@ -1,5 +1,5 @@
 [Unit]
-Description=Visota Gunicorn
+Description=Visota Uvicorn
 After=network.target mariadb.service
 
 [Service]
@@ -8,7 +8,7 @@ User=visota
 Group=www-data
 WorkingDirectory=/opt/visota/app
 EnvironmentFile=/opt/visota/.env
-ExecStart=/opt/visota/app/.venv/bin/gunicorn --workers 12 --threads 4 --bind 127.0.0.1:8900 --timeout 120 config.wsgi:application
+ExecStart=/opt/visota/app/.venv/bin/uvicorn config.asgi:application --host 127.0.0.1 --port 8900 --workers 12 --log-level info --access-log
 ExecReload=/bin/kill -s HUP $MAINPID
 Restart=on-failure
 RestartSec=5

@@ -26,7 +26,7 @@ Login: `http://localhost/auth/login/` with admin / [SUPERUSER_PASSWORD from .env
 
 | Service | Container | Port | Description |
 |---------|-----------|------|-------------|
-| **web** | visota-web | 8900 (internal) | Django + Gunicorn |
+| **web** | visota-web | 8900 (internal) | Django + Uvicorn |
 | **worker** | visota-worker | — | django-q2 background tasks |
 | **db** | visota-db | 3306 | MariaDB 11.4 |
 | **nginx** | visota-nginx | 80, 443 | Reverse proxy + TLS |
@@ -87,8 +87,8 @@ Edit `docker/nginx.conf` — comment out SSL lines, use `listen 80` only.
 # Scale web workers (horizontal)
 docker compose up -d --scale web=3
 
-# Adjust Gunicorn workers per container
-echo "GUNICORN_WORKERS=8" >> .env
+# Adjust Uvicorn workers per container
+echo "UVICORN_WORKERS=8" >> .env
 docker compose up -d
 ```
 
@@ -107,7 +107,7 @@ docker compose up -d
 | `EMAIL_HOST` | smtp.gmail.com | | SMTP server |
 | `EMAIL_HOST_USER` | noreply@visota.net | | SMTP user |
 | `EMAIL_HOST_PASSWORD` | — | | SMTP password |
-| `GUNICORN_WORKERS` | 4 | | Workers per container |
+| `UVICORN_WORKERS` | 4 | | Workers per container |
 | `SENTRY_DSN` | — | | Error tracking (optional) |
 
 ## Volumes

@@ -13,7 +13,7 @@ dev: ## Run dev server (with seed)
 	uv run python manage.py migrate
 	uv run python manage.py seed_demo
 	uv run python manage.py ensure_tt133_charts
-	uv run python manage.py runserver
+	uv run uvicorn config.asgi:application --host 0.0.0.0 --port 8903 --reload
 
 qcluster: ## Start django-q2 cluster
 	uv run python manage.py qcluster

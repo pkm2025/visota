@@ -117,7 +117,7 @@ def configure_structured_logging():
     root_logger.setLevel(logging.INFO)
 
     # App loggers
-    for app in ("apps", "django", "gunicorn"):
+    for app in ("apps", "django", "gunicorn", "uvicorn", "uvicorn.error", "uvicorn.access"):
         logger = logging.getLogger(app)
         logger.handlers = []
         logger.addHandler(handler)

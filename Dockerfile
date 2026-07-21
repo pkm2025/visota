@@ -22,7 +22,7 @@ WORKDIR /app
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt gunicorn
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project
 COPY . .
@@ -42,4 +42,4 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD curl -f http://localhost:8900/health/ || exit 1
 
 ENTRYPOINT ["docker/entrypoint.sh"]
-CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:8900 --workers ${GUNICORN_WORKERS:-4} --threads ${GUNICORN_THREADS:-2} --timeout ${GUNICORN_TIMEOUT:-120} --graceful-timeout 30 --keep-alive 5 --max-requests 1000 --max-requests-jitter 50 --access-logfile - --error-logfile - --worker-tmp-dir /dev/shm config.wsgi:application"]
+CMD ["sh", "-c", "exec uvicorn config.asgi:application --host 0.0.0.0 --port 8900 --workers ${UVICORN_WORKERS:-4} --timeout-keep-alive 5 --log-level info --access-log"]

@@ -35,7 +35,7 @@ make test          # unit tests (1900+ passing)
 make test-fast     # parallel
 
 # E2E tests (requires running server on port 8903)
-DJANGO_SETTINGS_MODULE=config.settings.e2e python manage.py runserver 8903 --noreload &
+DJANGO_SETTINGS_MODULE=config.settings.e2e uvicorn config.asgi:application --host 0.0.0.0 --port 8903 &
 pytest -c pytest_e2e.ini
 ```
 

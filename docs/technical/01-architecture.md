@@ -66,7 +66,7 @@
 | DOCX | **python-docx** | Word export |
 | Excel | **openpyxl** | .xlsx native, không phụ thuộc Excel |
 | Auth | **AbstractUser + Axes** | Custom User + brute-force protection |
-| WSGI | **gunicorn** | Production-grade |
+| WSGI/ASGI | **uvicorn** | Production-grade ASGI |
 | Reverse proxy | **Nginx** | TLS termination + static |
 
 ## 3. Multi-tenant

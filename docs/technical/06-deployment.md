@@ -33,8 +33,8 @@
    │                            │
    ▼                            ▼
 ┌─────────┐                ┌─────────┐
-│ Gunicorn│  ...           │ Gunicorn│
-│  (8-16  │                │  workers│
+│ Uvicorn │  ...           │ Uvicorn │
+│  (8-16  │                │ workers │
 │ workers)│                │         │
 └────┬────┘                └────┬────┘
      │                          │
@@ -115,7 +115,7 @@ cd repo
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-pip install gunicorn psycopg2-binary  # if PostgreSQL
+pip install uvicorn psycopg2-binary  # if PostgreSQL
 ```
 
 ### 3.4. Environment
@@ -161,13 +161,13 @@ python manage.py createsuperuser
 python manage.py check --deploy
 ```
 
-### 3.6. Gunicorn systemd
+### 3.6. Uvicorn systemd
 
 `/etc/systemd/system/pmketoan.service`:
 
 ```ini
 [Unit]
-Description=Visota ERP Gunicorn
+Description=Visota ERP Uvicorn
 After=network.target mariadb.service
 
 [Service]
@@ -176,14 +176,11 @@ User=pmketoan
 Group=www-data
 WorkingDirectory=/opt/pmketoan/repo
 EnvironmentFile=/etc/pmketoan/env
-ExecStart=/opt/pmketoan/repo/.venv/bin/gunicorn \
+ExecStart=/opt/pmketoan/repo/.venv/bin/uvicorn \
     --workers 12 \
-    --threads 4 \
-    --bind 127.0.0.1:8900 \
-    --access-logfile /var/log/pmketoan/gunicorn.access.log \
-    --error-logfile /var/log/pmketoan/gunicorn.error.log \
-    --timeout 120 \
-    config.wsgi:application
+    --host 127.0.0.1 --port 8900 \
+    --log-level info --access-log \
+    config.asgi:application
 ExecReload=/bin/kill -s HUP $MAINPID
 Restart=on-failure
 RestartSec=5
