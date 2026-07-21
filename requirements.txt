@@ -25,7 +25,7 @@ tiktoken>=0.7
 Django==5.2.15
 django-allauth==65.18.0
 django-axes==8.3.1
-django-debug-toolbar==6.3.0
+django-debug-toolbar==7.0.0
 django-extensions==4.1
 django-ninja==1.6.2
 django-picklefield==3.4.0
