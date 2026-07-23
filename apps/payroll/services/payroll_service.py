@@ -10,6 +10,7 @@ from apps.hr.models import Employee
 from apps.hr.services import InsuranceService
 from apps.ledger.models import AccountingVoucher, VoucherLine
 from apps.ledger.services import VoucherPostingService
+from apps.ledger.services.voucher_posting_service import PeriodClosedError
 from apps.payroll.models import PayrollLine, PayrollRun
 
 # 2024-2026 Vietnamese insurance rates (legacy inline rates — kept for reference;
@@ -353,7 +354,15 @@ class PayrollService:
             line_no += 1
 
         # Post voucher
-        VoucherPostingService().post(voucher)
+        try:
+            VoucherPostingService().post(voucher)
+        except PeriodClosedError:
+            voucher.status = AccountingVoucher.Status.DRAFT
+            voucher.save()
+            raise PeriodClosedError(
+                f"Kỳ {run.period_num:02d}/{run.fiscal_year} đã khóa. "
+                f"Hãy mở khóa kỳ (menu Kết chuyển > Mở khóa kỳ) trước khi ghi sổ lương."
+            ) from None
 
         run.gl_voucher = voucher
         run.status = "posted"

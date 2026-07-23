@@ -64,6 +64,7 @@ class PurchaseInvoiceCreateView(LoginRequiredMixin, PermissionRequiredMixin, Tem
         product_ids = request.POST.getlist("product_id[]")
         quantities = request.POST.getlist("quantity[]")
         prices = request.POST.getlist("unit_price[]")
+        debit_accounts = request.POST.getlist("debit_account[]")
 
         lines = []
         for i, pid in enumerate(product_ids):
@@ -74,13 +75,15 @@ class PurchaseInvoiceCreateView(LoginRequiredMixin, PermissionRequiredMixin, Tem
                 price = Decimal(prices[i]) if i < len(prices) else Decimal("0")
             except (InvalidOperation, IndexError):
                 continue
-            lines.append(
-                {
-                    "product_id": int(pid),
-                    "quantity": qty,
-                    "unit_price": price,
-                }
-            )
+            debit_acc = debit_accounts[i].strip() if i < len(debit_accounts) else ""
+            line = {
+                "product_id": int(pid),
+                "quantity": qty,
+                "unit_price": price,
+            }
+            if debit_acc:
+                line["debit_account"] = debit_acc
+            lines.append(line)
 
         if not lines:
             messages.error(request, "Phiếu cần ít nhất một dòng hàng.")

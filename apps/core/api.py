@@ -265,6 +265,24 @@ def list_products(request, search: str | None = None):
 # ---------------------------------------------------------------------------
 
 
+class SalesInvoiceLineInputSchema(Schema):
+    product_id: int
+    quantity: Decimal = Decimal("1")
+    unit_price: Decimal = Decimal("0")
+    vat_rate: Decimal = Decimal("0")
+
+
+class SalesInvoiceCreateSchema(Schema):
+    invoice_no: str
+    invoice_date: date
+    customer_id: int
+    description: str = ""
+    currency_code: str = "VND"
+    exchange_rate: Decimal = Decimal("1")
+    auto_post: bool = True
+    lines: list[SalesInvoiceLineInputSchema]
+
+
 @api.get(
     "/sales/invoices/", response=list[SalesInvoiceSchema], tags=["Sales"], auth=get_current_user
 )
@@ -273,6 +291,41 @@ def list_sales_invoices(request, fiscal_year: int | None = None):
     company = get_current_company(request)
     qs = SalesInvoice.objects.filter(company=company).order_by("-invoice_date", "-id")
     return list(qs)
+
+
+@api.post(
+    "/sales/invoices/",
+    response=MessageSchema,
+    tags=["Sales"],
+    auth=get_current_user,
+)
+def create_sales_invoice(request, payload: SalesInvoiceCreateSchema):
+    """Create a sales invoice via API (automation-friendly, no Alpine.js needed)."""
+    from apps.sales.services import SalesInvoiceService
+
+    company = get_current_company(request)
+    service = SalesInvoiceService(company=company)
+    invoice = service.create(
+        {
+            "invoice_no": payload.invoice_no,
+            "invoice_date": payload.invoice_date,
+            "customer_id": payload.customer_id,
+            "description": payload.description,
+            "currency_code": payload.currency_code,
+            "exchange_rate": payload.exchange_rate,
+            "auto_post": payload.auto_post,
+            "lines": [
+                {
+                    "product_id": ln.product_id,
+                    "quantity": ln.quantity,
+                    "unit_price": ln.unit_price,
+                    "vat_rate": ln.vat_rate,
+                }
+                for ln in payload.lines
+            ],
+        }
+    )
+    return MessageSchema(message=f"Sales invoice {invoice.invoice_no} created", id=invoice.id)
 
 
 @api.get(
@@ -310,6 +363,68 @@ def get_sales_invoice(request, invoice_id: int):
         currency_code=inv.currency_code,
         exchange_rate=inv.exchange_rate,
         lines=lines,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Purchase endpoints
+# ---------------------------------------------------------------------------
+
+
+class PurchaseInvoiceLineInputSchema(Schema):
+    product_id: int
+    quantity: Decimal = Decimal("1")
+    unit_price: Decimal = Decimal("0")
+    vat_rate: Decimal = Decimal("0.1")
+    debit_account: str = ""
+
+
+class PurchaseInvoiceCreateSchema(Schema):
+    invoice_no: str
+    invoice_date: date
+    vendor_id: int
+    description: str = ""
+    currency_code: str = "VND"
+    exchange_rate: Decimal = Decimal("1")
+    auto_post: bool = True
+    lines: list[PurchaseInvoiceLineInputSchema]
+
+
+@api.post(
+    "/purchasing/invoices/",
+    response=MessageSchema,
+    tags=["Purchasing"],
+    auth=get_current_user,
+)
+def create_purchase_invoice(request, payload: PurchaseInvoiceCreateSchema):
+    """Create a purchase invoice via API (automation-friendly)."""
+    from apps.purchasing.services import PurchaseInvoiceService
+
+    company = get_current_company(request)
+    service = PurchaseInvoiceService(company=company)
+    invoice = service.create(
+        {
+            "invoice_no": payload.invoice_no,
+            "invoice_date": payload.invoice_date,
+            "vendor_id": payload.vendor_id,
+            "description": payload.description,
+            "currency_code": payload.currency_code,
+            "exchange_rate": payload.exchange_rate,
+            "auto_post": payload.auto_post,
+            "lines": [
+                {
+                    "product_id": ln.product_id,
+                    "quantity": ln.quantity,
+                    "unit_price": ln.unit_price,
+                    "vat_rate": ln.vat_rate,
+                    "debit_account": ln.debit_account,
+                }
+                for ln in payload.lines
+            ],
+        }
+    )
+    return MessageSchema(
+        message=f"Purchase invoice {invoice.invoice_no} created", id=invoice.id
     )
 
 

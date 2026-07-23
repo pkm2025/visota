@@ -139,7 +139,13 @@ class Opportunity(CompanyOwnedModel):
 
     code = models.CharField(max_length=50)
     name = models.CharField(max_length=500)
-    account = models.ForeignKey(CRMAccount, on_delete=models.PROTECT, related_name="opportunities")
+    account = models.ForeignKey(
+        CRMAccount,
+        on_delete=models.PROTECT,
+        related_name="opportunities",
+        null=True,
+        blank=True,
+    )
     contact = models.ForeignKey(
         CRMContact,
         on_delete=models.SET_NULL,

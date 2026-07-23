@@ -86,8 +86,8 @@ class PurchaseInvoiceService:
                 vat_rate=vat_rate,
                 vat_amount=vat_amount,
                 amount=amount,
-                inventory_account=product.gl_account_inv,
-                vat_account="1331",
+                inventory_account=line_data.get("debit_account") or product.gl_account_inv,
+                vat_account=line_data.get("vat_account") or "1331",
                 cost_account=product.gl_account_cogs,
             )
 

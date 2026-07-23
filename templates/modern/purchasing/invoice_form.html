@@ -40,9 +40,10 @@
                     <table class="table table-sm align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th style="width:50%">Hàng hóa</th>
+                                <th style="width:35%">Hàng hóa</th>
                                 <th>Số lượng</th>
                                 <th>Đơn giá</th>
+                                <th>TK Nợ</th>
                                 <th>Thành tiền</th>
                                 <th></th>
                             </tr>
@@ -60,6 +61,7 @@
                                     </td>
                                     <td><input type="number" step="any" name="quantity[]" class="form-control form-control-sm" x-model="line.quantity"></td>
                                     <td><input type="number" step="any" name="unit_price[]" class="form-control form-control-sm" x-model="line.unit_price"></td>
+                                    <td><input type="text" name="debit_account[]" class="form-control form-control-sm font-mono" x-model="line.debit_account" placeholder="Mặc định" maxlength="20"></td>
                                     <td class="text-end font-mono" x-text="formatNum((line.quantity || 0) * (line.unit_price || 0))"></td>
                                     <td>
                                         <button type="button" class="btn btn-sm btn-outline-danger py-0" @click="removeLine(idx)">

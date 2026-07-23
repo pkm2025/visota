@@ -152,6 +152,7 @@ from .views import (
     OpportunityDetailView,
     OpportunityListView,
     PayrollRunView,
+    TimesheetView,
     PeriodAllocationView,
     PeriodClosingView,
     PeriodReopenView,
@@ -957,6 +958,11 @@ urlpatterns = [
         "payroll/run/",
         login_required(PayrollRunView.as_view()),
         name="payroll_run",
+    ),
+    path(
+        "payroll/timesheet/",
+        login_required(TimesheetView.as_view()),
+        name="timesheet",
     ),
     # Period closing
     path(

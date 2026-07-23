@@ -31,9 +31,9 @@
                         <input type="text" name="name" value="{{ form.name.value|default:'' }}" class="form-control" required>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Account <span class="text-danger">*</span></label>
-                        <select name="account" class="form-select" required>
-                            <option value="">— Chọn —</option>
+                        <label class="form-label">Account</label>
+                        <select name="account" class="form-select">
+                            <option value="">— Không bắt buộc —</option>
                             {% for a in accounts %}
                             <option value="{{ a.pk }}" {% if form.account.value|stringformat:"s" == a.pk|stringformat:"s" %}selected{% endif %}>{{ a.code }} — {{ a.name }}</option>
                             {% endfor %}

@@ -8,6 +8,7 @@ from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView
 
 from apps.core.models import Company
+from apps.ui_modern.mixins import require_current_company
 
 from .models import BankAccount, BankStatementImport, BankTransaction, ReconciliationMatch
 from .services import BankImportError, BankReconciliationService
@@ -20,13 +21,37 @@ class BankAccountListView(LoginRequiredMixin, ListView):
     login_url = "/auth/login/"
 
     def get_queryset(self):
-        company = getattr(self.request, "current_company", None) or Company.objects.first()
-        return BankAccount.objects.filter(company=company)
+        company = require_current_company(self.request)
+        return BankAccount.objects.filter(company=company).order_by("bank_name", "account_number")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["page_title"] = "Tài khoản ngân hàng"
         return ctx
+
+    def post(self, request, *args, **kwargs):
+        company = require_current_company(request)
+        code = request.POST.get("code", "").strip()
+        bank_name = request.POST.get("bank_name", "").strip()
+        account_number = request.POST.get("account_number", "").strip()
+        account_holder = request.POST.get("account_holder", "").strip()
+
+        if not (code and bank_name and account_number and account_holder):
+            messages.error(request, "Vui lòng nhập đầy đủ mã, ngân hàng, số TK và chủ TK.")
+            return redirect("ui_modern:banking_account_list")
+
+        BankAccount.objects.create(
+            company=company,
+            code=code,
+            bank_name=bank_name,
+            bank_branch=request.POST.get("bank_branch", ""),
+            account_number=account_number,
+            account_holder=account_holder,
+            currency_code=request.POST.get("currency_code", "VND"),
+            gl_account=request.POST.get("gl_account", "1121"),
+        )
+        messages.success(request, f"Đã thêm TK {account_number} - {bank_name}")
+        return redirect("ui_modern:banking_account_list")
 
 
 class BankStatementImportListView(LoginRequiredMixin, ListView):

@@ -1,0 +1,105 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+            <li class="breadcrumb-item">Nhân sự</li>
+            <li class="breadcrumb-item active">Chấm công</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3">{{ page_title }}</h1>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label small">Tháng</label>
+                    <select name="month" class="form-select form-select-sm">
+                        {% for m in '123456789'|make_list %}{% with n=m|add:'0' %}
+                        <option value="{{ n }}" {% if n == month %}selected{% endif %}>{{ n }}</option>
+                        {% endwith %}{% endfor %}
+                        {% for m in '101112'|make_list %}
+                        <option>{{ m }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small">Năm</label>
+                    <input type="number" name="year" class="form-control form-control-sm" value="{{ year }}" style="width:80px">
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-primary btn-sm"><i class="bi bi-arrow-repeat"></i> Xem</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="mb-2">
+                <small class="text-muted">
+                    Ký hiệu: X = Có mặt, P = Nghỉ phép, L = Đi trễ,
+                    O = Về sớm, A = Vắng, H = Nghỉ lễ.
+                    Để trống = không chấm.
+                </small>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="year" value="{{ year }}">
+                <input type="hidden" name="month" value="{{ month }}">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle" style="font-size:11px">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th style="min-width:120px" class="sticky-column">Nhân viên</th>
+                                {% for d in days %}
+                                <th class="text-center" style="width:28px">{{ d }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for emp in employees %}
+                            <tr>
+                                <td class="font-mono">{{ emp.code }} - {{ emp.full_name }}</td>
+                                {% for d in days %}
+                                {% with key=emp.id|stringformat:"s" %}
+                                <td class="text-center p-0">
+                                    <select name="att_{{ emp.id }}_{{ d }}" class="form-select form-select-sm border-0" style="width:28px;padding:0;font-size:10px;text-align:center">
+                                        <option value=""></option>
+                                        {% for sym in symbol_keys %}
+                                        <option value="{{ sym }}">{{ sym }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                {% endwith %}
+                                {% endfor %}
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="{{ days|length|add:'1' }}" class="text-center text-muted py-4">
+                                Không có nhân viên. Tạo nhân viên trước.
+                            </td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if employees %}
+                <button type="submit" class="btn btn-primary btn-sm mt-2">
+                    <i class="bi bi-save"></i> Lưu chấm công
+                </button>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -6,8 +6,60 @@
     {% include 'shared/_breadcrumb.html' %}
     <h1 class="h3 mb-3">{{ page_title }}</h1>
 
-    <div class="card">
-        <div class="card-body">
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header"><h5 class="mb-0"><i class="bi bi-plus-circle"></i> Thêm tài khoản NH</h5></div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-2">
+                            <label class="form-label">Mã <span class="text-danger">*</span></label>
+                            <input type="text" name="code" class="form-control form-control-sm" required maxlength="30">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Ngân hàng <span class="text-danger">*</span></label>
+                            <input type="text" name="bank_name" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Chi nhánh</label>
+                            <input type="text" name="bank_branch" class="form-control form-control-sm">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Số TK <span class="text-danger">*</span></label>
+                            <input type="text" name="account_number" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Chủ TK <span class="text-danger">*</span></label>
+                            <input type="text" name="account_holder" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="row">
+                            <div class="col mb-2">
+                                <label class="form-label">Loại tiền</label>
+                                <input type="text" name="currency_code" class="form-control form-control-sm" value="VND" maxlength="3">
+                            </div>
+                            <div class="col mb-2">
+                                <label class="form-label">TK kế toán</label>
+                                <input type="text" name="gl_account" class="form-control form-control-sm" value="1121" maxlength="20">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-save"></i> Lưu</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
             {% if accounts %}
             <div class="table-responsive">
                 <table class="table table-sm table-hover">
@@ -35,6 +87,8 @@
                 </table>
             </div>
             {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 

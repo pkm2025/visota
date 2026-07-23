@@ -5,32 +5,82 @@
 <div class="container-fluid py-4">
     {% include 'shared/_breadcrumb.html' %}
     <h1 class="h3 mb-3">{{ page_title }}</h1>
-    <div class="card">
-        <div class="card-body">
-            {% if rates %}
-            <table class="table table-sm table-hover">
-                <thead class="table-light">
-                    <tr><th>Ngày</th><th>Từ</th><th>Đến</th><th class="text-end">Tỷ giá</th><th>Loại</th><th>Nguồn</th></tr>
-                </thead>
-                <tbody>
-                    {% for r in rates %}
-                    <tr>
-                        <td>{{ r.rate_date|date:"d/m/Y" }}</td>
-                        <td class="font-mono">{{ r.from_currency }}</td>
-                        <td class="font-mono">{{ r.to_currency }}</td>
-                        <td class="text-end font-mono"><strong>{{ r.rate|floatformat:2|intcomma }}</strong></td>
-                        <td><small>{{ r.rate_type }}</small></td>
-                        <td><small class="text-muted">{{ r.source|default:"—" }}</small></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <p class="text-muted text-center py-4 mb-0">
-                <i class="bi bi-currency-exchange display-6 d-block mb-2"></i>
-                Chưa có tỷ giá.
-            </p>
-            {% endif %}
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header"><h5 class="mb-0"><i class="bi bi-plus-circle"></i> Thêm tỷ giá</h5></div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-2">
+                            <label class="form-label">Ngoại tệ <span class="text-danger">*</span></label>
+                            <select name="from_currency" class="form-select form-select-sm" required>
+                                <option value="">-- Chọn --</option>
+                                {% for c in currencies %}
+                                <option value="{{ c.code }}">{{ c.code }} - {{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Ngày <span class="text-danger">*</span></label>
+                            <input type="date" name="rate_date" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Tỷ giá (VND) <span class="text-danger">*</span></label>
+                            <input type="number" step="any" name="rate" class="form-control form-control-sm" required placeholder="vd 24500">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Loại tỷ giá</label>
+                            <select name="rate_type" class="form-select form-select-sm">
+                                <option value="VCB" selected>VCB</option>
+                                <option value="SBV">SBV</option>
+                                <option value="accounting">Hạch toán</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-save"></i> Lưu</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    {% if rates %}
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr><th>Ngày</th><th>Từ</th><th>Đến</th><th class="text-end">Tỷ giá</th><th>Loại</th><th>Nguồn</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for r in rates %}
+                            <tr>
+                                <td>{{ r.rate_date|date:"d/m/Y" }}</td>
+                                <td class="font-mono">{{ r.from_currency }}</td>
+                                <td class="font-mono">{{ r.to_currency }}</td>
+                                <td class="text-end font-mono"><strong>{{ r.rate|floatformat:2|intcomma }}</strong></td>
+                                <td><small>{{ r.rate_type }}</small></td>
+                                <td><small class="text-muted">{{ r.source|default:"—" }}</small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted text-center py-4 mb-0">
+                        <i class="bi bi-currency-exchange display-6 d-block mb-2"></i>
+                        Chưa có tỷ giá. Thêm mới ở form bên trái.
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 </div>
