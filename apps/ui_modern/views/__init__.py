@@ -106,6 +106,10 @@ from .customer_views import (
     CustomerUpdateView,
 )
 from .dashboard_views import DashboardView, QuickExpenseView
+from .dnsn_conversion_views import (
+    DnsnConversionResultView,
+    DnsnConversionView,
+)
 from .dnsn_ledger_views import (
     DnsnLedgerDetailView,
     DnsnLedgerListView,
@@ -116,10 +120,6 @@ from .dnsn_report_views import (
     DnsnB02ReportView,
     DnsnReportExportView,
     DnsnReportListView,
-)
-from .dnsn_conversion_views import (
-    DnsnConversionResultView,
-    DnsnConversionView,
 )
 from .dnsn_voucher_views import (
     DnsnVoucherCreateView,
@@ -148,7 +148,7 @@ from .hr_management_views import (
     LaborContractListView,
     LeaveRequestView,
 )
-from .hr_views import EmployeeCreateView, EmployeeListView
+from .hr_views import EmployeeCreateView, EmployeeListView, PositionMasterView
 from .input_invoice_views import (
     InputInvoiceListView,
     InputInvoiceProcessView,
@@ -381,6 +381,7 @@ __all__ = [
     "StockCardView",
     "EmployeeListView",
     "EmployeeCreateView",
+    "PositionMasterView",
     "PayrollRunView",
     "CashReceiptCreateView",
     "CashPaymentCreateView",

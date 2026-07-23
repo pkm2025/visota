@@ -158,6 +158,7 @@ from .views import (
     PKMDashboardView,
     PKMSearchView,
     PnLView,
+    PositionMasterView,
     ProductCreateView,
     ProductDeleteView,
     ProductDetailView,
@@ -893,6 +894,12 @@ urlpatterns = [
         "employees/new/",
         login_required(EmployeeCreateView.as_view()),
         name="employee_create",
+    ),
+    # HR — Positions (Chức danh)
+    path(
+        "positions/",
+        login_required(PositionMasterView.as_view()),
+        name="position_master",
     ),
     # HR — Labor contracts
     path(

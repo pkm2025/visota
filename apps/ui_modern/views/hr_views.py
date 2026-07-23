@@ -1,10 +1,12 @@
-"""HR UI views — employee list + create."""
+"""HR UI views — employee list + create + position master."""
 
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, ListView
+from django.views.generic import CreateView, ListView, TemplateView
 
-from apps.hr.models import Employee
+from apps.hr.models import Employee, Position
 from apps.ui_modern.mixins import PermissionRequiredMixin, require_current_company
 
 
@@ -79,3 +81,43 @@ class EmployeeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
     def form_valid(self, form):
         form.instance.company = require_current_company(self.request)
         return super().form_valid(form)
+
+
+class PositionMasterView(LoginRequiredMixin, TemplateView):
+    """Module quản lý chức danh (Positions).
+
+    Lists all positions from ``hr.Position`` and allows creating new ones via
+    POST.  This is needed because Employee.position is a required FK — users
+    must be able to create positions before they can create employees.
+    """
+
+    template_name = "modern/hr/position_master.html"
+    login_url = "/auth/login/"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = "Chức danh"
+        ctx["positions"] = Position.objects.filter(is_active=True).order_by("code")
+        return ctx
+
+    def post(self, request, *args, **kwargs):
+        code = request.POST.get("code", "").strip()
+        name = request.POST.get("name", "").strip()
+        level = request.POST.get("level", "1").strip()
+
+        if not code or not name:
+            messages.error(request, "Vui lòng nhập mã và tên chức danh.")
+            return redirect("ui_modern:position_master")
+
+        if Position.objects.filter(code=code).exists():
+            messages.error(request, f"Mã chức danh '{code}' đã tồn tại.")
+            return redirect("ui_modern:position_master")
+
+        try:
+            level_val = int(level) if level else 1
+        except ValueError:
+            level_val = 1
+
+        Position.objects.create(code=code, name=name, level=level_val)
+        messages.success(request, f"Đã tạo chức danh {code} - {name}")
+        return redirect("ui_modern:position_master")

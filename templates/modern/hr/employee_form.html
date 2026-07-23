@@ -76,8 +76,14 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Chức danh <span class="text-danger">*</span></label>
-                            {{ form.position }}
-                            {{ form.position.errors }}
+                            <div class="input-group">
+                                {{ form.position }}
+                                {{ form.position.errors }}
+                                <a href="{% url 'ui_modern:position_master' %}" class="btn btn-outline-secondary btn-sm" target="_blank">
+                                    <i class="bi bi-plus-lg"></i>
+                                </a>
+                            </div>
+                            <small class="text-muted">Chưa có chức danh? <a href="{% url 'ui_modern:position_master' %}" target="_blank">Thêm mới</a></small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Trạng thái</label>
