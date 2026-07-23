@@ -78,6 +78,9 @@ class EmployeeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
         ctx["is_new"] = True
         return ctx
 
+    def get_initial(self):
+        return {"status": Employee.Status.ACTIVE}
+
     def form_valid(self, form):
         form.instance.company = require_current_company(self.request)
         return super().form_valid(form)

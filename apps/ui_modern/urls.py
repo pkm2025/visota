@@ -12,6 +12,7 @@ from .views import (
     ApprovalQueueView,
     ApprovalRejectView,
     ApprovalRuleListView,
+    AssetCategoryMasterView,
     AssetCreateView,
     AssetDisposeView,
     AssetListView,
@@ -883,6 +884,11 @@ urlpatterns = [
         "assets/transactions/",
         login_required(AssetTransactionListView.as_view()),
         name="asset_transaction_list",
+    ),
+    path(
+        "asset-categories/",
+        login_required(AssetCategoryMasterView.as_view()),
+        name="asset_category_master",
     ),
     # HR — employees
     path(

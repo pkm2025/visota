@@ -54,6 +54,7 @@ from .admin_views import (
     MyPermissionsView,
 )
 from .asset_views import (
+    AssetCategoryMasterView,
     AssetCreateView,
     AssetDisposeView,
     AssetListView,
@@ -327,6 +328,7 @@ __all__ = [
     "VoucherUploadView",
     "AssetListView",
     "AssetCreateView",
+    "AssetCategoryMasterView",
     "AssetDisposeView",
     "AssetTransferView",
     "AssetTransactionListView",

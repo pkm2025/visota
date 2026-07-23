@@ -45,7 +45,7 @@
                             </option>
                             {% endfor %}
                         </select>
-                        <small class="text-muted">TK mặc định sẽ kế thừa từ loại tài sản.</small>
+                        {% if not categories %}<small class="text-warning">Chưa có loại tài sản. <a href="{% url 'ui_modern:asset_category_master' %}">Tạo loại tài sản mới</a></small>{% else %}<small class="text-muted">TK mặc định sẽ kế thừa từ loại tài sản. <a href="{% url 'ui_modern:asset_category_master' %}">Quản lý loại TS</a></small>{% endif %}
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Bộ phận sử dụng <span class="text-danger">*</span></label>

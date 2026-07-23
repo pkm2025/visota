@@ -7,7 +7,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
-from django.views.generic import ListView
+from django.views.generic import ListView, TemplateView
 
 from apps.assets.models import (
     AssetCategory,
@@ -320,3 +320,88 @@ class AssetTransactionListView(LoginRequiredMixin, ListView):
         ctx = super().get_context_data(**kwargs)
         ctx["page_title"] = "Lịch sử giao dịch tài sản"
         return ctx
+
+
+class AssetCategoryMasterView(LoginRequiredMixin, TemplateView):
+    """Module quản lý loại tài sản (Asset Categories).
+
+    Lists all categories for the current company and allows creating new ones
+    via POST.  Needed because AssetCreateView requires a category FK — users
+    must be able to create categories before they can create assets.
+    """
+
+    template_name = "modern/assets/category_master.html"
+    login_url = "/auth/login/"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        company = require_current_company(self.request)
+        ctx["page_title"] = "Loại tài sản"
+        ctx["categories"] = AssetCategory.objects.filter(
+            company=company, is_active=True
+        ).order_by("code")
+        ctx["departments"] = AssetUsingDepartment.objects.filter(
+            company=company, is_active=True
+        ).order_by("code")
+        return ctx
+
+    def post(self, request, *args, **kwargs):
+        company = require_current_company(request)
+        form_type = request.POST.get("form_type", "category")
+
+        if form_type == "department":
+            return self._handle_department_post(request, company)
+        return self._handle_category_post(request, company)
+
+    def _handle_category_post(self, request, company):
+        code = request.POST.get("code", "").strip()
+        name = request.POST.get("name", "").strip()
+        level = request.POST.get("level", "group").strip()
+        is_for_tool = request.POST.get("is_for_tool") == "1"
+
+        if not code or not name:
+            messages.error(request, "Vui lòng nhập mã và tên loại tài sản.")
+            return redirect("ui_modern:asset_category_master")
+
+        if AssetCategory.objects.filter(company=company, code=code).exists():
+            messages.error(request, f"Mã loại tài sản '{code}' đã tồn tại.")
+            return redirect("ui_modern:asset_category_master")
+
+        valid_levels = [c[0] for c in AssetCategory.Level.choices]
+        if level not in valid_levels:
+            level = "group"
+
+        AssetCategory.objects.create(
+            company=company,
+            code=code,
+            name=name,
+            level=level,
+            is_for_tool=is_for_tool,
+            default_gl_account=request.POST.get("default_gl_account", ""),
+            default_depreciation_account=request.POST.get("default_depreciation_account", ""),
+            default_expense_account=request.POST.get("default_expense_account", ""),
+        )
+        messages.success(request, f"Đã tạo loại tài sản {code} - {name}")
+        return redirect("ui_modern:asset_category_master")
+
+    def _handle_department_post(self, request, company):
+        code = request.POST.get("dept_code", "").strip()
+        name = request.POST.get("dept_name", "").strip()
+        expense_account = request.POST.get("dept_expense_account", "642").strip()
+
+        if not code or not name:
+            messages.error(request, "Vui lòng nhập mã và tên bộ phận sử dụng.")
+            return redirect("ui_modern:asset_category_master")
+
+        if AssetUsingDepartment.objects.filter(company=company, code=code).exists():
+            messages.error(request, f"Mã bộ phận '{code}' đã tồn tại.")
+            return redirect("ui_modern:asset_category_master")
+
+        AssetUsingDepartment.objects.create(
+            company=company,
+            code=code,
+            name=name,
+            default_expense_account=expense_account,
+        )
+        messages.success(request, f"Đã tạo bộ phận sử dụng {code} - {name}")
+        return redirect("ui_modern:asset_category_master")

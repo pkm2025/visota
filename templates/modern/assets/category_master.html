@@ -1,0 +1,187 @@
+{% extends 'modern/base/layout.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'ui_modern:dashboard' %}">Trang chủ</a></li>
+                    <li class="breadcrumb-item">Tài sản</li>
+                    <li class="breadcrumb-item active">{{ page_title }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ page_title }}</h1>
+        </div>
+        <a href="{% url 'ui_modern:asset_create' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-arrow-left"></i> Quay lại
+        </a>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Thêm loại tài sản</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_type" value="category">
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">Mã <span class="text-danger">*</span></label>
+                                <input type="text" name="code" class="form-control form-control-sm" required maxlength="50">
+                            </div>
+                            <div class="col-md-8 mb-2">
+                                <label class="form-label">Tên <span class="text-danger">*</span></label>
+                                <input type="text" name="name" class="form-control form-control-sm" required maxlength="255">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">Cấp</label>
+                                <select name="level" class="form-select form-select-sm">
+                                    <option value="type">Loại</option>
+                                    <option value="group" selected>Nhóm</option>
+                                    <option value="subgroup">Phân nhóm</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">Loại</label>
+                                <select name="is_for_tool" class="form-select form-select-sm">
+                                    <option value="0">TSCĐ (TK 211/214)</option>
+                                    <option value="1">CCDC (TK 142/242)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">TK gốc</label>
+                                <input type="text" name="default_gl_account" class="form-control form-control-sm" placeholder="211">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">TK khấu hao</label>
+                                <input type="text" name="default_depreciation_account" class="form-control form-control-sm" placeholder="214">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">TK chi phí</label>
+                                <input type="text" name="default_expense_account" class="form-control form-control-sm" placeholder="642">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm w-100">
+                            <i class="bi bi-save"></i> Lưu loại tài sản
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Thêm bộ phận sử dụng</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_type" value="department">
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">Mã <span class="text-danger">*</span></label>
+                                <input type="text" name="dept_code" class="form-control form-control-sm" required maxlength="50">
+                            </div>
+                            <div class="col-md-5 mb-2">
+                                <label class="form-label">Tên <span class="text-danger">*</span></label>
+                                <input type="text" name="dept_name" class="form-control form-control-sm" required maxlength="255">
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <label class="form-label">TK chi phí</label>
+                                <input type="text" name="dept_expense_account" class="form-control form-control-sm" value="642">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm w-100">
+                            <i class="bi bi-save"></i> Lưu bộ phận
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-list"></i> Danh sách loại tài sản</h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Mã</th>
+                                <th>Tên</th>
+                                <th>Cấp</th>
+                                <th>Loại</th>
+                                <th>TK Gốc</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in categories %}
+                            <tr>
+                                <td class="font-mono">{{ c.code }}</td>
+                                <td>{{ c.name }}</td>
+                                <td>{{ c.get_level_display }}</td>
+                                <td>{% if c.is_for_tool %}CCDC{% else %}TSCĐ{% endif %}</td>
+                                <td>{{ c.default_gl_account|default:'-' }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox d-block mb-2" style="font-size:32px;"></i>
+                                Chưa có loại tài sản. Thêm mới ở form bên trái.
+                            </td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-list"></i> Danh sách bộ phận sử dụng</h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Mã</th>
+                                <th>Tên</th>
+                                <th>TK chi phí</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in departments %}
+                            <tr>
+                                <td class="font-mono">{{ d.code }}</td>
+                                <td>{{ d.name }}</td>
+                                <td>{{ d.default_expense_account }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox d-block mb-2" style="font-size:32px;"></i>
+                                Chưa có bộ phận. Thêm mới ở form bên trái.
+                            </td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
