@@ -5,7 +5,7 @@ from django.views.generic import TemplateView
 
 from apps.reporting.services.cash_flow import CashFlowService
 from apps.ui_modern.mixins import require_current_company
-from apps.ui_modern.views.report_views import _common_period_choices, _parse_period_kwargs
+from apps.ui_modern.views.report_views import _financial_period_choices, _parse_period_kwargs
 
 
 class CashFlowDirectView(LoginRequiredMixin, TemplateView):
@@ -25,7 +25,7 @@ class CashFlowDirectView(LoginRequiredMixin, TemplateView):
                 "page_title": "BC dòng tiền PP trực tiếp (B03-DN)",
                 "fiscal_year": fy,
                 "period": period,
-                **_common_period_choices(),
+                **_financial_period_choices(),
             }
         )
         return ctx
@@ -48,7 +48,7 @@ class CashFlowIndirectView(LoginRequiredMixin, TemplateView):
                 "page_title": "BC dòng tiền PP gián tiếp (B03-DN)",
                 "fiscal_year": fy,
                 "period": period,
-                **_common_period_choices(),
+                **_financial_period_choices(),
             }
         )
         return ctx
