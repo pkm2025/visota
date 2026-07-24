@@ -122,6 +122,20 @@ class Command(BaseCommand):
                 "warehouse_type": "finished",
             },
         )
+        # 5b. CRM Account (mẫu cho module Opportunity)
+        from apps.crm.models import CRMAccount
+        CRMAccount.objects.update_or_create(
+            company=company,
+            code="AC001",
+            defaults={
+                "name": customer.name,
+                "tax_code": customer.tax_code,
+                "address": customer.address,
+                "phone": customer.phone,
+                "email": customer.email,
+                "industry": "Công nghệ",
+            },
+        )
 
         # 6. Sample fixed asset (TSCĐ): TS001 Xe Toyota Vios
         from apps.assets.models import (

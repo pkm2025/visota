@@ -59,6 +59,13 @@ class PurchaseInvoice(CompanyOwnedModel):
         related_name="purchase_invoices",
     )
 
+    credit_account = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        help_text="TK Có override (vd 3388/112). Mặc định theo Vendor.gl_account_payable (331).",
+    )
+
     # TT58 DNSN voucher link (used when company.accounting_regime == 'tt58')
     dnsn_voucher = models.ForeignKey(
         "ledger.DnsnVoucher",

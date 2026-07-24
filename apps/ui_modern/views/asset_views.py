@@ -158,6 +158,29 @@ class AssetCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
         departments_qs = AssetUsingDepartment.objects.filter(
             company=company, is_active=True
         ).order_by("code")
+        # Auto-sync departments from hr.Department so the asset form always
+        # shows the same departments as the employee form (bug #6 fix).
+        # AssetUsingDepartment is a separate table (for GL expense account
+        # mapping), but it should mirror hr.Department.
+        try:
+            from apps.hr.models import Department as HrDepartment
+
+            hr_depts = HrDepartment.objects.filter(company=company, is_active=True)
+            for hr_dept in hr_depts:
+                AssetUsingDepartment.objects.get_or_create(
+                    company=company,
+                    code=hr_dept.code,
+                    defaults={
+                        "name": hr_dept.name,
+                        "default_expense_account": "642",
+                    },
+                )
+            # Re-query after sync
+            departments_qs = AssetUsingDepartment.objects.filter(
+                company=company, is_active=True
+            ).order_by("code")
+        except Exception:
+            pass  # don't crash if hr.Department is unavailable
         return {
             "page_title": "Thêm tài sản",
             "categories": categories_qs,

@@ -16,6 +16,7 @@ from apps.banking.views import (
 )
 from apps.bidding.views import (
     BidConvertToContractView,
+    BidOpportunityCreateView,
     BidOpportunityDetailView,
     BidOpportunityListView,
 )
@@ -303,6 +304,7 @@ __all__ = [
     "BankGuaranteeListView",
     "BankLoanListView",
     "BidOpportunityListView",
+    "BidOpportunityCreateView",
     "BidOpportunityDetailView",
     "BidConvertToContractView",
     "BudgetListView",

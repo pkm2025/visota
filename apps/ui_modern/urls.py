@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect
 from django.urls import path
 
 from .views import (
@@ -33,6 +34,7 @@ from .views import (
     BankStatementImportListView,
     BankStatementUploadView,
     BidConvertToContractView,
+    BidOpportunityCreateView,
     BidOpportunityDetailView,
     BidOpportunityListView,
     BookEntryRegisterView,
@@ -152,7 +154,6 @@ from .views import (
     OpportunityDetailView,
     OpportunityListView,
     PayrollRunView,
-    TimesheetView,
     PeriodAllocationView,
     PeriodClosingView,
     PeriodReopenView,
@@ -200,6 +201,7 @@ from .views import (
     TAccountSummaryView,
     TicketCreateView,
     TicketListView,
+    TimesheetView,
     TrialBalanceDocxView,
     TrialBalanceView,
     VATInputListView,
@@ -390,6 +392,11 @@ urlpatterns = [
         name="banking_account_list",
     ),
     path(
+        "banking/accounts/new/",
+        login_required(lambda r: redirect("ui_modern:banking_account_list")),
+        name="banking_account_create",
+    ),
+    path(
         "banking/imports/",
         login_required(BankStatementImportListView.as_view()),
         name="banking_import_list",
@@ -438,6 +445,11 @@ urlpatterns = [
         name="bid_list",
     ),
     path(
+        "bidding/new/",
+        login_required(BidOpportunityCreateView.as_view()),
+        name="bid_create",
+    ),
+    path(
         "bidding/<int:pk>/",
         login_required(BidOpportunityDetailView.as_view()),
         name="bid_detail",
@@ -483,6 +495,11 @@ urlpatterns = [
         "fx/rates/",
         login_required(ExchangeRateListView.as_view()),
         name="fx_rate_list",
+    ),
+    path(
+        "fx/rates/new/",
+        login_required(lambda r: redirect("ui_modern:fx_rate_list")),
+        name="fx_rate_create",
     ),
     path(
         "fx/revaluation/",

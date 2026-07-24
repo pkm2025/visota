@@ -58,6 +58,7 @@ class PurchaseInvoiceService:
             currency_code=data.get("currency_code", "VND"),
             exchange_rate=data.get("exchange_rate", Decimal("1")),
             description=data.get("description", ""),
+            credit_account=data.get("credit_account", "") or "",
             status=0,  # draft until posted
         )
 
@@ -99,11 +100,12 @@ class PurchaseInvoiceService:
         invoice.total_amount = subtotal + vat_total
         invoice.save()
 
-        # auto_post (default True): auto-generate accounting voucher with
-        # standard TT133 bút toán (N156/C331/N1331).  Set False to skip
-        # auto-posting when the invoice needs custom TK mapping (e.g.
-        # N242/N642/C3388 for service invoices) — the user can then create
-        # a manual voucher with correct TK and link it to this invoice.
+        # auto_post (default True): auto-generate accounting voucher.
+        # TK Nợ per-line có thể override qua debit_account (mặc định theo
+        # product.gl_account_inv, thường 156; có thể 242/642 cho CCDC/dịch vụ).
+        # TK Có có thể override qua credit_account (mặc định vendor 331; có thể
+        # 3388/112 khi thanh toán ngay).  Set auto_post=False để bỏ hoàn toàn
+        # việc tự sinh bút toán.
         if data.get("post", True) and data.get("auto_post", True):
             self._post(invoice)
 
@@ -126,9 +128,9 @@ class PurchaseInvoiceService:
         """Generate accounting voucher for the purchase invoice.
 
         Bút toán:
-            N156 (inventory) per line: amount_before_vat
+            N<debit_account> per line: amount_before_vat (mặc định 156, có thể 242/642)
             N1331 (VAT input) aggregated: sum(vat_amount) by account
-            C331 (vendor AP): total_amount
+            C<credit_account>: total_amount (mặc định 331, có thể 3388/112)
         """
         # 1. Create voucher header
         voucher = AccountingVoucher.objects.create(
@@ -150,11 +152,14 @@ class PurchaseInvoiceService:
         # 2. Build bút toán
         line_no = 1
 
-        # C331 — full AP (vendor credit)
+        # C331/override — full AP (vendor credit); use invoice.credit_account
+        # if provided (e.g. 3388 doanh thu CK, 112 thanh toán ngay), otherwise
+        # default to vendor.gl_account_payable (typically 331).
+        ap_account = invoice.credit_account or invoice.vendor.gl_account_payable
         VoucherLine.objects.create(
             voucher=voucher,
             line_no=line_no,
-            account_code=invoice.vendor.gl_account_payable,
+            account_code=ap_account,
             object_type="vendor",
             object_code=invoice.vendor.code,
             object_name=invoice.vendor.name,

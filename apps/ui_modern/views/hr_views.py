@@ -83,6 +83,8 @@ class EmployeeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
 
     def form_valid(self, form):
         form.instance.company = require_current_company(self.request)
+        if not form.instance.status:
+            form.instance.status = Employee.Status.ACTIVE
         return super().form_valid(form)
 
 

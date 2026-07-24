@@ -61,7 +61,7 @@
                                     </td>
                                     <td><input type="number" step="any" name="quantity[]" class="form-control form-control-sm" x-model="line.quantity"></td>
                                     <td><input type="number" step="any" name="unit_price[]" class="form-control form-control-sm" x-model="line.unit_price"></td>
-                                    <td><input type="text" name="debit_account[]" class="form-control form-control-sm font-mono" x-model="line.debit_account" placeholder="Mặc định" maxlength="20"></td>
+                                    <td><input type="text" name="debit_account[]" class="form-control form-control-sm font-mono" x-model="line.debit_account" placeholder="Mặc định (156/242/642)" maxlength="20"></td>
                                     <td class="text-end font-mono" x-text="formatNum((line.quantity || 0) * (line.unit_price || 0))"></td>
                                     <td>
                                         <button type="button" class="btn btn-sm btn-outline-danger py-0" @click="removeLine(idx)">
@@ -80,11 +80,19 @@
                 <div class="mt-3 form-check">
                     <input type="checkbox" class="form-check-input" name="auto_post" value="1" id="auto_post" checked>
                     <label class="form-check-label" for="auto_post">
-                        Tự động hạch toán (N156/C331/N1331)
+                        Tự động hạch toán
                         <small class="text-muted d-block">
-                            Bỏ tick nếu cần TK khác (vd: 242, 642, 3388) — tạo phiếu kế toán thủ công sau.
+                            Bỏ tick nếu không muốn tự sinh bút toán (tạo thủ công sau).
                         </small>
                     </label>
+                </div>
+
+                <div class="mt-3 row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">TK Có (override)</label>
+                        <input type="text" name="credit_account" class="form-control font-mono" placeholder="Mặc định: 331" maxlength="20">
+                        <small class="text-muted">Mặc định TK Có = 331 (Phải trả NCC). Nhập 3388 (DTCK), 112 (thanh toán ngay), v.v.</small>
+                    </div>
                 </div>
 
                 <div class="mt-4 d-flex gap-2">

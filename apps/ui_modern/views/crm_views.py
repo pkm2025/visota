@@ -200,6 +200,26 @@ class OpportunityCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateV
         ctx["page_title"] = "Thêm cơ hội bán hàng"
         ctx["page_parent"] = "CRM"
         ctx["is_new"] = True
+        # Auto-sync CRMAccount from Customer so the dropdown always shows
+        # existing customers (bug #7: link account with Khách hàng module).
+        try:
+            from apps.master_data.models import Customer
+
+            for cust in Customer.objects.filter(company=company, is_active=True):
+                CRMAccount.objects.get_or_create(
+                    company=company,
+                    code=cust.code,
+                    defaults={
+                        "name": cust.name,
+                        "tax_code": cust.tax_code,
+                        "address": cust.address,
+                        "phone": cust.phone,
+                        "email": cust.email,
+                        "customer": cust,
+                    },
+                )
+        except Exception:
+            pass
         ctx["accounts"] = CRMAccount.objects.filter(company=company).order_by("name")
         return ctx
 

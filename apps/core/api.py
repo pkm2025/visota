@@ -387,6 +387,7 @@ class PurchaseInvoiceCreateSchema(Schema):
     currency_code: str = "VND"
     exchange_rate: Decimal = Decimal("1")
     auto_post: bool = True
+    credit_account: str = ""
     lines: list[PurchaseInvoiceLineInputSchema]
 
 
@@ -411,6 +412,7 @@ def create_purchase_invoice(request, payload: PurchaseInvoiceCreateSchema):
             "currency_code": payload.currency_code,
             "exchange_rate": payload.exchange_rate,
             "auto_post": payload.auto_post,
+            "credit_account": payload.credit_account,
             "lines": [
                 {
                     "product_id": ln.product_id,

@@ -5,6 +5,11 @@
 <div class="container-fluid py-4">
     {% include 'shared/_breadcrumb.html' %}
     <h1 class="h3 mb-3">{{ page_title }}</h1>
+    <div class="mb-3">
+        <a href="{% url 'ui_modern:bid_create' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-circle"></i> Thêm gói thầu
+        </a>
+    </div>
     <div class="card">
         <div class="card-body">
             {% if bids %}

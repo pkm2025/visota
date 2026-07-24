@@ -66,6 +66,9 @@ class PurchaseInvoiceCreateView(LoginRequiredMixin, PermissionRequiredMixin, Tem
         prices = request.POST.getlist("unit_price[]")
         debit_accounts = request.POST.getlist("debit_account[]")
 
+        # Credit account override (optional, default = vendor 331)
+        credit_account = request.POST.get("credit_account", "").strip()
+
         lines = []
         for i, pid in enumerate(product_ids):
             if not pid:
@@ -92,16 +95,17 @@ class PurchaseInvoiceCreateView(LoginRequiredMixin, PermissionRequiredMixin, Tem
         try:
             service = PurchaseInvoiceService(company=company)
             auto_post = request.POST.get("auto_post", "1") != "0"
-            invoice = service.create(
-                {
-                    "invoice_no": invoice_no,
-                    "invoice_date": datetime.strptime(invoice_date, "%Y-%m-%d").date(),
-                    "vendor_id": int(vendor_id),
-                    "lines": lines,
-                    "post": True,
-                    "auto_post": auto_post,
-                }
-            )
+            create_data = {
+                "invoice_no": invoice_no,
+                "invoice_date": datetime.strptime(invoice_date, "%Y-%m-%d").date(),
+                "vendor_id": int(vendor_id),
+                "lines": lines,
+                "post": True,
+                "auto_post": auto_post,
+            }
+            if credit_account:
+                create_data["credit_account"] = credit_account
+            invoice = service.create(create_data)
         except Exception as exc:  # noqa: BLE001 — surface any service error to the UI
             messages.error(request, f"Lỗi khi tạo phiếu: {exc}")
             return redirect("ui_modern:purchase_invoice_create")
