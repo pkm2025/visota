@@ -169,7 +169,21 @@ class ReportEngine:
         return d if field_prefix == "debit" else c
 
     def _aggregate_closing(self, pattern: str, field_prefix: str) -> Decimal:
-        """Sum YTD closing debit or credit columns for accounts matching ``pattern``."""
+        """Sum YTD closing debit or credit columns for accounts matching ``pattern``.
+
+        For the balance sheet, the net closing balance is needed: when
+        multiple rows exist for the same account (e.g. TK 131 split by
+        customer object_code), each row has either closing_debit OR
+        closing_credit set (heavier side wins).  The caller asks for
+        "debit" or "credit" side separately, but the engine must return
+        the NET (debit - credit for asset accounts, credit - debit for
+        liability accounts).
+
+        To handle this correctly, we return the NET balance for the
+        requested side:
+        - field_prefix="debit"  -> max(0, sum(closing_debit) - sum(closing_credit))
+        - field_prefix="credit" -> max(0, sum(closing_credit) - sum(closing_debit))
+        """
         key = f"ytd_closing_{field_prefix}:{pattern}"
         if key in self._balance_cache:
             d, c = self._balance_cache[key]
@@ -182,6 +196,16 @@ class ReportEngine:
             if _pattern_matches(pattern, code):
                 d += row.closing_debit
                 c += row.closing_credit
+        # Net: for debit-natured accounts (assets), return max(0, d - c).
+        # For credit-natured accounts (liabilities/equity), return max(0, c - d).
+        if field_prefix == "debit":
+            net = d - c
+            d = net if net > 0 else Decimal("0")
+            c = Decimal("0")
+        else:
+            net = c - d
+            c = net if net > 0 else Decimal("0")
+            d = Decimal("0")
         self._balance_cache[key] = (d, c)
         return d if field_prefix == "debit" else c
 
