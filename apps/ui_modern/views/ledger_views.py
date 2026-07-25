@@ -5,13 +5,18 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.generic import DetailView, ListView
 
 from apps.ledger.models import AccountingVoucher, VoucherLine
 from apps.ledger.services import VoucherPostingService
-from apps.ledger.services.voucher_posting_service import VoucherNotBalancedError
+from apps.ledger.services.voucher_posting_service import (
+    PeriodClosedError,
+    VoucherLockedError,
+    VoucherNotBalancedError,
+)
 from apps.ui_modern.forms import (
     VoucherHeaderForm,
     VoucherLineFormSet,
@@ -159,20 +164,8 @@ class VoucherCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
             return render(request, self.template_name, ctx_base, status=200)
 
         cd = header_form.cleaned_data
-        voucher = AccountingVoucher.objects.create(
-            company=company,
-            fiscal_year=cd["voucher_date"].year,
-            period=cd["voucher_date"].month,
-            voucher_no=cd.get("voucher_no") or f"AUTO-{AccountingVoucher.objects.count() + 1:04d}",
-            voucher_type=cd["voucher_type"],
-            voucher_date=cd["voucher_date"],
-            description=cd.get("description", ""),
-            currency_code="VND",
-            exchange_rate=Decimal("1"),
-            total_vnd=total_debit,
-            status=AccountingVoucher.Status.DRAFT,
-            created_by=request.user,
-        )
+        voucher_no = self._generate_voucher_no(cd, company)
+        voucher = self._create_voucher(cd, company, voucher_no, total_debit, request.user)
 
         line_no = 1
         for cd_line in valid_lines:
@@ -191,14 +184,69 @@ class VoucherCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
         if tax_formset_valid and tax_formset.is_bound:
             line_no = self._save_tax_lines(voucher, tax_formset, line_no)
 
-        # Auto-post
+        # Auto-post — catch ALL expected posting errors so we never 500
+        self._post_voucher(request, voucher)
+
+        return redirect("ui_modern:voucher_list")
+
+    def _generate_voucher_no(self, cd, company):
+        """Generate a unique voucher_no if user left it blank."""
+        voucher_no = cd.get("voucher_no")
+        if voucher_no:
+            return voucher_no
+        prefix = "AUTO-"
+        existing = AccountingVoucher.objects.filter(
+            company=company,
+            voucher_no__startswith=prefix,
+        ).count()
+        return f"{prefix}{existing + 1:04d}"
+
+    def _create_voucher(self, cd, company, voucher_no, total_debit, user):
+        """Create voucher, retrying with a suffix on voucher_no collision."""
+        defaults = {
+            "company": company,
+            "fiscal_year": cd["voucher_date"].year,
+            "period": cd["voucher_date"].month,
+            "voucher_type": cd["voucher_type"],
+            "voucher_date": cd["voucher_date"],
+            "description": cd.get("description", ""),
+            "currency_code": "VND",
+            "exchange_rate": Decimal("1"),
+            "total_vnd": total_debit,
+            "status": AccountingVoucher.Status.DRAFT,
+            "created_by": user,
+        }
+        try:
+            return AccountingVoucher.objects.create(voucher_no=voucher_no, **defaults)
+        except IntegrityError:
+            import uuid
+
+            suffix = uuid.uuid4().hex[:4].upper()
+            return AccountingVoucher.objects.create(
+                voucher_no=f"{voucher_no}-{suffix}", **defaults
+            )
+
+    def _post_voucher(self, request, voucher):
+        """Post voucher and surface all expected errors as flash messages."""
         try:
             VoucherPostingService().post(voucher)
             messages.success(request, f"Đã ghi sổ phiếu {voucher.voucher_no}")
         except VoucherNotBalancedError as e:
             messages.error(request, str(e))
-
-        return redirect("ui_modern:voucher_list")
+        except PeriodClosedError as e:
+            messages.error(
+                request,
+                f"Kỳ đã khóa. Hãy mở khóa kỳ (menu Kết chuyển > Mở khóa kỳ) "
+                f"trước khi ghi sổ. Chi tiết: {e}",
+            )
+        except VoucherLockedError as e:
+            messages.error(request, f"Phiếu đã bị khóa: {e}")
+        except Exception as exc:
+            messages.error(
+                request,
+                f"Phiếu {voucher.voucher_no} đã lưu nhưng ghi sổ lỗi: {exc}. "
+                f"Vui lòng ghi sổ thủ công từ trang chi tiết.",
+            )
 
     def _save_tax_lines(self, voucher, tax_formset, line_no):
         """Persist non-empty tax lines from the tax formset. Returns next line_no."""
@@ -466,7 +514,10 @@ class VoucherGuidedView(LoginRequiredMixin, PermissionRequiredMixin, View):
             company=company,
             fiscal_year=today.year,
             period=today.month,
-            voucher_no=f"GUIDE-{today.strftime('%y%m%d')}-{AccountingVoucher.objects.filter(company=company, voucher_no__startswith='GUIDE').count() + 1:04d}",
+            voucher_no=(
+                f"GUIDE-{today.strftime('%y%m%d')}-"
+                f"{AccountingVoucher.objects.filter(company=company, voucher_no__startswith='GUIDE').count() + 1:04d}"  # noqa: E501
+            ),
             voucher_type=vtype,
             voucher_date=today,
             description=desc or f"[Tạo nhanh] {action}",
