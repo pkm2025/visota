@@ -1,6 +1,6 @@
 """Base Django settings for Visota ERP."""
-from pathlib import Path
 import os
+from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -17,11 +17,18 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
+    'django.contrib.sites',
 
     # Third-party
     'django_extensions',
     'django_q',
     'axes',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.facebook',
+    'apps.identity.providers.zalo',
 
     # Local — shared backend
     'apps.core',
@@ -65,6 +72,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'axes.middleware.AxesMiddleware',
@@ -129,11 +137,47 @@ AUTHENTICATION_BACKENDS = [
     'axes.backends.AxesStandaloneBackend',
     'apps.identity.backends.RoleBasedBackend',
     'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
 LOGIN_URL = '/auth/login/'
 LOGIN_REDIRECT_URL = '/modern/'
 LOGOUT_REDIRECT_URL = '/auth/login/'
+
+# django-allauth (social login)
+SITE_ID = 1
+ACCOUNT_LOGIN_METHODS = {'username', 'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
+ACCOUNT_EMAIL_VERIFICATION = 'none'
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_STORE_TOKENS = False
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'APP': {
+            'client_id': os.environ.get('GOOGLE_OAUTH_CLIENT_ID', ''),
+            'secret': os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET', ''),
+            'key': '',
+        },
+        'SCOPE': ['profile', 'email'],
+        'AUTH_PARAMS': {'access_type': 'online'},
+    },
+    'facebook': {
+        'APP': {
+            'client_id': os.environ.get('FACEBOOK_APP_ID', ''),
+            'secret': os.environ.get('FACEBOOK_APP_SECRET', ''),
+            'key': '',
+        },
+        'SCOPE': ['email', 'public_profile'],
+        'METHOD': 'oauth2',
+    },
+    'zalo': {
+        'APP': {
+            'client_id': os.environ.get('ZALO_APP_ID', ''),
+            'secret': os.environ.get('ZALO_APP_SECRET', ''),
+            'key': '',
+        },
+    },
+}
 
 LANGUAGE_CODE = 'vi'
 TIME_ZONE = 'Asia/Ho_Chi_Minh'

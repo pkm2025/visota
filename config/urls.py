@@ -17,6 +17,9 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("auth/login/", VisotaLoginView.as_view(), name="login"),
     path("auth/logout/", VisotaLogoutView.as_view(), name="logout"),
+    # Social login (Google, Facebook, Zalo)
+    path("accounts/", include("allauth.urls")),
+    path("accounts/zalo/", include("apps.identity.providers.zalo.urls")),
     path("health/", health_simple, name="health_simple"),
     path("health/detailed/", health_detailed, name="health_detailed"),
     path(
