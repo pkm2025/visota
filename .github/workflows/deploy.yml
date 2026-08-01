@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Create release tag
         run: |
           VERSION="v$(date +'%Y.%m.%d')-${GITHUB_SHA::7}"
