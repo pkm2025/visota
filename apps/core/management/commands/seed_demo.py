@@ -385,6 +385,36 @@ class Command(BaseCommand):
         )
         self.stdout.write("Seeded TaxRateConfig (CIT/VAT/PIT/TTĐB/môn bài/trước bạ/FCT)")
 
+        # Seed currencies for FX module (fixes #8 — empty currency dropdown)
+        from apps.fx.models import Currency
+
+        currencies = [
+            ("USD", "US Dollar", "$", 2),
+            ("EUR", "Euro", "€", 2),
+            ("JPY", "Japanese Yen", "¥", 0),
+            ("GBP", "British Pound", "£", 2),
+            ("CNY", "Chinese Yuan", "¥", 2),
+            ("SGD", "Singapore Dollar", "S$", 2),
+            ("AUD", "Australian Dollar", "A$", 2),
+            ("KRW", "Korean Won", "₩", 0),
+            ("THB", "Thai Baht", "฿", 2),
+            ("CAD", "Canadian Dollar", "C$", 2),
+        ]
+        cur_count = 0
+        for code, name, symbol, decimals in currencies:
+            _, created_cur = Currency.objects.update_or_create(
+                code=code,
+                defaults={
+                    "name": name,
+                    "symbol": symbol,
+                    "decimals": decimals,
+                    "is_active": True,
+                },
+            )
+            if created_cur:
+                cur_count += 1
+        self.stdout.write(f"Seeded {cur_count} new currencies ({len(currencies)} total)")
+
         self.stdout.write(
             self.style.SUCCESS(
                 f"Seed complete. Company: {company.code}, User: admin, "

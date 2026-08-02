@@ -49,6 +49,7 @@ class CashReceiptCreateView(_BaseCashView):
         amount_str = request.POST.get("amount", "0").strip()
         reason = request.POST.get("reason", "").strip()
         credit_account = request.POST.get("credit_account", "131").strip() or "131"
+        object_code = request.POST.get("object_code", "").strip()
 
         errors = []
         if not payer:
@@ -79,6 +80,7 @@ class CashReceiptCreateView(_BaseCashView):
                     amount=amount_str,
                     reason=reason,
                     credit_account=credit_account,
+                    object_code=object_code,
                 ),
                 status=200,
             )
@@ -116,12 +118,16 @@ class CashReceiptCreateView(_BaseCashView):
             object_name=payer,
             description=reason,
         )
+        # Counterpart line (e.g. 131/331): set object_code so payment rows
+        # share object_code with invoice rows, allowing AccountPeriodBalance
+        # to net correctly. Bug #10 root cause was missing object_code here.
         VoucherLine.objects.create(
             voucher=voucher,
             line_no=2,
             account_code=credit_account,
             debit_vnd=Decimal("0"),
             credit_vnd=amount,
+            object_code=object_code,
             object_name=payer,
             description=reason,
         )
@@ -148,6 +154,7 @@ class CashPaymentCreateView(_BaseCashView):
         amount_str = request.POST.get("amount", "0").strip()
         reason = request.POST.get("reason", "").strip()
         debit_account = request.POST.get("debit_account", "331").strip() or "331"
+        object_code = request.POST.get("object_code", "").strip()
 
         errors = []
         if not payee:
@@ -178,6 +185,7 @@ class CashPaymentCreateView(_BaseCashView):
                     amount=amount_str,
                     reason=reason,
                     debit_account=debit_account,
+                    object_code=object_code,
                 ),
                 status=200,
             )
@@ -206,12 +214,16 @@ class CashPaymentCreateView(_BaseCashView):
             status=AccountingVoucher.Status.DRAFT,
             created_by=request.user,
         )
+        # Counterpart line (e.g. 331/642): set object_code so it matches
+        # supplier/vendor code in invoice rows, allowing net balance.
+        # Bug #10 root cause: object_code was missing on payment lines.
         VoucherLine.objects.create(
             voucher=voucher,
             line_no=1,
             account_code=debit_account,
             debit_vnd=amount,
             credit_vnd=Decimal("0"),
+            object_code=object_code,
             object_name=payee,
             description=reason,
         )

@@ -52,7 +52,14 @@
                                value="{% if voucher_type == 'cash_receipt' %}{{ credit_account|default:'131' }}{% else %}{{ debit_account|default:'331' }}{% endif %}"
                                class="form-control font-mono" required>
                     </div>
-                    <div class="col-md-9">
+                    <div class="col-md-3">
+                        <label class="form-label">Mã đối tượng (KH/NCC/NS)</label>
+                        <input type="text" name="object_code"
+                               value="{{ object_code|default:'' }}"
+                               class="form-control font-mono"
+                               placeholder="vd mã KH/NCC — để khớp HĐ và đối soát">
+                    </div>
+                    <div class="col-md-{% if voucher_type == 'cash_receipt' %}6{% else %}6{% endif %}">
                         <label class="form-label">Lý do</label>
                         <input type="text" name="reason" value="{{ reason|default:'' }}" class="form-control" required>
                     </div>
@@ -72,8 +79,10 @@
         <i class="bi bi-info-circle"></i>
         {% if voucher_type == 'cash_receipt' %}
         Hạch toán: <strong>Nợ TK 111 / Có TK {{ credit_account|default:'131' }}</strong>. Phiếu thu được ghi sổ tự động.
+        Nhập <strong>mã đối tượng</strong> (mã KH) để hệ thống đối trừ công nợ chính xác trên B01/BCĐ.
         {% else %}
         Hạch toán: <strong>Nợ TK {{ debit_account|default:'331' }} / Có TK 111</strong>. Phiếu chi được ghi sổ tự động.
+        Nhập <strong>mã đối tượng</strong> (mã NCC) để hệ thống đối trừ công nợ chính xác trên B01/BCĐ.
         {% endif %}
     </div>
 </div>

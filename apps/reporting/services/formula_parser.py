@@ -169,20 +169,21 @@ class ReportEngine:
         return d if field_prefix == "debit" else c
 
     def _aggregate_closing(self, pattern: str, field_prefix: str) -> Decimal:
-        """Sum YTD closing debit or credit columns for accounts matching ``pattern``.
+        """Aggregate YTD closing balance for accounts matching ``pattern``.
 
-        For the balance sheet, the net closing balance is needed: when
-        multiple rows exist for the same account (e.g. TK 131 split by
-        customer object_code), each row has either closing_debit OR
-        closing_credit set (heavier side wins).  The caller asks for
-        "debit" or "credit" side separately, but the engine must return
-        the NET (debit - credit for asset accounts, credit - debit for
-        liability accounts).
+        Bug #10 fix: returns the NET closing balance for the requested
+        side. When multiple ``object_code`` rows exist for an account
+        (e.g. TK 131 split by customer/invoice), some rows carry only
+        ``closing_debit`` (unpaid invoices) and others carry only
+        ``closing_credit`` (unapplied payments). Summing one side
+        grossly overstates the balance. We net across rows because in
+        practice invoice postings and their matching payments frequently
+        land on different ``object_code`` values (invoice uses customer
+        code, payment may leave it blank — see treasury_views.py).
 
-        To handle this correctly, we return the NET balance for the
-        requested side:
-        - field_prefix="debit"  -> max(0, sum(closing_debit) - sum(closing_credit))
-        - field_prefix="credit" -> max(0, sum(closing_credit) - sum(closing_debit))
+        Result by side:
+        - field_prefix="debit"  -> max(0, Σ closing_debit - Σ closing_credit)
+        - field_prefix="credit" -> max(0, Σ closing_credit - Σ closing_debit)
         """
         key = f"ytd_closing_{field_prefix}:{pattern}"
         if key in self._balance_cache:
@@ -196,8 +197,8 @@ class ReportEngine:
             if _pattern_matches(pattern, code):
                 d += row.closing_debit
                 c += row.closing_credit
-        # Net: for debit-natured accounts (assets), return max(0, d - c).
-        # For credit-natured accounts (liabilities/equity), return max(0, c - d).
+        # Net across object_code rows so unpaid-invoice debits offset
+        # unapplied-payment credits for the same account.
         if field_prefix == "debit":
             net = d - c
             d = net if net > 0 else Decimal("0")
