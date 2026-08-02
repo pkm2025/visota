@@ -150,26 +150,77 @@ class BalanceSheetService:
     # -- legacy fallback -------------------------------------------------
 
     def _generate_legacy(self, fiscal_year: int, period: int) -> dict:
+        """Fallback balance sheet (used when no FinancialReportLine config).
+
+        Groups YTD closing balances by account-code **prefix** (first 3
+        digits) so that 131, 1311, 1312 etc. all roll up into the 131
+        bucket.  Respects debit-vs-credit sign so a credit-balance on a
+        ``1xx`` account (e.g. customer prepayment on TK 131) is reported
+        as a liability, not an asset.
+
+        Bug #10 history: the previous implementation used
+        ``max(closing_debit, closing_credit)`` per YtdRow and classified
+        by the first digit of ``account_code``.  This double-counted
+        when 5 customer rows existed for TK 131 (showing 5 lines and
+        summing all of them as assets even when some had credit
+        balances).
+        """
         from apps.ledger.services import YtdBalanceService
 
         rows = YtdBalanceService(
             company=self.company, fiscal_year=fiscal_year, period=period
         ).fetch()
 
+        # Aggregate by 3-digit prefix: net debit vs credit across all
+        # rows sharing that prefix (so invoice debits offset payment
+        # credits for the same account group).
+        prefix_buckets: dict[str, dict[str, Decimal]] = {}
+        for r in rows:
+            code = r.account_code or ""
+            prefix = code[:3] if len(code) >= 3 else code
+            if not prefix:
+                continue
+            bucket = prefix_buckets.setdefault(
+                prefix,
+                {"debit": Decimal("0"), "credit": Decimal("0")},
+            )
+            bucket["debit"] += r.closing_debit
+            bucket["credit"] += r.closing_credit
+
         asset_rows: list[dict] = []
         liability_rows: list[dict] = []
         equity_rows: list[dict] = []
 
-        for r in rows:
-            closing = max(r.closing_debit, r.closing_credit)
-            if closing == 0:
+        for prefix, b in prefix_buckets.items():
+            d = b["debit"]
+            c = b["credit"]
+            if d == 0 and c == 0:
+                continue
+            first_digit = prefix[0] if prefix else "0"
+            # Net per bucket: whichever side is heavier wins.
+            if d >= c:
+                amount = d - c
+                side = "debit"
+            else:
+                amount = c - d
+                side = "credit"
+
+            if amount == 0:
                 continue
 
-            first_digit = r.account_code[0] if r.account_code else "0"
-            row = {"account_code": r.account_code, "amount": closing}
+            row = {"account_code": prefix, "amount": amount}
 
+            # Classify by first digit AND natural side of the account.
+            # 1xx, 2xx are normally debit-natured (assets).  If they
+            # carry a credit balance, treat as liability (e.g. customer
+            # prepayment on TK 131).
+            # 3xx are credit-natured (liabilities).
+            # 4xx are credit-natured (equity).
             if first_digit in ("1", "2"):
-                asset_rows.append(row)
+                if side == "debit":
+                    asset_rows.append(row)
+                else:
+                    liability_rows.append(row)
             elif first_digit == "3":
                 liability_rows.append(row)
             elif first_digit == "4":

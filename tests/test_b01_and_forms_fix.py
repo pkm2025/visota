@@ -184,3 +184,108 @@ def test_aggregate_closing_pure_asset_no_credit(seded_reports, db):
 def seded_reports(db):
     """Alias fixture to avoid name collision in pure-asset test."""
     call_command("seed_financial_report_lines")
+
+
+# ---------------------------------------------------------------------------
+# Bug #10 (legacy fallback): _generate_legacy must net and respect sign
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_legacy_balance_sheet_nets_per_prefix(db):
+    """When no B01-DN config is seeded, _generate_legacy aggregates by
+    3-digit prefix and nets debit vs credit so an account with mixed
+    activity reports its net balance, not the gross max(cd, cc).
+
+    Bug #10 detail: PKM had 5 separate rows for TK 131 (each customer
+    invoice).  Old code returned max(cd, cc) per row and summed, giving
+    308M.  Fix nets across rows sharing the same 3-digit prefix.
+    """
+    from apps.reporting.services.balance_sheet import BalanceSheetService
+
+    company = Company.objects.create(code="LEG", name="Legacy Co")
+
+    # Simulate: 5 invoice rows (each cd=61.6M) and payment rows (cc=308M)
+    # All share prefix "131" but have different object_codes.
+    # Net should be max(0, 308 - 308) = 0, NOT 5 × 61.6 = 308M.
+    for i in range(5):
+        AccountPeriodBalance.objects.create(
+            company=company,
+            fiscal_year=2026,
+            period=6,
+            account_code="1311",
+            object_code=f"CUST{i}",
+            period_debit=Decimal("61600000"),
+            closing_debit=Decimal("61600000"),
+        )
+    # One big payment row on a separate object_code
+    AccountPeriodBalance.objects.create(
+        company=company,
+        fiscal_year=2026,
+        period=6,
+        account_code="1311",
+        object_code="BULK-PAY",
+        period_credit=Decimal("308000000"),
+        closing_credit=Decimal("308000000"),
+    )
+
+    result = BalanceSheetService(company=company).generate(2026, 6)
+    asset_rows = result["assets"]["rows"]
+    # TK 131 net should be 0 → not appear in assets
+    asset_131 = [r for r in asset_rows if r["account_code"] == "131"]
+    assert asset_131 == [], (
+        f"131 should net to 0 (308M invoice - 308M payment), got {asset_131}"
+    )
+
+
+@pytest.mark.django_db
+def test_legacy_balance_sheet_credit_balance_on_asset_account(db):
+    """A credit balance on a 1xx account (e.g. customer prepayment on
+    TK 131) must appear as a LIABILITY, not an asset.
+
+    Old code: max(0, 70M) = 70M, classified as asset. WRONG.
+    New code: 70M credit balance → liability.
+    """
+    from apps.reporting.services.balance_sheet import BalanceSheetService
+
+    company = Company.objects.create(code="CBAL", name="Credit Balance Co")
+    AccountPeriodBalance.objects.create(
+        company=company,
+        fiscal_year=2026,
+        period=6,
+        account_code="131",
+        period_credit=Decimal("70000000"),
+        closing_credit=Decimal("70000000"),
+    )
+
+    result = BalanceSheetService(company=company).generate(2026, 6)
+    asset_codes = [r["account_code"] for r in result["assets"]["rows"]]
+    liability_codes = [r["account_code"] for r in result["liabilities_equity"]["liabilities"]]
+    assert "131" not in asset_codes, "Credit balance on 131 should NOT be in assets"
+    assert "131" in liability_codes, "Credit balance on 131 should be a liability"
+
+
+@pytest.mark.django_db
+def test_legacy_balance_sheet_subaccount_rollup(db):
+    """131, 1311, 1312 all roll up to prefix '131' in legacy mode."""
+    from apps.reporting.services.balance_sheet import BalanceSheetService
+
+    company = Company.objects.create(code="ROLL", name="Rollup Co")
+    # Three sub-accounts under prefix 131, each with 10M debit balance
+    for code in ("131", "1311", "1312"):
+        AccountPeriodBalance.objects.create(
+            company=company,
+            fiscal_year=2026,
+            period=6,
+            account_code=code,
+            period_debit=Decimal("10000000"),
+            closing_debit=Decimal("10000000"),
+        )
+
+    result = BalanceSheetService(company=company).generate(2026, 6)
+    asset_rows = result["assets"]["rows"]
+    asset_131 = [r for r in asset_rows if r["account_code"] == "131"]
+    assert len(asset_131) == 1, f"Should have one '131' row, got {asset_131}"
+    assert asset_131[0]["amount"] == Decimal("30000000"), (
+        f"131 should aggregate 3 × 10M = 30M, got {asset_131[0]['amount']}"
+    )
