@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /accounts/
+Disallow: /api/
+Disallow: /modern/
+Disallow: /switch-company/
+
+Sitemap: https://visota.net/sitemap.xml

@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib import admin
+from django.contrib.sitemaps.views import sitemap as sitemap_view
 from django.urls import include, path
 from django.views.defaults import page_not_found, server_error
 from django.views.generic import RedirectView, TemplateView
@@ -12,8 +13,19 @@ from apps.ui_modern.views import (
     health_simple,
 )
 from apps.ui_modern.views.company_switch import CompanySwitchView
+from config.sitemap import StaticViewSitemap
+
+sitemaps = {
+    "static": StaticViewSitemap,
+}
 
 urlpatterns = [
+    path(
+        "robots.txt",
+        TemplateView.as_view(template_name="robots.txt", content_type="text/plain"),
+        name="robots",
+    ),
+    path("sitemap.xml", sitemap_view, {"sitemaps": sitemaps}, name="sitemap"),
     path("admin/", admin.site.urls),
     path("auth/login/", VisotaLoginView.as_view(), name="login"),
     path("auth/logout/", VisotaLogoutView.as_view(), name="logout"),

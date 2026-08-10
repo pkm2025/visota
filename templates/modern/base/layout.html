@@ -12,6 +12,19 @@
     <meta name="description" content="Visota ERP — Hệ thống kế toán VN tuân thủ TT133/2016, TT200/2014">
     <title>{% block title %}{{ brand.name }}{% endblock %}</title>
 
+    <link rel="canonical" href="https://visota.net/">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Visota",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "url": "https://visota.net/"
+    }
+    </script>
+
     <link rel="icon" href="{{ brand.favicon }}">
     <link rel="manifest" href="{% static 'manifest.json' %}">
     <link rel="apple-touch-icon" href="{% static 'icons/apple-touch-icon.png' %}">
