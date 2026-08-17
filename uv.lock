@@ -780,6 +780,15 @@ wheels = [
 ]
 
 [[package]]
+name = "markdown"
+version = "3.10.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/29/6f/da4c6aea59b3001f2e8c0ec7497475aadaf3b021c10cab5b2858f0f32b26/markdown-3.10.3.tar.gz", hash = "sha256:3589362618f743188b4d955b874402bc814f4f83f544dc207719f4baa7d9c45f", size = 372596, upload-time = "2026-07-30T19:05:29.005Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/64/69/4a5af2bc115a9a33fefe51709749de8262be3f9ba063d1753a837cdbc49c/markdown-3.10.3-py3-none-any.whl", hash = "sha256:fa6c92a00a4a3c98b22728c64a935ae1928250ae65058a6ded814d2cc29a4cea", size = 110757, upload-time = "2026-07-30T19:05:27.883Z" },
+]
+
+[[package]]
 name = "matplotlib-inline"
 version = "0.2.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1002,76 +1011,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/f9/e2/3e91f31a7d2b083fe
 wheels = [
     { url = "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl", hash = "sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746", size = 20538, upload-time = "2025-05-15T12:30:06.134Z" },
 ]
-
-[[package]]
-name = "pmketoan"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "django" },
-    { name = "django-allauth" },
-    { name = "django-axes" },
-    { name = "django-debug-toolbar" },
-    { name = "django-extensions" },
-    { name = "django-ninja" },
-    { name = "django-q2" },
-    { name = "mysqlclient" },
-    { name = "openpyxl" },
-    { name = "pillow" },
-    { name = "python-dateutil" },
-    { name = "python-docx" },
-    { name = "pyyaml" },
-    { name = "weasyprint" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "django-stubs" },
-    { name = "factory-boy" },
-    { name = "faker" },
-    { name = "ipdb" },
-    { name = "ipython" },
-    { name = "mypy" },
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-django" },
-    { name = "pytest-mock" },
-    { name = "pytest-xdist" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "django", specifier = ">=5.2,<5.3" },
-    { name = "django-allauth", specifier = ">=60.0" },
-    { name = "django-axes", specifier = ">=6.5" },
-    { name = "django-debug-toolbar", specifier = ">=4.4" },
-    { name = "django-extensions", specifier = ">=3.2" },
-    { name = "django-ninja", specifier = ">=1.2" },
-    { name = "django-q2", specifier = ">=1.9" },
-    { name = "django-stubs", marker = "extra == 'dev'", specifier = ">=5.0" },
-    { name = "factory-boy", marker = "extra == 'dev'", specifier = ">=3.3" },
-    { name = "faker", marker = "extra == 'dev'", specifier = ">=25.0" },
-    { name = "ipdb", marker = "extra == 'dev'", specifier = ">=0.13" },
-    { name = "ipython", marker = "extra == 'dev'", specifier = ">=8.0" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
-    { name = "mysqlclient", specifier = ">=2.2" },
-    { name = "openpyxl", specifier = ">=3.1" },
-    { name = "pillow", specifier = ">=10.0" },
-    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.7" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },
-    { name = "pytest-django", marker = "extra == 'dev'", specifier = ">=4.8" },
-    { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.14" },
-    { name = "pytest-xdist", marker = "extra == 'dev'", specifier = ">=3.5" },
-    { name = "python-dateutil", specifier = ">=2.9" },
-    { name = "python-docx", specifier = ">=1.1" },
-    { name = "pyyaml", specifier = ">=6.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.5" },
-    { name = "weasyprint", specifier = ">=60.0" },
-]
-provides-extras = ["dev"]
 
 [[package]]
 name = "pre-commit"
@@ -1460,11 +1399,11 @@ wheels = [
 
 [[package]]
 name = "sqlparse"
-version = "0.5.5"
+version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/90/76/437d71068094df0726366574cf3432a4ed754217b436eb7429415cf2d480/sqlparse-0.5.5.tar.gz", hash = "sha256:e20d4a9b0b8585fdf63b10d30066c7c94c5d7a7ec47c889a2d83a3caa93ff28e", size = 120815, upload-time = "2025-12-19T07:17:45.073Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5f/d3/3f06a1006f2261d1342aefb3c71eed02f5d4ca5bdbecd86ebc12ad38306e/sqlparse-0.6.0.tar.gz", hash = "sha256:113c35c75365ab9cc9c7231d68c6428fb11c085fc8e9eb1ad659b7ddbf6cd2b9", size = 178477, upload-time = "2026-08-13T19:16:06.396Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/49/4b/359f28a903c13438ef59ebeee215fb25da53066db67b305c125f1c6d2a25/sqlparse-0.5.5-py3-none-any.whl", hash = "sha256:12a08b3bf3eec877c519589833aed092e2444e68240a3577e8e26148acc7b1ba", size = 46138, upload-time = "2025-12-19T07:17:46.573Z" },
+    { url = "https://files.pythonhosted.org/packages/d9/50/f00935da0ec7cbf325f8dc4f772ae46fbc7b672dd62876e73f0a94adda57/sqlparse-0.6.0-py3-none-any.whl", hash = "sha256:b861c0288ce2fa56209a9a6412d2e066ac664b3873b89c26c9d8415e8e32996f", size = 50070, upload-time = "2026-08-13T19:16:04.062Z" },
 ]
 
 [[package]]
@@ -1567,6 +1506,78 @@ sdist = { url = "https://files.pythonhosted.org/packages/f1/a5/81f987504738e6def
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2c/02/3623e6169bed617ed1e2d372f7c69f92ec28d54c4dfc997055c8578ec148/virtualenv-21.5.1-py3-none-any.whl", hash = "sha256:55aa670b67bbfb991b03fda39bd3276d92c419d702376e98c5df1c9989a26783", size = 4558820, upload-time = "2026-06-16T16:23:56.963Z" },
 ]
+
+[[package]]
+name = "visota"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "django" },
+    { name = "django-allauth" },
+    { name = "django-axes" },
+    { name = "django-debug-toolbar" },
+    { name = "django-extensions" },
+    { name = "django-ninja" },
+    { name = "django-q2" },
+    { name = "markdown" },
+    { name = "mysqlclient" },
+    { name = "openpyxl" },
+    { name = "pillow" },
+    { name = "python-dateutil" },
+    { name = "python-docx" },
+    { name = "pyyaml" },
+    { name = "weasyprint" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "django-stubs" },
+    { name = "factory-boy" },
+    { name = "faker" },
+    { name = "ipdb" },
+    { name = "ipython" },
+    { name = "mypy" },
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-django" },
+    { name = "pytest-mock" },
+    { name = "pytest-xdist" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "django", specifier = ">=5.2,<5.3" },
+    { name = "django-allauth", specifier = ">=60.0" },
+    { name = "django-axes", specifier = ">=6.5" },
+    { name = "django-debug-toolbar", specifier = ">=4.4" },
+    { name = "django-extensions", specifier = ">=3.2" },
+    { name = "django-ninja", specifier = ">=1.2" },
+    { name = "django-q2", specifier = ">=1.9" },
+    { name = "django-stubs", marker = "extra == 'dev'", specifier = ">=5.0" },
+    { name = "factory-boy", marker = "extra == 'dev'", specifier = ">=3.3" },
+    { name = "faker", marker = "extra == 'dev'", specifier = ">=25.0" },
+    { name = "ipdb", marker = "extra == 'dev'", specifier = ">=0.13" },
+    { name = "ipython", marker = "extra == 'dev'", specifier = ">=8.0" },
+    { name = "markdown", specifier = ">=3.5" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
+    { name = "mysqlclient", specifier = ">=2.2" },
+    { name = "openpyxl", specifier = ">=3.1" },
+    { name = "pillow", specifier = ">=10.0" },
+    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.7" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },
+    { name = "pytest-django", marker = "extra == 'dev'", specifier = ">=4.8" },
+    { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.14" },
+    { name = "pytest-xdist", marker = "extra == 'dev'", specifier = ">=3.5" },
+    { name = "python-dateutil", specifier = ">=2.9" },
+    { name = "python-docx", specifier = ">=1.1" },
+    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.5" },
+    { name = "weasyprint", specifier = ">=60.0" },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "wcwidth"
